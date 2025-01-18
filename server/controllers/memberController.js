@@ -118,6 +118,8 @@ exports.addMember = async (req, res) => {
     email, password 
   } = req.body;
 
+
+
   const idPicture = req.file ? req.file.filename : null;
   const formattedRegistrationDate = registrationDate ? formatDate(new Date(registrationDate)) : formatDate(new Date());
 

@@ -90,8 +90,8 @@ const Members = () => {
     }
   };
 
-  if (loading) return <div>Loading members...</div>;
-  if (error) return <div>Error fetching data: {error}</div>;
+  // if (loading) return <div>Loading members...</div>;
+  // if (error) return <div>Error fetching data: {error}</div>;
 
   return (
     <div className="p-6">

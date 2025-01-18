@@ -51,60 +51,109 @@ const AddMemberModal = ({ isOpen, onClose, onSave, memberIdToEdit }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
   useEffect(() => {
-    console.log(memberData.memberId)
-    if ( memberData.memberId) {
-      const fetchMemberData = async () => {
-        try {
-          const response = await axios.get(`http://localhost:3001/api/members/${memberIdToEdit}`);
-          setMemberData(response.data);
-        } catch (error) {
-          console.error("Failed to fetch member data", error);
-          setErrors({ fetch: "Failed to load member data. Please try again." });
-          setMemberData(initialMemberState);  // Reset form if fetch fails
-        }
-      };
-      fetchMemberData();
+    if (isOpen && memberIdToEdit) {
+      fetchMemberDetails();
     } else {
-      setMemberData(initialMemberState);  // Reset form when creating a new member
+      resetForm();
     }
   }, [memberIdToEdit, isOpen]);
 
+  const fetchMemberDetails = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3001/api/members/${memberIdToEdit}`);
+      setMemberData(response.data);
+    } catch (error) {
+      console.error("Failed to fetch member data", error);
+      setErrors({ fetch: "Failed to load member data. Please try again." });
+    }
+  };
+
+  const resetForm = () => {
+    setMemberData(initialMemberState);
+    setErrors({});
+    setIsSubmitting(false);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setMemberData(prev => ({ ...prev, [name]: value }));
+    setMemberData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
   const handleFileChange = (e) => {
-    setMemberData(prev => ({ ...prev, idPicture: e.target.files[0] }));
+    setMemberData((prev) => ({ ...prev, idPicture: e.target.files[0] }));
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    Object.entries(memberData).forEach(([key, value]) => {
-      formData.append(key, value || '');
-    });
+  const validateFormData = (data) => {
+    const requiredFields = ["fullNameFirstName", "fullNameLastName"];
+    return requiredFields.every((field) => data[field] !== undefined && data[field] !== "");
+  };
+
+  const handleAddMember = async () => {
+    if (isSubmitting) return;
+
+    if (!validateFormData(memberData)) {
+      alert("Please fill in all required fields.");
+      return;
+    }
 
     setIsSubmitting(true);
-    try {
-      const endpoint = memberIdToEdit ? `http://localhost:3001/api/members/${memberIdToEdit}` : "http://localhost:3001/api/members";
-      const method = memberIdToEdit ? 'put' : 'post';
+    const formData = new FormData();
 
-      const response = await axios[method](endpoint, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+    Object.entries(memberData).forEach(([key, value]) => {
+      if (value || typeof value === "number") {
+        formData.append(key, value);
+      }
+    });
+
+    try {
+      const response = await axios.post("http://localhost:3001/api/members", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      onSave(response.data.message || (memberIdToEdit ? "Member updated successfully!" : "Member added successfully!"));
-      onClose(); // Close the modal after successful submission
+      onSave(response.data.message || "Member added successfully!");
+      onClose();
     } catch (error) {
-      console.error("Error saving member:", error);
-      setErrors({ save: error.response?.data?.message || "An error occurred while saving the member. Please try again." });
+      console.error("Error adding member:", error);
+      setErrors({ save: error.response?.data?.message || "An error occurred while adding the member. Please try again." });
+      alert(error.response?.data?.message || "An error occurred while adding the member. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateMember = async () => {
+    setIsSubmitting(true);
+    const formData = new FormData();
+    Object.entries(memberData).forEach(([key, value]) => {
+      formData.append(key, value || "");
+    });
+
+    try {
+      const response = await axios.put(`http://localhost:3001/api/members/${memberIdToEdit}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      onSave("Member updated successfully!");
+      onClose();
+    } catch (error) {
+      console.error("Error updating member:", error);
+      setErrors({ save: error.response?.data?.message || "An error occurred while updating the member. Please try again." });
+      alert(error.response?.data?.message || "An error occurred while updating the member. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (memberIdToEdit) {
+      handleUpdateMember();
+    } else {
+      handleAddMember();
     }
   };
 
@@ -115,23 +164,33 @@ const AddMemberModal = ({ isOpen, onClose, onSave, memberIdToEdit }) => {
       <div className="fixed inset-0 bg-black opacity-50"></div>
       <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 md:w-1/2 lg:w-1/3 relative z-10 max-h-[80vh] overflow-auto">
         <div className="flex justify-end mb-2">
-          <button onClick={onClose} className="text-red-500 text-2xl font-bold">&times;</button>
+          <button onClick={onClose} className="text-red-500 text-2xl font-bold">
+            &times;
+          </button>
         </div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">{memberIdToEdit ? "Edit Member" : "Add New Member"}</h1>
-        <form onSubmit={handleFormSubmit}>
-          {Object.keys(initialMemberState).map(key => (
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">
+          {memberIdToEdit ? "Edit Member" : "Add New Member"}
+        </h1>
+        <form onSubmit={handleSubmit}>
+          {Object.keys(initialMemberState).map((key) => (
             <div key={key} className="mt-4">
-              <label className="block text-gray-700">{key.replace(/([A-Z])/g, " $1")}:</label>
+              <label className="block text-gray-700">
+                {key.replace(/([A-Z])/g, " $1")}:
+              </label>
               {dropdownFields[key] ? (
                 <select
                   name={key}
                   value={memberData[key]}
                   onChange={handleInputChange}
-                  className={`mt-1 p-2 border ${errors[key] ? "border-red-500" : "border-gray-300"} rounded-md w-full`}
+                  className={`mt-1 p-2 border ${
+                    errors[key] ? "border-red-500" : "border-gray-300"
+                  } rounded-md w-full`}
                 >
                   <option value="">Select {key}</option>
-                  {dropdownFields[key].map(option => (
-                    <option key={option} value={option}>{option}</option>
+                  {dropdownFields[key].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
                   ))}
                 </select>
               ) : (
@@ -140,17 +199,27 @@ const AddMemberModal = ({ isOpen, onClose, onSave, memberIdToEdit }) => {
                   type={key === "idPicture" ? "file" : "text"}
                   value={key === "idPicture" ? undefined : memberData[key]}
                   onChange={key === "idPicture" ? handleFileChange : handleInputChange}
-                  className={`mt-1 p-2 border ${errors[key] ? "border-red-500" : "border-gray-300"} rounded-md w-full`}
+                  className={`mt-1 p-2 border ${
+                    errors[key] ? "border-red-500" : "border-gray-300"
+                  } rounded-md w-full`}
                 />
               )}
             </div>
           ))}
           <div className="mt-6 flex justify-end space-x-4">
-            <button type="button" className="bg-red-500 text-white px-4 py-2 rounded-md" onClick={onClose}>
+            <button
+              type="button"
+              className="bg-red-500 text-white px-4 py-2 rounded-md"
+              onClick={onClose}
+            >
               Cancel
             </button>
-            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : (memberIdToEdit ? "Update Member" : "Add Member")}
+            <button
+              type="submit"
+              className="bg-blue-500 text-white px-4 py-2 rounded-md"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : memberIdToEdit ? "Update Member" : "Add Member"}
             </button>
           </div>
         </form>

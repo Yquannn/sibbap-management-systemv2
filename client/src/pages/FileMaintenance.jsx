@@ -5,6 +5,7 @@ const FileMaintenance = () => {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [file, setFile] = useState(null);
+  const [updateGrid, setUpdateGrid] = useState(false); // State to trigger grid update
 
   const handleMonthChange = (event) => {
     setSelectedMonth(event.target.value);
@@ -15,16 +16,15 @@ const FileMaintenance = () => {
   };
 
   const handleFileChange = (event) => {
-    setFile(event.target.files[0]);  // Assuming only one file is uploaded
+    setFile(event.target.files[0]); // Assuming only one file is uploaded
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Ensure all fields are filled
     if (!selectedMonth || !selectedService || !file) {
       alert('All fields are required.');
-      return; // Stop the submission if any field is missing
+      return;
     }
 
     const formData = new FormData();
@@ -37,16 +37,14 @@ const FileMaintenance = () => {
         method: 'POST',
         body: formData,
       });
-      const result = await response.json(); 
+      const result = await response.json();
       if (response.ok) {
         console.log('Success:', result);
         alert('Maintenance data added successfully!');
-        // Reset the form fields
         setSelectedMonth('');
         setSelectedService('');
         setFile(null);
-        // Optionally, if using a form element reference, reset the form directly:
-        // event.target.reset(); // This would reset the entire form including the file input
+        setUpdateGrid(prev => !prev); // Toggle the state to trigger grid update
       } else {
         throw new Error(result.message || 'Failed to submit form');
       }
@@ -54,7 +52,7 @@ const FileMaintenance = () => {
       console.error('Error submitting form:', error);
       alert('Error submitting form: ' + error.message);
     }
-};
+  };
 
   const months = ["January", "February", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December"];
@@ -112,7 +110,8 @@ const FileMaintenance = () => {
           </div>
         </div>
       </form>
-      <TableWithGrouping/>
+   
+      <TableWithGrouping key={updateGrid} />
     </div>
   );
 };
