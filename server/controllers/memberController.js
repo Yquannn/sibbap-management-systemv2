@@ -104,7 +104,6 @@ exports.getMemberById = async (req, res) => {
 };
 
 
-
 exports.addMember = async (req, res) => {
   const { 
     registrationType, memberType, registrationDate, shareCapital,
@@ -118,12 +117,12 @@ exports.addMember = async (req, res) => {
     email, password 
   } = req.body;
 
+  const idPicture = req.file ? req.file.filename : null; // Ensure multer is configured for file uploads
+  const formattedRegistrationDate = registrationDate 
+    ? formatDate(new Date(registrationDate)) 
+    : formatDate(new Date());
 
-
-  const idPicture = req.file ? req.file.filename : null;
-  const formattedRegistrationDate = registrationDate ? formatDate(new Date(registrationDate)) : formatDate(new Date());
-
-  // Replace undefined with null in the fields that can be nullable
+  // Replace undefined or empty fields with null
   const sanitizedData = {
     registrationType: registrationType || null,
     memberType: memberType || null,
@@ -158,17 +157,16 @@ exports.addMember = async (req, res) => {
     referenceContact: referenceContact || null,
     email: email || null,
     password: password || null,
-    idPicture: idPicture || null
+    idPicture: idPicture || null,
   };
 
   const connection = await db.getConnection();
 
   try {
-    await connection.beginTransaction(); 
+    await connection.beginTransaction(); // Start transaction
+    const memberCode = await generateUniqueMemberId(); // Generate unique member ID
 
-    const memberCode = await generateUniqueMemberId();
-    
-    // Insert member into the members table first
+    // Insert into `members` table
     const memberQuery = `
       INSERT INTO members 
       (memberCode, registrationType, memberType, registrationDate, shareCapital,
@@ -186,65 +184,75 @@ exports.addMember = async (req, res) => {
       sanitizedData.spouseOccupationSourceOfIncome, sanitizedData.contactNumber, sanitizedData.houseNoStreet, sanitizedData.barangay, sanitizedData.city, sanitizedData.idPicture
     ];
 
+    console.log('Executing memberQuery:', memberQuery, memberParams);
     const [memberResult] = await connection.execute(memberQuery, memberParams);
-
     if (memberResult.affectedRows === 0) {
       throw new Error('Failed to insert member information');
     }
 
-    const memberId = memberResult.insertId;  // Capture the memberId (insertId)
+    const memberId = memberResult.insertId;
 
-    // Determine account status based on email and password
+    // Insert into `member_account` table
     const accountStatus = email && password ? 'ACTIVE' : 'NOT ACTIVATED';
-
-    // Insert into member_account with dynamic accountStatus
     const accountQuery = `
       INSERT INTO member_account 
       (memberId, email, password, accountStatus)
       VALUES (?, ?, ?, ?)
     `;
-    const accountParams = [
-      memberId, 
-      sanitizedData.email, 
-      sanitizedData.password, 
-      accountStatus
-    ];
+    const accountParams = [memberId, sanitizedData.email, sanitizedData.password, accountStatus];
+    console.log('Executing accountQuery:', accountQuery, accountParams);
     await connection.execute(accountQuery, accountParams);
 
-    const primaryBeneficiaryQuery = `
-      INSERT INTO beneficiaries 
-      (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
-      VALUES (?, ?, ?, ?)
-    `;
-    const primaryBeneficiaryParams = [memberId, sanitizedData.primaryBeneficiaryName, sanitizedData.primaryBeneficiaryRelationship, sanitizedData.primaryBeneficiaryContact];
-    await connection.execute(primaryBeneficiaryQuery, primaryBeneficiaryParams);
+    // Insert primary beneficiary
+    if (sanitizedData.primaryBeneficiaryName) {
+      const primaryBeneficiaryQuery = `
+        INSERT INTO beneficiaries 
+        (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
+        VALUES (?, ?, ?, ?)
+      `;
+      const primaryBeneficiaryParams = [memberId, sanitizedData.primaryBeneficiaryName, sanitizedData.primaryBeneficiaryRelationship, sanitizedData.primaryBeneficiaryContact];
+      console.log('Executing primaryBeneficiaryQuery:', primaryBeneficiaryQuery, primaryBeneficiaryParams);
+      await connection.execute(primaryBeneficiaryQuery, primaryBeneficiaryParams);
+    }
 
     // Insert secondary beneficiary
-    const secondaryBeneficiaryQuery = `
-      INSERT INTO beneficiaries 
-      (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
-      VALUES (?, ?, ?, ?)
-    `;
-    const secondaryBeneficiaryParams = [memberId, sanitizedData.secondaryBeneficiaryName, sanitizedData.secondaryBeneficiaryRelationship, sanitizedData.secondaryBeneficiaryContact];
-    await connection.execute(secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
+    if (sanitizedData.secondaryBeneficiaryName) {
+      const secondaryBeneficiaryQuery = `
+        INSERT INTO beneficiaries 
+        (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
+        VALUES (?, ?, ?, ?)
+      `;
+      const secondaryBeneficiaryParams = [memberId, sanitizedData.secondaryBeneficiaryName, sanitizedData.secondaryBeneficiaryRelationship, sanitizedData.secondaryBeneficiaryContact];
+      console.log('Executing secondaryBeneficiaryQuery:', secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
+      await connection.execute(secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
+    }
 
-    const characterReferencesQuery = `
-      INSERT INTO character_references 
-      (memberId, referenceName, position, referenceContactNumber)
-      VALUES (?, ?, ?, ?)
-    `;
-    const characterReferencesParams = [memberId, sanitizedData.referenceName, sanitizedData.position, sanitizedData.referenceContact];
-    await connection.execute(characterReferencesQuery, characterReferencesParams);
+    // Insert character references
+    if (sanitizedData.referenceName) {
+      const characterReferencesQuery = `
+        INSERT INTO character_references 
+        (memberId, referenceName, position, referenceContactNumber)
+        VALUES (?, ?, ?, ?)
+      `;
+      const characterReferencesParams = [memberId, sanitizedData.referenceName, sanitizedData.position, sanitizedData.referenceContact];
+      console.log('Executing characterReferencesQuery:', characterReferencesQuery, characterReferencesParams);
+      await connection.execute(characterReferencesQuery, characterReferencesParams);
+    }
 
-    await connection.commit();
-
+    await connection.commit(); // Commit transaction
     res.status(201).json({ message: 'Member added successfully', idPicture });
   } catch (error) {
-    console.error('Error inserting data into MySQL:', error);
-    await connection.rollback();
-    res.status(500).json({ message: 'Error inserting data into MySQL' });
+    console.error('Error inserting data into MySQL:', {
+      message: error.message,
+      stack: error.stack,
+    });
+    await connection.rollback(); // Rollback transaction
+    res.status(500).json({
+      message: 'Error inserting data into MySQL',
+      error: error.message,
+    });
   } finally {
-    connection.release();
+    connection.release(); // Release database connection
   }
 };
 

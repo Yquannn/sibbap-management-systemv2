@@ -54,24 +54,29 @@ const Members = () => {
     });
   };
 
-  const handleSave = async (member) => {
-    const updateEndpoint = member.id ? `${apiBaseURL}/${member.id}` : apiBaseURL;
-    const method = member.id ? 'put' : 'post';
 
+
+  const updateMember = async (member) => {
     try {
       setLoading(true);
-      const response = await axios[method](updateEndpoint, member);
-      setMessage({
-        type: 'success',
-        text: member.id ? "Member updated successfully!" : "Member added successfully!"
+      await axios.put(`${apiBaseURL}/${member.id}`, member, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
+      setMessage({ type: "success", text: "Member updated successfully!" });
       fetchMembers();
       closeModal();
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error saving member: ' + error.message });
+      setMessage({ type: "error", text: "Error updating member: " + error.message });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSave = async (member) => {
+    if (modalState.editOpen) {
+      await updateMember(member);
+    }
+    fetchMembers()
   };
 
   const handleDelete = async (memberId) => {
@@ -79,7 +84,7 @@ const Members = () => {
       try {
         setLoading(true);
         await axios.delete(`${apiBaseURL}/${memberId}`);
-        setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId));
+        setMembers((prev) => prev.filter((member) => member.id !== memberId));
         setMessage({ type: 'success', text: "Member deleted successfully!" });
         fetchMembers();
       } catch (error) {
@@ -90,9 +95,7 @@ const Members = () => {
     }
   };
 
-  // if (loading) return <div>Loading members...</div>;
-  // if (error) return <div>Error fetching data: {error}</div>;
-
+  
   return (
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-4">Member List</h2>
@@ -106,7 +109,7 @@ const Members = () => {
             placeholder="Search member..."
             className="px-10 py-2 border border-gray-300 rounded-md w-full relative w-80 mr-4"
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
           <button
             className="px-4 py-3 bg-green-500 text-white rounded hover:bg-green-700 flex items-center space-x-2"
