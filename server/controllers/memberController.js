@@ -16,10 +16,12 @@ exports.getMembers = async (req, res) => {
            c.referenceName, 
            c.position, 
            c.referenceContactNumber
+
     FROM members mi
     LEFT JOIN member_account ma ON mi.memberId = ma.memberId
     LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
     LEFT JOIN character_references c ON mi.memberId = c.memberId`;
+    
 
   const queryParams = [];
 
@@ -77,6 +79,9 @@ exports.getMembers = async (req, res) => {
 
 
 
+
+
+
 exports.getMemberById = async (req, res) => {
   const id = req.params.id;
   if (!id || typeof id !== 'string' || id.trim() === '') {
@@ -103,31 +108,34 @@ exports.getMemberById = async (req, res) => {
   }
 };
 
-
 exports.addMember = async (req, res) => {
-  const { 
+  const {
     registrationType, memberType, registrationDate, shareCapital,
     fullNameLastName, fullNameFirstName, fullNameMiddleName, maidenName,
-    tinNumber, dateOfBirth, birthplaceProvince, age, 
-    sex, civilStatus, highestEducationalAttainment, 
+    tinNumber, dateOfBirth, birthplaceProvince, age,
+    sex, civilStatus, highestEducationalAttainment,
     occupationSourceOfIncome, spouseName, spouseOccupationSourceOfIncome,
     primaryBeneficiaryName, primaryBeneficiaryRelationship, primaryBeneficiaryContact,
     secondaryBeneficiaryName, secondaryBeneficiaryRelationship, secondaryBeneficiaryContact,
     contactNumber, houseNoStreet, barangay, city, referenceName, position, referenceContact,
-    email, password 
+    email, password, savings
   } = req.body;
 
-  const idPicture = req.file ? req.file.filename : null; // Ensure multer is configured for file uploads
-  const formattedRegistrationDate = registrationDate 
-    ? formatDate(new Date(registrationDate)) 
+  const idPicture = req.file ? req.file.filename : null;
+  const formattedRegistrationDate = registrationDate
+    ? formatDate(new Date(registrationDate))
     : formatDate(new Date());
 
-  // Replace undefined or empty fields with null
+  // Adjust share capital and prepare to add to savings
+  const adjustedShareCapital = Math.max(0, shareCapital - 100); // Ensures share capital doesn't go negative
+  const additionalSavings = shareCapital >= 100 ? 100 : 0; // Only add 100 to savings if there was at least 100 in share capital
+
+  // Sanitize and validate data
   const sanitizedData = {
     registrationType: registrationType || null,
     memberType: memberType || null,
     registrationDate: formattedRegistrationDate,
-    shareCapital: shareCapital || null,
+    shareCapital: adjustedShareCapital,
     fullNameLastName: fullNameLastName || null,
     fullNameFirstName: fullNameFirstName || null,
     fullNameMiddleName: fullNameMiddleName || null,
@@ -158,106 +166,134 @@ exports.addMember = async (req, res) => {
     email: email || null,
     password: password || null,
     idPicture: idPicture || null,
+    savings: additionalSavings
   };
 
   const connection = await db.getConnection();
 
   try {
-    await connection.beginTransaction(); // Start transaction
-    const memberCode = await generateUniqueMemberId(); // Generate unique member ID
+    await connection.beginTransaction();
 
-    // Insert into `members` table
+    // Generate unique member code
+    const memberCode = await generateUniqueMemberId();
+
+    // Insert member data
     const memberQuery = `
       INSERT INTO members 
-      (memberCode, registrationType, memberType, registrationDate, shareCapital,
-       fullNameLastName, fullNameFirstName, fullNameMiddleName, maidenName, 
-       tinNumber, dateOfBirth, birthplaceProvince, age, sex, civilStatus, 
-       highestEducationalAttainment, occupationSourceOfIncome, spouseName, 
-       spouseOccupationSourceOfIncome, contactNumber, houseNoStreet, barangay, city, idPicture)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (memberCode, registrationType, memberType, registrationDate, shareCapital,
+        fullNameLastName, fullNameFirstName, fullNameMiddleName, maidenName, 
+        tinNumber, dateOfBirth, birthplaceProvince, age, sex, civilStatus, 
+        highestEducationalAttainment, occupationSourceOfIncome, spouseName, 
+        spouseOccupationSourceOfIncome, contactNumber, houseNoStreet, barangay, city, idPicture)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const memberParams = [
       memberCode, sanitizedData.registrationType, sanitizedData.memberType, sanitizedData.registrationDate, sanitizedData.shareCapital,
       sanitizedData.fullNameLastName, sanitizedData.fullNameFirstName, sanitizedData.fullNameMiddleName, sanitizedData.maidenName,
       sanitizedData.tinNumber, sanitizedData.dateOfBirth, sanitizedData.birthplaceProvince, sanitizedData.age, sanitizedData.sex, sanitizedData.civilStatus,
-      sanitizedData.highestEducationalAttainment, sanitizedData.occupationSourceOfIncome, sanitizedData.spouseName, 
+      sanitizedData.highestEducationalAttainment, sanitizedData.occupationSourceOfIncome, sanitizedData.spouseName,
       sanitizedData.spouseOccupationSourceOfIncome, sanitizedData.contactNumber, sanitizedData.houseNoStreet, sanitizedData.barangay, sanitizedData.city, sanitizedData.idPicture
     ];
-
-    console.log('Executing memberQuery:', memberQuery, memberParams);
     const [memberResult] = await connection.execute(memberQuery, memberParams);
+
     if (memberResult.affectedRows === 0) {
-      throw new Error('Failed to insert member information');
+      throw new Error("Failed to insert member information");
     }
 
     const memberId = memberResult.insertId;
 
-    // Insert into `member_account` table
-    const accountStatus = email && password ? 'ACTIVE' : 'NOT ACTIVATED';
+    // Insert member account
+    const accountStatus = email && password ? "ACTIVE" : "NOT ACTIVATED";
     const accountQuery = `
-      INSERT INTO member_account 
+      INSERT INTO member_account
       (memberId, email, password, accountStatus)
       VALUES (?, ?, ?, ?)
     `;
     const accountParams = [memberId, sanitizedData.email, sanitizedData.password, accountStatus];
-    console.log('Executing accountQuery:', accountQuery, accountParams);
     await connection.execute(accountQuery, accountParams);
 
-    // Insert primary beneficiary
+    // Insert beneficiaries and references
     if (sanitizedData.primaryBeneficiaryName) {
       const primaryBeneficiaryQuery = `
-        INSERT INTO beneficiaries 
-        (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
+        INSERT INTO beneficiaries (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
         VALUES (?, ?, ?, ?)
       `;
       const primaryBeneficiaryParams = [memberId, sanitizedData.primaryBeneficiaryName, sanitizedData.primaryBeneficiaryRelationship, sanitizedData.primaryBeneficiaryContact];
-      console.log('Executing primaryBeneficiaryQuery:', primaryBeneficiaryQuery, primaryBeneficiaryParams);
       await connection.execute(primaryBeneficiaryQuery, primaryBeneficiaryParams);
     }
 
-    // Insert secondary beneficiary
     if (sanitizedData.secondaryBeneficiaryName) {
       const secondaryBeneficiaryQuery = `
-        INSERT INTO beneficiaries 
-        (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
+        INSERT INTO beneficiaries (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
         VALUES (?, ?, ?, ?)
       `;
       const secondaryBeneficiaryParams = [memberId, sanitizedData.secondaryBeneficiaryName, sanitizedData.secondaryBeneficiaryRelationship, sanitizedData.secondaryBeneficiaryContact];
-      console.log('Executing secondaryBeneficiaryQuery:', secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
       await connection.execute(secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
     }
 
-    // Insert character references
     if (sanitizedData.referenceName) {
       const characterReferencesQuery = `
-        INSERT INTO character_references 
-        (memberId, referenceName, position, referenceContactNumber)
+        INSERT INTO character_references (memberId, referenceName, position, referenceContactNumber)
         VALUES (?, ?, ?, ?)
       `;
       const characterReferencesParams = [memberId, sanitizedData.referenceName, sanitizedData.position, sanitizedData.referenceContact];
-      console.log('Executing characterReferencesQuery:', characterReferencesQuery, characterReferencesParams);
       await connection.execute(characterReferencesQuery, characterReferencesParams);
     }
 
-    await connection.commit(); // Commit transaction
-    res.status(201).json({ message: 'Member added successfully', idPicture });
+    // Insert into savings table
+    if (sanitizedData.savings > 0) {
+      const savingsQuery = `
+        INSERT INTO savings (memberId, amount)
+        VALUES (?, ?)
+      `;
+      const savingsParams = [memberId, sanitizedData.savings];
+      await connection.execute(savingsQuery, savingsParams);
+    }
+
+    await connection.commit();
+    res.status(201).json({ message: "Member added successfully", idPicture });
   } catch (error) {
-    console.error('Error inserting data into MySQL:', {
-      message: error.message,
-      stack: error.stack,
-    });
-    await connection.rollback(); // Rollback transaction
-    res.status(500).json({
-      message: 'Error inserting data into MySQL',
-      error: error.message,
-    });
+    await connection.rollback();
+    res.status(500).json({ message: "Error adding member", error: error.message });
   } finally {
-    connection.release(); // Release database connection
+    connection.release();
   }
 };
 
 
 
+
+
+
+exports.getMemberSavings = async (req, res) => {
+  const connection = await db.getConnection();
+
+  try {
+    const query = `
+     SELECT 
+    CONCAT(m.fullNameFirstName, ' ', m.fullNameLastName) AS fullName,
+    m.*, 
+    s.amount AS savingsAmount,
+    s.status AS savingsStatus  
+      FROM 
+          members m
+      LEFT JOIN 
+          savings s
+      ON 
+          m.memberId = s.memberId;
+
+    `;
+
+    const [rows] = await connection.execute(query);
+
+    res.status(200).json({ message: "Members retrieved successfully", data: rows });
+  } catch (error) {
+    console.error("Error retrieving members:", error);
+    res.status(500).json({ message: "Error retrieving members", error: error.message });
+  } finally {
+    connection.release();
+  }
+};
 
 
 
@@ -363,6 +399,57 @@ exports.deleteMember = async (req, res) => {
     connection.release();
   }
 };
+// async function checkAndUpdateAccounts() {
+//   let connection;
+//   try {
+//     connection = await db.getConnection();
+//     const query = `
+//       UPDATE savings
+//       SET status = 'dormonth'
+//       WHERE last_updated < NOW() - INTERVAL 20 SECOND
+//       AND status <> 'dormonth';
+//     `;
+//     const [result] = await connection.query(query);
+//     console.log(`${result.affectedRows} accounts updated to dormonth due to inactivity.`);
+//   } catch (error) {
+//     console.error('Failed to update accounts:', error.message);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+//   // Schedule the next execution
+//   setTimeout(checkAndUpdateAccounts, 20000); // Check every 20 seconds
+// }
+
+// // Initialize the first execution
+// setTimeout(checkAndUpdateAccounts, 20000);
+
+// Function to apply interest to savings
+async function applyInterest() {
+  const connection = await db.getConnection();
+
+  try {
+    // Only apply interest to accounts with an amount >= 1000
+    const query = 'UPDATE savings SET amount = amount * 1.01 WHERE amount >= 1000';
+    await connection.query(query);
+    console.log('Interest applied to qualifying savings accounts');
+  } catch (error) {
+    console.error('Failed to apply interest:', error.message);
+  } finally {
+    connection.release();
+  }
+}
+
+// Start the interval to apply interest every 5 seconds
+setInterval(applyInterest, 5000);
+
+function getNextMonthDelay() {
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1); // First day of the next month
+  return nextMonth - now; // Milliseconds until the first day of next month
+}
+
+// Initialize the first execution
+setTimeout(applyInterest, getNextMonthDelay());
 
 
 exports.activateAccount = async (req, res) => {

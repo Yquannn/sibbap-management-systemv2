@@ -68,7 +68,7 @@ const AddAnnouncement = () => {
       setTargetAudience("");
       setStatus("New");
       setSelectedAnnouncementId();
-
+  
       // Fetch updated list of announcements
       fetchAnnouncements();
     } catch (error) {
