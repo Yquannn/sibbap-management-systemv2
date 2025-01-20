@@ -5,19 +5,11 @@ const FileMaintenance = () => {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [file, setFile] = useState(null);
-  const [updateGrid, setUpdateGrid] = useState(false); // State to trigger grid update
+  const [updateGrid, setUpdateGrid] = useState(false);
 
-  const handleMonthChange = (event) => {
-    setSelectedMonth(event.target.value);
-  };
-
-  const handleServiceChange = (event) => {
-    setSelectedService(event.target.value);
-  };
-
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]); // Assuming only one file is uploaded
-  };
+  const handleMonthChange = (event) => setSelectedMonth(event.target.value);
+  const handleServiceChange = (event) => setSelectedService(event.target.value);
+  const handleFileChange = (event) => setFile(event.target.files[0]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -37,81 +29,104 @@ const FileMaintenance = () => {
         method: 'POST',
         body: formData,
       });
+
       const result = await response.json();
+
       if (response.ok) {
-        console.log('Success:', result);
         alert('Maintenance data added successfully!');
         setSelectedMonth('');
         setSelectedService('');
         setFile(null);
-        setUpdateGrid(prev => !prev); // Toggle the state to trigger grid update
+        setUpdateGrid((prev) => !prev); // Trigger grid update
       } else {
         throw new Error(result.message || 'Failed to submit form');
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
       alert('Error submitting form: ' + error.message);
     }
   };
 
-  const months = ["January", "February", "March", "April", "May", "June",
-                  "July", "August", "September", "October", "November", "December"];
-  const services = ["CONSUMER STORE", "BAKERY PRODUCTION", "GARMENTS PRODUCTION", "ATM WITHDRAW & BALANCE", "GCASH (IN & OUT)", "PRINTING SERVICES", "PSA, CENOMAR, DEATH CERT", "TRUEMONEY"];
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const services = [
+    "CONSUMER STORE", "BAKERY PRODUCTION", "GARMENTS PRODUCTION",
+    "ATM WITHDRAW & BALANCE", "GCASH (IN & OUT)", "PRINTING SERVICES",
+    "PSA, CENOMAR, DEATH CERT", "TRUEMONEY"
+  ];
 
   return (
-    <div className="p-6">
-      <h2 className="text-3xl font-bold mb-4">File Maintenance</h2>
+    <div className="min-h-96 p-6">
+      <h2 className="text-3xl font-bold">File Maintenance</h2>
       <form onSubmit={handleSubmit}>
-        <div className='flex flex-wrap'>
-          <div className="mb-4 flex-1 min-w-[280px]">
-            <label htmlFor="month-select" className="block text-lg font-medium text-gray-700">Select Month:</label>
+        <div className="flex flex-wrap gap-4">
+          {/* Month Selector */}
+          <div className="flex-1 min-w-[280px]">
+            <label htmlFor="month-select" className="block text-lg font-medium text-gray-700 mb-2">
+              Select Month:
+            </label>
             <select
               id="month-select"
               value={selectedMonth}
               onChange={handleMonthChange}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="">--Please choose a month--</option>
-              {months.map(month => (
+              {months.map((month) => (
                 <option key={month} value={month}>{month}</option>
               ))}
             </select>
           </div>
 
-          <div className="mb-4 flex-1 min-w-[280px]">
-            <label htmlFor="service-select" className="block text-lg font-medium text-gray-700">Select Service:</label>
+          {/* Service Selector */}
+          <div className="flex-1 min-w-[280px]">
+            <label htmlFor="service-select" className="block text-lg font-medium text-gray-700 mb-2">
+              Select Service:
+            </label>
             <select
               id="service-select"
               value={selectedService}
               onChange={handleServiceChange}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="">--Please choose a service--</option>
-              {services.map(service => (
+              {services.map((service) => (
                 <option key={service} value={service}>{service}</option>
               ))}
             </select>
           </div>
 
-          <div className="mb-4 flex-1 min-w-[280px]">
-            <label htmlFor="file-upload" className="block text-lg font-medium text-gray-700">Attach File:</label>
+          {/* File Upload */}
+          <div className="flex-1 min-w-[280px]">
+            <label htmlFor="file-upload" className="block text-lg font-medium text-gray-700 mb-2">
+              Attach File:
+            </label>
             <input
               id="file-upload"
               type="file"
               onChange={handleFileChange}
-              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-violet-100"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
           </div>
+        </div>
 
-          <div className="mt-6 flex-1 min-w-[280px]">
-            <button type="submit" className="w-full bg-green-500 text-sm text-white font-bold rounded hover:bg-green-600">
-              Submit
-            </button>
-          </div>
+        {/* Submit Button */}
+        <div className="mt-2">
+          <button
+            type="submit"
+            className="w-full bg-green-500 text-white font-bold py-2 rounded hover:bg-green-600"
+          >
+            Submit
+          </button>
         </div>
       </form>
-   
-      <TableWithGrouping key={updateGrid} />
+
+      {/* Data Grid */}
+      <div className="mt-4">
+        <TableWithGrouping key={updateGrid} />
+      </div>
     </div>
   );
 };

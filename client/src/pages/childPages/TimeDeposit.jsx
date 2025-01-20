@@ -3,8 +3,15 @@ import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
 
 const TimeDeposit = ({ members, openModal, handleDelete }) => {
   return (
-    <div className="p-6">
-      <h4 className="text-xl font-bold mb-4">Time Deposit</h4>
+    <div className="p-0">
+      <div className="flex justify-between items-center space-x-4 p-2">
+      <h4 className="text-xl font-bold">Time Deposit</h4>
+      <button 
+        className="bg-green-500 text-white font-semibold py-2 px-4 rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50">
+        Open Account
+      </button>
+    </div>
+
       <div className="overflow-x-auto" style={{ maxHeight: "70vh" }}>
         <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
           <thead className="sticky top-0 bg-green-200 z-20 text-center">

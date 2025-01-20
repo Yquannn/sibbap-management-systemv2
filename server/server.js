@@ -5,6 +5,7 @@ const userRoutes = require('./routes/userRoutes')
 const announcementRoutes = require('./routes/announcementRoutes')
 const authRoutes = require('./routes/authRoutes')
 const maintenanceRoute = require('./routes/maintenanceRoute')
+const savingsRoute = require('./routes/savingsRoutes')
 const login = require('./routes/authRoutes')
 const path = require('path');
 
@@ -25,8 +26,10 @@ app.use((req, res, next) => {
 app.use('/api', memberRoutes);
 app.use('/api', userRoutes);
 app.use('/api', announcementRoutes);
+app.use('/api', savingsRoute)
 app.use('/api', authRoutes)
 app.use('/api', maintenanceRoute)
+
 
 
 

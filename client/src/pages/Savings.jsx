@@ -9,32 +9,33 @@ const Savings = () => {
   return (
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-4">Savings</h2>
-      <div className="tabs flex space-x-4 mb-6">
+      <div className="tabs flex  space-x-4 mb-6 p-4 bg-gray-100 shadow-sm">
         <button
           onClick={() => setActiveTab("RegularSavings")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "RegularSavings" ? "bg-blue-500 text-white" : "bg-gray-200"
+          className={`px-4 py-2 font-medium rounded-lg ${
+            activeTab === "RegularSavings" ? "bg-blue-500 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
         >
           Regular Savings
         </button>
         <button
           onClick={() => setActiveTab("TimeDeposit")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "TimeDeposit" ? "bg-blue-500 text-white" : "bg-gray-200"
+          className={`px-4 py-2 font-medium rounded-lg ${
+            activeTab === "TimeDeposit" ? "bg-blue-500 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
         >
           Time Deposit
         </button>
         <button
           onClick={() => setActiveTab("ShareCapital")}
-          className={`px-4 py-2 rounded ${
-            activeTab === "ShareCapital" ? "bg-blue-500 text-white" : "bg-gray-200"
+          className={`px-4 py-2 font-medium rounded-lg ${
+            activeTab === "ShareCapital" ? "bg-blue-500 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
         >
-          Share Capital 
+          Share Capital
         </button>
       </div>
+
       <div className="content">
         {activeTab === "RegularSavings" && <RegularSavings />}
         {activeTab === "TimeDeposit" && <TimeDeposit />}

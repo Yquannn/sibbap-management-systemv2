@@ -440,7 +440,7 @@ async function applyInterest() {
 }
 
 // Start the interval to apply interest every 5 seconds
-setInterval(applyInterest, 5000);
+// setInterval(applyInterest, 5000);
 
 function getNextMonthDelay() {
   const now = new Date();
@@ -449,7 +449,7 @@ function getNextMonthDelay() {
 }
 
 // Initialize the first execution
-setTimeout(applyInterest, getNextMonthDelay());
+// setTimeout(applyInterest, getNextMonthDelay());
 
 
 exports.activateAccount = async (req, res) => {
@@ -468,3 +468,8 @@ exports.activateAccount = async (req, res) => {
     return res.status(500).json({ message: 'Error activating account' });
   }
 };
+
+
+
+
+

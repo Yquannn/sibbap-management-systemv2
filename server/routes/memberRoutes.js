@@ -29,6 +29,7 @@ router.delete('/members/:id', memberController.deleteMember);
 router.put('/activate/:memberId', memberController.activateAccount);
 
 
+
 router.use((err, req, res, next) => {
   console.error('Error:', err); 
   res.status(err.status || 500).json({ message: err.message || 'An error occurred while processing your request.' });

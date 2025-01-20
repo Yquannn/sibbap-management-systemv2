@@ -3,7 +3,7 @@
  
  const ShareCapital = ({ members, openModal, handleDelete }) => {
    return (
-     <div className="p-6">
+     <div className="p-0">
        <h4 className="text-xl font-bold mb-4">Share Capital</h4>
        <div className="overflow-x-auto" style={{ maxHeight: "70vh" }}>
          <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
