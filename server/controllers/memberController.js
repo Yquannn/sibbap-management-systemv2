@@ -111,7 +111,7 @@ exports.getMemberById = async (req, res) => {
 exports.addMember = async (req, res) => {
   const {
     registrationType, memberType, registrationDate, shareCapital,
-    fullNameLastName, fullNameFirstName, fullNameMiddleName, maidenName,
+    LastName, FirstName, MiddleName, maidenName,
     tinNumber, dateOfBirth, birthplaceProvince, age,
     sex, civilStatus, highestEducationalAttainment,
     occupationSourceOfIncome, spouseName, spouseOccupationSourceOfIncome,
@@ -136,9 +136,9 @@ exports.addMember = async (req, res) => {
     memberType: memberType || null,
     registrationDate: formattedRegistrationDate,
     shareCapital: adjustedShareCapital,
-    fullNameLastName: fullNameLastName || null,
-    fullNameFirstName: fullNameFirstName || null,
-    fullNameMiddleName: fullNameMiddleName || null,
+    LastName: LastName || null,
+    FirstName: FirstName || null,
+    MiddleName: MiddleName || null,
     maidenName: maidenName || null,
     tinNumber: tinNumber || null,
     dateOfBirth: dateOfBirth || null,
@@ -181,7 +181,7 @@ exports.addMember = async (req, res) => {
     const memberQuery = `
       INSERT INTO members 
         (memberCode, registrationType, memberType, registrationDate, shareCapital,
-        fullNameLastName, fullNameFirstName, fullNameMiddleName, maidenName, 
+        LastName, FirstName, MiddleName, maidenName, 
         tinNumber, dateOfBirth, birthplaceProvince, age, sex, civilStatus, 
         highestEducationalAttainment, occupationSourceOfIncome, spouseName, 
         spouseOccupationSourceOfIncome, contactNumber, houseNoStreet, barangay, city, idPicture)
@@ -189,7 +189,7 @@ exports.addMember = async (req, res) => {
     `;
     const memberParams = [
       memberCode, sanitizedData.registrationType, sanitizedData.memberType, sanitizedData.registrationDate, sanitizedData.shareCapital,
-      sanitizedData.fullNameLastName, sanitizedData.fullNameFirstName, sanitizedData.fullNameMiddleName, sanitizedData.maidenName,
+      sanitizedData.LastName, sanitizedData.FirstName, sanitizedData.MiddleName, sanitizedData.maidenName,
       sanitizedData.tinNumber, sanitizedData.dateOfBirth, sanitizedData.birthplaceProvince, sanitizedData.age, sanitizedData.sex, sanitizedData.civilStatus,
       sanitizedData.highestEducationalAttainment, sanitizedData.occupationSourceOfIncome, sanitizedData.spouseName,
       sanitizedData.spouseOccupationSourceOfIncome, sanitizedData.contactNumber, sanitizedData.houseNoStreet, sanitizedData.barangay, sanitizedData.city, sanitizedData.idPicture
@@ -243,7 +243,7 @@ exports.addMember = async (req, res) => {
     // Insert into savings table
     if (sanitizedData.savings > 0) {
       const savingsQuery = `
-        INSERT INTO savings (memberId, amount)
+        INSERT INTO regular_savings (memberId, amount)
         VALUES (?, ?)
       `;
       const savingsParams = [memberId, sanitizedData.savings];
@@ -271,14 +271,14 @@ exports.getMemberSavings = async (req, res) => {
   try {
     const query = `
      SELECT 
-    CONCAT(m.fullNameFirstName, ' ', m.fullNameLastName) AS fullName,
+    CONCAT(m.FirstName, ' ', m.LastName) AS fullName,
     m.*, 
     s.amount AS savingsAmount,
-    s.status AS savingsStatus  
+    s.remarks AS savingsStatus  
       FROM 
           members m
       LEFT JOIN 
-          savings s
+          regular_savings s
       ON 
           m.memberId = s.memberId;
 
@@ -429,7 +429,7 @@ async function applyInterest() {
 
   try {
     // Only apply interest to accounts with an amount >= 1000
-    const query = 'UPDATE savings SET amount = amount * 1.01 WHERE amount >= 1000';
+    const query = 'UPDATE regular_savings SET amount = amount * 1.01 WHERE amount >= 1000';
     await connection.query(query);
     console.log('Interest applied to qualifying savings accounts');
   } catch (error) {

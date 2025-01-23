@@ -10,7 +10,7 @@ const findSavingsByMemberId = async (memberId) => {
       throw new Error('Member ID is undefined or invalid');
     }
   
-    const query = 'SELECT * FROM savings WHERE memberId = ?';
+    const query = 'SELECT * FROM regular_savings WHERE memberId = ?';
   
     try {
       const [rows] = await db.execute(query, [memberId]);
@@ -29,7 +29,7 @@ const findSavingsByMemberId = async (memberId) => {
  * @returns {boolean} - True if the record was updated, false otherwise
  */
 const updateSavingsAmount = async (memberId, newAmount) => {
-    const query = 'UPDATE savings SET amount = ? WHERE memberId = ?';
+    const query = 'UPDATE regular_savings SET amount = ? WHERE memberId = ?';
     try {
       const [result] = await db.execute(query, [newAmount, memberId]);
       return result.affectedRows > 0; // Return true if at least one row was updated

@@ -53,4 +53,48 @@ exports.getActiveTimeDeposits = async (req, res) => {
       res.status(500).json({ error: "Error fetching active time deposits." });
     }
   };
+
+
+  exports.getMemberWithNoTimeDeposit = async (req, res) => {
+    try {
+      // Fetch active time depositors from the model
+      const deposits = await TimeDeposit.getTimeDepositor();
+  
+      // Check if no deposits were found
+      if (!deposits || deposits.length === 0) {
+        return res.status(404).json({ error: "No active time deposits found." });
+      }
+  
+      // Respond with the list of active time deposits
+      res.status(200).json(deposits);
+    } catch (err) {
+      console.error("Error fetching active time deposits:", err.message);
+  
+      // Respond with a 500 status code and error message
+      res.status(500).json({ error: "An error occurred while fetching active time deposits." });
+    }
+  };
+  
+
+  exports.updateTimeDepositors = async (req, res) => {
+      const { memberId } = req.body;
+    
+      if (!memberId) {
+        return res.status(400).json({ error: "Member ID is required." });
+      }
+    
+      try {
+        const result = await TimeDeposit.updateIsTimeDepositor(memberId);
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ error: "Member not found or already a time depositor." });
+        }
+        res.status(200).json({
+          message: "Member's time depositor status updated successfully.",
+        });
+      } catch (err) {
+        console.error("Error updating time depositor status:", err.message);
+        res.status(500).json({ error: "An error occurred while updating the status." });
+      }
+
+  };
   
