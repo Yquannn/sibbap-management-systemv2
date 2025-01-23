@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import TransactionAuthenticate from './TranscationAuthenticate';
 
 const BASE_URL = 'http://localhost:3001/api'; // Base API URL
 
@@ -8,8 +9,35 @@ const TransactionForm = ({ member, modalType, onClose }) => {
   const [balance, setBalance] = useState(parseFloat(member.savingsAmount) || 0); // Ensure balance is a number
   const [loading, setLoading] = useState(false); // To handle loading state
   const [error, setError] = useState(null); // To display error messages
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track if the user is authenticated
+  const [password, setPassword] = useState(''); // For storing entered password
+  
+  const [showAuthModal, setShowAuthModal] = useState(false); // Control the password modal visibility
+
+  const handleAuthentication = async (enteredPassword) => {
+    try {
+      // API call to verify password (Replace with actual endpoint)
+      const response = await axios.post(`${BASE_URL}/authenticate`, {
+        memberId: member.memberId,
+        password: enteredPassword,
+      });
+      if (response.data.success) {
+        setIsAuthenticated(true);
+        setShowAuthModal(false);  // Close auth modal
+      } else {
+        setError('Authentication failed. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred while authenticating.');
+    }
+  };
 
   const handleTransaction = async () => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true); // Show authentication modal if not authenticated
+      return;
+    }
+
     const amountValue = parseFloat(amount);
 
     // Validate amount
@@ -53,53 +81,61 @@ const TransactionForm = ({ member, modalType, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-96 p-6">
-        <h2 className="text-2xl font-semibold text-center mb-4">
-          {modalType === 'withdraw' ? 'Withdraw' : 'Deposit'} Funds
-        </h2>
+    <div>
+      {/* Transaction Authentication Modal */}
+      {showAuthModal && (
+        <TransactionAuthenticate
+          onAuthenticate={handleAuthentication}
+          onClose={() => setShowAuthModal(false)} // Close auth modal
+        />
+      )}
 
-        <p
-          className="text-center mb-4"
-          aria-live="polite"
-        >
-          Current Balance: <span className="font-bold">{balance.toFixed(2)}</span>
-        </p>
+      {/* Transaction Form Modal */}
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-lg w-96 p-6">
+          <h2 className="text-2xl font-semibold text-center mb-4">
+            {modalType === 'withdraw' ? 'Withdraw' : 'Deposit'} Funds
+          </h2>
 
-        {error && (
-          <p className="text-red-500 text-sm text-center mb-4">
-            {error}
+          <p className="text-center mb-4">
+            Current Balance: <span className="font-bold">{balance.toFixed(2)}</span>
           </p>
-        )}
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700" htmlFor="amount">Amount</label>
-          <input
-            id="amount"
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Enter amount"
-          />
-        </div>
+          {error && (
+            <p className="text-red-500 text-sm text-center mb-4">
+              {error}
+            </p>
+          )}
 
-        <div className="flex justify-between space-x-3">
-          <button
-            onClick={handleTransaction}
-            disabled={loading} // Disable button when loading
-            className={`w-1/2 py-2 px-4 text-white font-semibold rounded-lg shadow hover:opacity-80 focus:outline-none 
-              ${modalType === 'withdraw' ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'}
-              ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading ? 'Processing...' : modalType === 'withdraw' ? 'Withdraw' : 'Deposit'}
-          </button>
-          <button
-            onClick={onClose}
-            className="w-1/2 py-2 px-4 bg-gray-300 text-gray-700 font-semibold rounded-lg shadow hover:bg-gray-400 focus:outline-none"
-          >
-            Close
-          </button>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700" htmlFor="amount">Amount</label>
+            <input
+              id="amount"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Enter amount"
+            />
+          </div>
+
+          <div className="flex justify-between space-x-3">
+            <button
+              onClick={handleTransaction}
+              disabled={loading} // Disable button when loading
+              className={`w-1/2 py-2 px-4 text-white font-semibold rounded-lg shadow hover:opacity-80 focus:outline-none 
+                ${modalType === 'withdraw' ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'}
+                ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {loading ? 'Processing...' : modalType === 'withdraw' ? 'Withdraw' : 'Deposit'}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-1/2 py-2 px-4 bg-gray-300 text-gray-700 font-semibold rounded-lg shadow hover:bg-gray-400 focus:outline-none"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

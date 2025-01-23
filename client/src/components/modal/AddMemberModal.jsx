@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const dropdownFields = {
-  registrationType: ["New", "Transfer", "Regular Member", "Associate Member"],
-  memberType: ["Individual", "Corporate"],
+  registrationType: ["New", "Transfer", "Regular Member"],
+  memberType: ["Individual"],
   sex: ["Male", "Female", "Other"],
   civilStatus: ["Single", "Married", "Widowed", "Divorced"],
   highestEducationalAttainment: ["Primary", "Secondary", "Tertiary", "Post-Graduate", "Vocational"],

@@ -43,7 +43,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
     <div className="p-0">
       {/* Header */}
       <div className="flex justify-between items-center space-x-4 p-2">
-        <h4 className="text-xl font-bold">Time Deposit</h4>
+        <h4 className="text-xl font-bold">Time deposit members</h4>
         <button
           onClick={() => handleOpenModal("deposit")} // Open modal with deposit type
           className="bg-green-500 text-white font-semibold py-2 px-4 rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50"
@@ -71,7 +71,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
           <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
             <thead className="sticky top-0 bg-green-200 z-20 text-center">
               <tr>
-                {[ "Member Code", "Last Name", "First Name", "Amount", "Interest", "Payout", "Maturity Date", "Actions" ].map((heading) => (
+                {[ "Member Code", "Last Name", "First Name", "Amount", "Interest", "Payout", "Maturity Date", "Remarks", "Actions" ].map((heading) => (
                   <th key={heading} className="py-3 px-4 border-b border-gray-300">
                     {heading}
                   </th>
@@ -89,9 +89,11 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                     <td className="py-3 px-4 border-b border-gray-300">{deposit.interest.toFixed(2)}</td>
                     <td className="py-3 px-4 border-b border-gray-300">{deposit.payout.toFixed(2)}</td>
                     <td className="py-3 px-4 border-b border-gray-300">{deposit.maturityDate}</td>
+                    <td className="py-3 px-4 border-b border-gray-300">{deposit.payout.toFixed(2)}</td>
+
                     <td className="py-3 px-4 border-b border-gray-300">
                       <div className="flex justify-center space-x-3">
-                        <button
+                        {/* <button
                           onClick={() => handleOpenModal("edit")}
                           className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
                         >
@@ -108,7 +110,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
                         >
                           <FaEye className="mr-1" /> View
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

@@ -57,7 +57,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
         <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
           <thead className="sticky top-0 bg-green-200 z-20 text-center">
             <tr>
-              {["Full Name", "Contact Number", "Address", "Savings Amount", "Status", "Actions"].map((heading) => (
+              {["Full Name", "Contact Number", "Address", "Savings Amount", "Remarks", "Actions"].map((heading) => (
                 <th key={heading} className="py-3 px-4 border-b border-gray-300">
                   {heading}
                 </th>
