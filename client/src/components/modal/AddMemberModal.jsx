@@ -15,9 +15,9 @@ const AddMemberModal = ({ isOpen, onClose, onSave, memberIdToEdit }) => {
     memberType: "",
     registrationDate: "",
     shareCapital: "",
-    fullNameLastName: "",
-    fullNameFirstName: "",
-    fullNameMiddleName: "",
+    LastName: "",
+    FirstName: "",
+    MiddleName: "",
     maidenName: "",
     tinNumber: "",
     dateOfBirth: "",
@@ -89,7 +89,7 @@ const AddMemberModal = ({ isOpen, onClose, onSave, memberIdToEdit }) => {
   };
 
   const validateFormData = (data) => {
-    const requiredFields = ["fullNameFirstName", "fullNameLastName"];
+    const requiredFields = ["FirstName", "LastName"];
     return requiredFields.every((field) => data[field] !== undefined && data[field] !== "");
   };
 

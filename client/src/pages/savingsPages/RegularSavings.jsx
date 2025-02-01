@@ -52,12 +52,16 @@ const RegularSavings = ({ openModal, handleDelete }) => {
 
   return (
     <div className="p-0">
-      <h4 className="text-xl font-bold mb-4">Regular Savings</h4>
+      {/* Header with Total Members */}
+      <h4 className="text-xl font-bold mb-4">
+        Regular Savings Members - {members.length}
+      </h4>
+
       <div className="overflow-x-auto" style={{ maxHeight: "70vh" }}>
         <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
           <thead className="sticky top-0 bg-green-200 z-20 text-center">
             <tr>
-              {["Full Name", "Contact Number", "Address", "Savings Amount", "Remarks", "Actions"].map((heading) => (
+              {["Code Number", "Full Name", "Contact Number", "Address", "Savings Amount", "Remarks", "Actions"].map((heading) => (
                 <th key={heading} className="py-3 px-4 border-b border-gray-300">
                   {heading}
                 </th>
@@ -71,6 +75,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                   key={index}
                   className="text-center hover:bg-gray-100 cursor-pointer"
                 >
+                  <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.fullName}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.contactNumber}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.city || "N/A"}</td>
@@ -96,7 +101,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-4 text-center">
+                <td colSpan={7} className="py-4 text-center">
                   No savings data found.
                 </td>
               </tr>

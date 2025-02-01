@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 const TransactionAuthenticate = ({ onAuthenticate, onClose }) => {
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("test");
   const [error, setError] = useState("");
 
   // Handle form submission

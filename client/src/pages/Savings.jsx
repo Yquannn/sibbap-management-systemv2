@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import RegularSavings from "./childPages/RegularSavings";
-import TimeDeposit from "./childPages/TimeDeposit";
-import ShareCapital from "./childPages/SharedCapital";
+import RegularSavings from "./savingsPages/RegularSavings";
+import TimeDeposit from "./savingsPages/TimeDeposit";
+import ShareCapital from "./savingsPages/SharedCapital";
 
 const Savings = () => {
   const [activeTab, setActiveTab] = useState("RegularSavings"); // State to track the active tab

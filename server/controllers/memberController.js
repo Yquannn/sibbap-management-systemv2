@@ -26,7 +26,7 @@ exports.getMembers = async (req, res) => {
   const queryParams = [];
 
   if (memberName) {
-    query += ' WHERE LOWER(mi.fullName) = ?';  // Filtering by member name if provided
+    query += ' WHERE LOWER(mi.lastName) = ?';  // Filtering by member name if provided
     queryParams.push(memberName.toLowerCase());
   }
 

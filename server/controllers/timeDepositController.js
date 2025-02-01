@@ -62,18 +62,22 @@ exports.getActiveTimeDeposits = async (req, res) => {
   
       // Check if no deposits were found
       if (!deposits || deposits.length === 0) {
-        return res.status(404).json({ error: "No active time deposits found." });
+        return res.status(200).json({ message: "No members found without active time deposits.", data: [] });
       }
   
-      // Respond with the list of active time deposits
-      res.status(200).json(deposits);
+      // Respond with the list of members
+      res.status(200).json({ data: deposits });
     } catch (err) {
       console.error("Error fetching active time deposits:", err.message);
   
-      // Respond with a 500 status code and error message
-      res.status(500).json({ error: "An error occurred while fetching active time deposits." });
+      // Respond with a 500 status code and detailed error message
+      res.status(500).json({ 
+        error: "An error occurred while fetching members.",
+        details: err.message
+      });
     }
   };
+  
   
 
   exports.updateTimeDepositors = async (req, res) => {

@@ -12,6 +12,7 @@ import Users from "./pages/Users";
 import NotFoundPage from "./pages/NotFound";
 import Announcement from "./pages/Announcement";
 import LogIn from "./pages/LogIn";
+import Borrowers from "./pages/loanPages/Borrowers";
 
 function App() {
   return (
@@ -25,7 +26,12 @@ function App() {
         <Route path="file-maintenance" element={<FileMaintenance />} />
         <Route path="maintenance" element={<Maintenance />} />
         <Route path="savings" element={<Savings />} />
-        <Route path="loan" element={<Loan />} />
+        <Route path="apply-for-loan" element={<Loan />} />
+        {/* <Route path="loan-applicant" element={<Borrowers />} />
+        <Route path="loan-evaluation" element={<Loan />} />
+        <Route path="loan-approval" element={<Loan />} /> */}
+        <Route path="borrower" element={<Borrowers />} />
+
         <Route path="report" element={<Report />} />
         <Route path="users" element={<Users />} />
         <Route path="announcement" element={<Announcement />} />

@@ -124,7 +124,7 @@ const Members = () => {
         <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
           <thead className="sticky top-0 bg-green-200 z-20 text-center">
             <tr>
-              {["Member Code", "Last Name", "First Name", "Contact Number", "Address", "Shared Capital", "Actions"].map((heading) => (
+              {["Code Number", "Last Name", "First Name", "Contact Number", "Address", "Shared Capital", "Actions"].map((heading) => (
                 <th key={heading} className="py-3 px-4 border-b border-gray-300">{heading}</th>
               ))}
             </tr>
@@ -133,8 +133,8 @@ const Members = () => {
             {members.map((member, index) => (
               <tr key={`${member.id}-${index}`} className="text-center hover:bg-gray-100 cursor-pointer">
                 <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
-                <td className="py-3 px-4 border-b border-gray-300">{member.fullNameLastName}</td>
-                <td className="py-3 px-4 border-b border-gray-300">{member.fullNameFirstName}</td>
+                <td className="py-3 px-4 border-b border-gray-300">{member.LastName}</td>
+                <td className="py-3 px-4 border-b border-gray-300">{member.FirstName}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.contactNumber}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.barangay}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.shareCapital}</td>
