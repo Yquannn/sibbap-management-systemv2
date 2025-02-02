@@ -35,7 +35,7 @@ const SideBar = () => {
         {loanDropdown && (
           <ul className="ml-6">
             <li className="mb-2">
-              <Link to="/borrower" className="text-gray-600 hover:text-blue-500 block pl-4 py-1 rounded-md hover:bg-gray-200">Borrower</Link>
+              <Link to="/borrower" className="text-gray-600 hover:text-blue-500 block pl-4 py-1 rounded-md hover:bg-gray-200">Borrowers</Link>
             </li>
             <li className="mb-2">
               <Link to="/apply-for-loan" className="text-gray-600 hover:text-blue-500 block pl-4 py-1 rounded-md hover:bg-gray-200">Apply for Loan</Link>
@@ -43,9 +43,9 @@ const SideBar = () => {
             <li className="mb-2">
               <Link to="/loan-applicant" className="text-gray-600 hover:text-blue-500 block pl-4 py-1 rounded-md hover:bg-gray-200">Loan Applicant</Link>
             </li>
-            <li className="mb-2">
+            {/* <li className="mb-2">
               <Link to="/loan-evaluation" className="text-gray-600 hover:text-blue-500 block pl-4 py-1 rounded-md hover:bg-gray-200">Loan Evaluation</Link>
-            </li>
+            </li> */}
             <li className="mb-2">
               <Link to="/loan-approval" className="text-gray-600 hover:text-blue-500 block pl-4 py-1 rounded-md hover:bg-gray-200">Loan Approval</Link>
             </li>

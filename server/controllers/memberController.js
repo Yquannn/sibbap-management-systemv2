@@ -2,31 +2,37 @@ const db = require('../config/db');
 const memberModel= require('../models/memberModel')
 
 const { queryDatabase, generateUniqueMemberId, formatDate } = require('../utils/databaseHelper');
+
+
 exports.getMembers = async (req, res) => {
   const memberName = req.query.name;
-  
-  let query = `
-    SELECT mi.*, 
-           ma.email, 
-           ma.password, 
-           ma.accountStatus, 
-           b.beneficiaryName, 
-           b.relationship, 
-           b.beneficiaryContactNumber, 
-           c.referenceName, 
-           c.position, 
-           c.referenceContactNumber
 
+  // Removed the extra comma after savingsAmount
+  let query = `
+    SELECT 
+      mi.*, 
+      ma.email, 
+      ma.password, 
+      ma.accountStatus, 
+      b.beneficiaryName, 
+      b.relationship, 
+      b.beneficiaryContactNumber, 
+      c.referenceName, 
+      c.position, 
+      c.referenceContactNumber,
+      s.amount AS savingsAmount
     FROM members mi
     LEFT JOIN member_account ma ON mi.memberId = ma.memberId
     LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
-    LEFT JOIN character_references c ON mi.memberId = c.memberId`;
-    
+    LEFT JOIN character_references c ON mi.memberId = c.memberId
+    LEFT JOIN regular_savings s ON mi.memberId = s.memberId
+  `;
 
   const queryParams = [];
 
+  // Append filtering by member name if provided
   if (memberName) {
-    query += ' WHERE LOWER(mi.lastName) = ?';  // Filtering by member name if provided
+    query += ' WHERE LOWER(mi.lastName) = ?';
     queryParams.push(memberName.toLowerCase());
   }
 
@@ -34,7 +40,7 @@ exports.getMembers = async (req, res) => {
     const members = await queryDatabase(query, queryParams);
 
     if (members.length > 0) {
-      // Create a map to store members by memberId to avoid duplicates
+      // Use a Map to merge duplicate member entries (due to JOINs)
       const memberMap = new Map();
 
       members.forEach(member => {
@@ -47,7 +53,7 @@ exports.getMembers = async (req, res) => {
           });
         }
 
-        // Add the beneficiary data
+        // Append beneficiary data if available
         if (member.beneficiaryName) {
           memberMap.get(member.memberId).beneficiaries.push({
             beneficiaryName: member.beneficiaryName,
@@ -56,7 +62,7 @@ exports.getMembers = async (req, res) => {
           });
         }
 
-        // Add the reference data
+        // Append character reference data if available
         if (member.referenceName) {
           memberMap.get(member.memberId).references.push({
             referenceName: member.referenceName,
@@ -66,7 +72,7 @@ exports.getMembers = async (req, res) => {
         }
       });
 
-      // Convert the map back to an array and send the response
+      // Convert the map back to an array and return it as JSON
       res.json(Array.from(memberMap.values()));
     } else {
       res.status(404).json({ message: 'No members found' });

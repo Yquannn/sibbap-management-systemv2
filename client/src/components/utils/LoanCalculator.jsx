@@ -9,21 +9,54 @@ const LoanCalculator = () => {
   const [loanTerm, setLoanTerm] = useState(36);
   const [monthlyPayment, setMonthlyPayment] = useState(null);
 
+  // Helper function to determine the interest rate based on the selected credit score.
+  const getInterestRateFromCreditScore = (score) => {
+    switch (score) {
+      case 'Rebuilding (0-600)':
+        return 10;
+      case 'Fair (601-660)':
+        return 8;
+      case 'Good (661-780)':
+        return 6;
+      case 'Excellent (781-850)':
+        return 4;
+      default:
+        return 10;
+    }
+  };
+
+  // When the credit score changes, update both the creditScore and interestRate.
+  const handleCreditScoreChange = (e) => {
+    const selectedScore = e.target.value;
+    setCreditScore(selectedScore);
+    setInterestRate(getInterestRateFromCreditScore(selectedScore));
+  };
+
+  // Calculate the monthly payment using the amortization formula:
+  // Monthly Payment = P * [r(1+r)^n] / [(1+r)^n - 1]
   const calculateLoan = () => {
-    const loanAmount = vehiclePrice - tradeInValue - downPayment;
-    if (loanAmount <= 0) {
+    // Convert input values to numbers; if empty, default to 0.
+    const vp = Number(vehiclePrice) || 0;
+    const tiv = Number(tradeInValue) || 0;
+    const dp = Number(downPayment) || 0;
+    const lt = Number(loanTerm) || 0;
+
+    const loanAmount = vp - tiv - dp;
+    if (loanAmount <= 0 || lt <= 0) {
       setMonthlyPayment(0);
       return;
     }
+    // Convert the annual interest rate to a monthly decimal rate.
     const monthlyRate = interestRate / 100 / 12;
-    const payment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -loanTerm));
+    const payment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -lt));
     setMonthlyPayment(payment.toFixed(2));
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-      <h2 className="text-xl font-bold text-center mb-4 text-green-600">AUTO LOAN CALCULATOR</h2>
-      {/* <p className="text-center text-gray-600 mb-4">Find the perfect vehicle for your lifestyle and budget.</p> */}
+      <h2 className="text-xl font-bold text-center mb-4 text-green-600">
+        AUTO LOAN CALCULATOR
+      </h2>
       
       <div className="space-y-4">
         <div>
@@ -32,7 +65,7 @@ const LoanCalculator = () => {
             type="number"
             className="w-full px-3 py-2 border rounded-md"
             value={vehiclePrice}
-            onChange={(e) => setVehiclePrice(Number(e.target.value))}
+            onChange={(e) => setVehiclePrice(e.target.value)}
           />
         </div>
 
@@ -43,7 +76,7 @@ const LoanCalculator = () => {
             className="w-full px-3 py-2 border rounded-md"
             placeholder="Enter a trade-in amount"
             value={tradeInValue}
-            onChange={(e) => setTradeInValue(Number(e.target.value))}
+            onChange={(e) => setTradeInValue(e.target.value)}
           />
         </div>
 
@@ -52,7 +85,7 @@ const LoanCalculator = () => {
           <select
             className="w-full px-3 py-2 border rounded-md"
             value={creditScore}
-            onChange={(e) => setCreditScore(e.target.value)}
+            onChange={handleCreditScoreChange}
           >
             <option>Rebuilding (0-600)</option>
             <option>Fair (601-660)</option>
@@ -77,7 +110,7 @@ const LoanCalculator = () => {
             type="number"
             className="w-full px-3 py-2 border rounded-md"
             value={downPayment}
-            onChange={(e) => setDownPayment(Number(e.target.value))}
+            onChange={(e) => setDownPayment(e.target.value)}
           />
         </div>
 
@@ -86,7 +119,7 @@ const LoanCalculator = () => {
           <select
             className="w-full px-3 py-2 border rounded-md"
             value={loanTerm}
-            onChange={(e) => setLoanTerm(Number(e.target.value))}
+            onChange={(e) => setLoanTerm(e.target.value)}
           >
             <option value={12}>12 Months</option>
             <option value={24}>24 Months</option>
