@@ -148,24 +148,45 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
         ) : (
           memberInfo && (
             <div className="mb-4 p-5 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Member Information</h3>
-              <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
+              <h3 className="text-lg font-semibold mb-3">Borrower Information</h3>
+              <div className="grid grid-cols-2 gap-3 text-gray-700 text-sm">
                 <p>
                   <strong className="text-gray-600">Code Number:</strong> {memberInfo.memberCode}
                 </p>
                 <p>
-                  <strong className="text-gray-600">Name:</strong> {memberInfo.FirstName} {memberInfo.LastName}
-                </p>
-                <p>
-                  <strong className="text-gray-600">Contact:</strong> {memberInfo.contactNumber}
-                </p>
-                <p>
-                  <strong className="text-gray-600">Address:</strong> {memberInfo.barangay}
+                  <strong className="text-gray-600">Full name:</strong> {memberInfo.FirstName} {memberInfo.MiddleName}  {memberInfo.LastName} 
                 </p>
                 <p>
                   <strong className="text-gray-600">Share Capital:</strong>{" "}
                   <span className="text-green-600 font-bold">₱{memberInfo.shareCapital}</span>
                 </p>
+                <p>
+                  <strong className="text-gray-600">Tax Identification Number:</strong> {memberInfo.tinNumber}
+                </p>
+                <p>
+                  <strong className="text-gray-600">Civil Status:</strong> {memberInfo.civilStatus}
+                </p>
+                <p>
+                  <strong className="text-gray-600">Sex:</strong> {memberInfo.sex}
+                </p>
+                <p>
+                  <strong className="text-gray-600">Date of birth:</strong> {memberInfo.dateOfBirth}
+                </p>
+                <p>
+                  <strong className="text-gray-600">Age:</strong> {memberInfo.age}
+                </p>
+
+                <p>
+                  <strong className="text-gray-600">Occupation Source of Income:</strong> {memberInfo.occupationSourceOfIncome}
+                </p>
+                
+                <p>
+                  <strong className="text-gray-600">Contact:</strong> {memberInfo.contactNumber}
+                </p>
+                <p>
+                  <strong className="text-gray-600">Address:</strong> {memberInfo.houseNoStreet} {memberInfo.barangay} {memberInfo.city}
+                </p>
+
               </div>
             </div>
           )

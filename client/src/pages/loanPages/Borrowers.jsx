@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaDollarSign } from 'react-icons/fa';
+import { FaDollarSign, FaFilter, FaSearch } from 'react-icons/fa';
 
 const Borrowers = () => {
   const apiBaseURL = 'http://localhost:3001/api/members'; // Ensure this URL is correct
 
   const [borrowers, setBorrowers] = useState([]);
-  const [activeTab, setActiveTab] = useState("RegularSavings");
+  const [activeTab, setActiveTab] = useState("All"); // Default to "All" loans
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [error, setError] = useState(""); // State for handling error messages
 
+  // List of loan types available for filtering
   const loanTypes = [
     "Feeds Loan", "Rice Loan", "Marketing Loan", "Back-to-Back Loan",
     "Regular Loan", "Livelihood Assistance Loan", "Educational Loan",
@@ -32,47 +35,94 @@ const Borrowers = () => {
     }
   };
 
+  // Filter borrowers based on the selected loan type, search query, and status filter.
+  const filteredBorrowers = borrowers.filter(borrower => {
+    const matchesLoanType = activeTab === "All" ? true : borrower.loanType === activeTab;
+
+    // Create a full name string (case-insensitive)
+    const fullName = `${borrower.FirstName} ${borrower.LastName} ${borrower.MiddleName}`.toLowerCase();
+
+    const matchesSearch =
+      searchQuery === "" ||
+      fullName.includes(searchQuery.toLowerCase()) ||
+      (borrower.clientVoucherNumber &&
+        borrower.clientVoucherNumber.toString().includes(searchQuery));
+
+    // Assume borrower.remarks holds the status (Approved, Pending, Rejected, etc.)
+    const matchesStatus = statusFilter === "All"
+      ? true
+      : borrower.remarks && borrower.remarks.toLowerCase() === statusFilter.toLowerCase();
+
+    return matchesLoanType && matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-6">Borrowers</h2>
-      
-      {/* Loan Type Dropdown */}
-      <div className="mb-6 p-4 bg-gray-100 shadow-sm rounded-lg">
-        <label htmlFor="loanType" className="block text-lg font-medium text-gray-700 mb-2">
-          Kinds of Loan
-        </label>
-        <select
-          id="loanType"
-          value={activeTab}
-          onChange={(e) => setActiveTab(e.target.value)}
-          className="w-full px-4 py-2 bg-white border border-gray-300 max-w-sm rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {loanTypes.map((tab) => (
-            <option key={tab} value={tab}>
-              {tab.replace(/([A-Z])/g, ' $1').trim()}
-            </option>
-          ))}
-        </select>
+
+      {/* Filter Section */}
+      <div className="mb-6 p-6 bg-white shadow-lg rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Loan Type Filter */}
+          <div className="flex flex-col">
+            <label htmlFor="loanType" className="block text-sm font-medium text-gray-600 mb-1">
+              <span className="flex items-center">
+                <FaFilter className="mr-1" /> Kinds of Loan
+              </span>
+            </label>
+            <select
+              id="loanType"
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            >
+              <option value="All">All Loans</option>
+              {loanTypes.map((tab) => (
+                <option key={tab} value={tab}>
+                  {tab}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Search Borrowers Filter */}
+          <div className="flex flex-col">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-600 mb-1">
+              <span className="flex items-center">
+                <FaSearch className="mr-1" /> Search Borrowers
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                id="search"
+                placeholder="Search by name or voucher number"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              />
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <FaSearch className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Status Filter */}
+        </div>
       </div>
 
       {/* Error Handling */}
-      {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">{error}</div>}
-
-      {/* Content Area */}
-      <div className="content p-6 bg-white rounded-lg shadow mb-6">
-        <h3 className="text-2xl font-semibold mb-4">
-          {activeTab.replace(/([A-Z])/g, ' $1').trim()}
-        </h3>
-        <p className="text-gray-700">
-          Content related to {activeTab} will be displayed here.
-        </p>
-      </div>
+      {error && (
+        <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
 
       {/* Borrower Table */}
       <h3 className="text-2xl font-semibold mb-4">
-        Borrower List for {activeTab.replace(/([A-Z])/g, ' $1').trim()}
+        Borrower List for {activeTab === "All" ? "All Loans" : activeTab}
       </h3>
-      <div className="overflow-x-auto" style={{ maxHeight: "50vh" }}>
+      <div className="overflow-x-auto" style={{ maxHeight: "65vh" }}>
         <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
           <thead className="sticky top-0 bg-green-200 z-20 text-center">
             <tr>
@@ -90,9 +140,9 @@ const Borrowers = () => {
             </tr>
           </thead>
           <tbody>
-            {borrowers.length > 0 ? (
-              borrowers.map((borrower) => (
-                <tr key={borrower.id} className="border-b">
+            {filteredBorrowers.length > 0 ? (
+              filteredBorrowers.map((borrower) => (
+                <tr key={borrower.id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-2 text-sm text-gray-700">
                     {borrower.clientVoucherNumber || "N/A"}
                   </td>

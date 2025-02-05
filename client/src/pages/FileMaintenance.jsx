@@ -61,7 +61,7 @@ const FileMaintenance = () => {
     <div className="min-h-96 p-6">
       <h2 className="text-3xl font-bold">File Maintenance</h2>
       <form onSubmit={handleSubmit}>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-4 mb-6 p-6 bg-white shadow-lg rounded-lg">
           {/* Month Selector */}
           <div className="flex-1 min-w-[280px]">
             <label htmlFor="month-select" className="block text-lg font-medium text-gray-700 mb-2">

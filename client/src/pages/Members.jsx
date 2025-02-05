@@ -99,7 +99,7 @@ const Members = () => {
   return (
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-4">Member List</h2>
-      <div className="mb-4 flex justify-between">
+      <div className=" flex justify-between mb-6 p-2 bg-white shadow-lg rounded-lg">
         <div>
           {message.text && <div className={`text-${message.type === 'success' ? 'green' : 'red'}-600 mb-4`}>{message.text}</div>}
         </div>
@@ -112,7 +112,7 @@ const Members = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <button
-            className="px-4 py-3 bg-green-500 text-white rounded hover:bg-green-700 flex items-center space-x-2"
+            className="px-2 py-3 bg-green-500 text-white rounded hover:bg-green-700 flex items-center space-x-2"
             onClick={() => openModal('addOpen')}
           >
             <FaPlus />

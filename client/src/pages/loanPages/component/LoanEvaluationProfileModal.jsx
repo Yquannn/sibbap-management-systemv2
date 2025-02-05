@@ -52,33 +52,33 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
           <div className="flex border-b">
             <button
               onClick={() => setActiveTab("memberInfo")}
-              className={`px-5 py-2 font-semibold ${
+              className={`px-5 py-2 font-semibold transition-colors ${
                 activeTab === "memberInfo"
                   ? "border-b-2 border-green-600 text-green-600"
-                  : "text-gray-500"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Member Info
             </button>
             <button
-              onClick={() => setActiveTab("existingLoan")}
-              className={`px-5 py-2 font-semibold ${
-                activeTab === "existingLoan"
-                  ? "border-b-2 border-green-600 text-green-600"
-                  : "text-gray-500"
-              }`}
-            >
-              Existing Loan
-            </button>
-            <button
               onClick={() => setActiveTab("loanApplication")}
-              className={`px-5 py-2 font-semibold ${
+              className={`px-5 py-2 font-semibold transition-colors ${
                 activeTab === "loanApplication"
                   ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-500"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Loan Application
+            </button>
+            <button
+              onClick={() => setActiveTab("existingLoan")}
+              className={`px-5 py-2 font-semibold transition-colors ${
+                activeTab === "existingLoan"
+                  ? "border-b-2 border-green-600 text-green-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Existing Loan
             </button>
           </div>
         </div>
@@ -88,50 +88,59 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
           <>
             {/* Member Information Section */}
             <div className="flex flex-col md:flex-row mb-6 ">
-              <div className="md:w-1/3 text-center mb-4 md:mb-0 ">
-                <img
-                  src={idPictureUrl}
-                  alt="ID Picture"
-                  className="w-32 h-32 rounded-full object-cover mx-auto border"
-                />
-                <h5 className="text-sm mt-2">{memberState.memberType || "Member Type"}</h5>
-                <h3 className="text-xl font-bold mt-1">
-                  {memberState.LastName}, {memberState.FirstName} {memberState.MiddleName}
-                </h3>
+              {/* Left Column: Profile Image & Basic Info */}
+                <div className="md:w-1/3 text-center mb-4 md:mb-0 bg-gray-100 rounded-lg shadow mr-6">
+                  <img
+                    src={idPictureUrl}
+                    alt="ID Picture"
+                    className="w-32 h-32 rounded-full object-cover mx-auto border mt-4"
+                  />
+                  <h5 className="text-sm mt-2">{memberState.memberType || "Member Type"}</h5>
+                  <h3 className="text-xl font-bold mt-1">
+                    {memberState.LastName}, {memberState.FirstName} {memberState.MiddleName}
+                  </h3>
+                </div>
+              <div className="md:w-2/3">
+                <div className="columns-1 md:columns-2 gap-4 p-4 bg-gray-100 rounded-lg shadow">
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Code Number:</strong> {memberState.memberCode}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Tax Identification Number:</strong> {memberState.tinNumber}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Civil Status:</strong> {memberState.civilStatus}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Sex:</strong> {memberState.sex}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Date of birth:</strong> {memberState.dateOfBirth}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Age:</strong> {memberState.age}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Occupation Source of Income:</strong> {memberState.occupationSourceOfIncome}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Contact:</strong> {memberState.contactNumber}
+                  </p>
+                  <p className="break-inside-avoid">
+                    <strong className="text-gray-600">Address:</strong> {memberState.houseNoStreet} {memberState.barangay} {memberState.city}
+                  </p>
+                </div>
               </div>
-              <div className="md:w-2/3 grid grid-cols-1 md:grid-cols-3 gap-4 ">
-                <div>
-                  <p className="text-gray-700">
-                    <span className="font-bold">Code Number:</span> {memberState.memberCode || "N/A"}
-                  </p>
-                  <p className="text-gray-700">
-                    <span className="font-bold">Member Since:</span> {formattedDate}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-700">
-                    <span className="font-bold">Age:</span> {memberState.age || "N/A"}
-                  </p>
-                  <p className="text-gray-700">
-                    <span className="font-bold">Sex:</span> {memberState.sex || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-700">
-                    <span className="font-bold">Contact No:</span> {memberState.contactNumber || "N/A"}
-                  </p>
-                  <p className="text-gray-700">
-                    <span className="font-bold">Date of Birth:</span> {formDate}
-                  </p>
-                </div>
-              </div>
+
+
+
             </div>
 
             {/* Detailed Information Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Eligibility Card */}
               <div className="p-4 bg-gray-100 rounded-lg shadow">
-                <h3 className="text-xl font-bold text-center mb-4">Eligibility</h3>
+                <h3 className="text-xl font-bold text-center mb-4">ELIGIBILITY</h3>
                 <p className="text-gray-700 mb-2">
                   <span className="font-bold">Note:</span> Company’s loan eligibility will prevail.
                 </p>
@@ -149,7 +158,7 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
 
               {/* Accounts Card */}
               <div className="p-4 bg-gray-100 rounded-lg shadow">
-                <h3 className="text-xl font-bold text-center mb-4">Accounts</h3>
+                <h3 className="text-xl font-bold text-center mb-4">ACCOUNTS</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {/* Left Column */}
                   <div>
@@ -163,10 +172,16 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                   {/* Right Column */}
                   <div>
                     <p className="text-gray-700 mb-2">
-                      <span className="font-bold">Regular Savings:</span> <span className='px-2 py-1 bg-orange-500 rounded-full  text-white'>{memberState.savingsAmount || "N/A"}</span> 
+                      <span className="font-bold">Regular Savings:</span>{" "}
+                      <span className="px-2 py-1 bg-orange-500 rounded-full text-white">
+                        {memberState.savingsAmount || "N/A"}
+                      </span>
                     </p>
                     <p className="text-gray-700 mb-2">
-                      <span className="font-bold ">Share Capital:</span> { <span className='px-2 py-1 bg-green-500 rounded-full  text-white'>{memberState.shareCapital || "N/A"}</span>}
+                      <span className="font-bold">Share Capital:</span>{" "}
+                      <span className="px-2 py-1 bg-green-500 rounded-full text-white">
+                        {memberState.shareCapital || "N/A"}
+                      </span>
                     </p>
                   </div>
                 </div>
