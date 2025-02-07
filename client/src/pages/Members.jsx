@@ -139,7 +139,7 @@ const Members = () => {
                 <td className="py-3 px-4 border-b border-gray-300">{member.barangay}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.shareCapital}</td>
                 <td className="py-3 px-4 border-b border-gray-300"> <span  className={`px-2 py-1 rounded-full font-semibold ${
-                        (!member.status || member.status === "ACTIVE")
+                        (!member.status || member.status === "Active" || member.status === "ACTIVE")
                           ? "bg-green-500 text-white"
                           : "bg-red-500 text-white"
                       }`}

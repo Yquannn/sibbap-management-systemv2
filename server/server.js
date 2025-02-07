@@ -8,6 +8,7 @@ const maintenanceRoute = require('./routes/maintenanceRoute')
 const savingsRoute = require('./routes/savingsRoutes')
 const timedepositRoute = require('./routes/timeDepositRoute')
 const memberAuthRoutes = require('./routes/memberAuthRoutes');
+const loanApplicationRoutes = require('./routes/loanApplicationRoutes');
 const login = require('./routes/authRoutes')
 const path = require('path');
 
@@ -33,6 +34,7 @@ app.use('/api', authRoutes)
 app.use('/api', maintenanceRoute)
 app.use('/api', timedepositRoute)
 app.use('/api', memberAuthRoutes)
+app.use('/api', loanApplicationRoutes);
 
 
 

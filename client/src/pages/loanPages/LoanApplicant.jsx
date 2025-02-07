@@ -182,7 +182,7 @@ const LoanApproval = () => {
 
       {/* Borrower Table */}
       <h3 className="text-2xl font-semibold mb-4">
-        Borrower List for{" "}
+        Loan Application List for{" "}
         {activeTab === "All"
           ? "All Loans"
           : activeTab.replace(/([A-Z])/g, ' $1').trim()}
