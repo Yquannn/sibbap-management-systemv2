@@ -96,7 +96,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
         <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
           <thead className="sticky top-0 bg-green-200 z-20 text-center">
             <tr>
-              {["Code Number", "Full Name", "Contact Number", "Address", "Savings Amount", "Remarks", "Actions"].map((heading) => (
+              {["Code Number", "Account No.", "Full Name", "Contact Number", "Address", "Savings Amount", "Status", "Actions"].map((heading) => (
                 <th key={heading} className="py-3 px-4 border-b border-gray-300">
                   {heading}
                 </th>
@@ -111,11 +111,17 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                   className="text-center hover:bg-gray-100 cursor-pointer"
                 >
                   <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
+                  <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.fullName}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.contactNumber}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.city || "N/A"}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.savingsAmount}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.savingsStatus}</td>
+                  <td className="py-3 px-4 border-b border-gray-300"> <span  className={`px-2 py-1 rounded-full font-semibold ${
+                        (!member.savingsStatus || member.savingsStatus === "ACTIVE")
+                          ? "bg-green-500 text-white"
+                          : "bg-red-500 text-white"
+                      }`}
+                    >{member.savingsStatus}</span></td>
                   <td className="py-3 px-4 border-b border-gray-300">
                     <div className="flex justify-center space-x-3">
                       <button

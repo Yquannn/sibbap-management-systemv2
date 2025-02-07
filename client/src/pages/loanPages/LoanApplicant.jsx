@@ -203,7 +203,7 @@ const LoanApproval = () => {
               <th className="px-4 py-2 text-center text-sm">Terms</th>
               <th className="px-4 py-2 text-center text-sm">Application Date</th>
               <th className="px-4 py-2 text-center text-sm">Balance</th>
-              <th className="px-4 py-2 text-center text-sm">Status</th>
+              <th className="px-4 py-2 text-center text-sm">Remarks</th>
               <th className="px-4 py-2 text-center text-sm">Actions</th>
             </tr>
           </thead>

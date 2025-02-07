@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { FaEdit, FaTrash, FaEye, FaSearch } from "react-icons/fa";
+import { FaEdit, FaTrash, FaEye, FaSearch, FaDollarSign, FaPiggyBank } from "react-icons/fa";
 import MemberAccountModal from "../childModal/MemberAccountModal";
 
 const TimeDeposit = ({ openModal, handleDelete }) => {
@@ -9,16 +9,20 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
   const [error, setError] = useState(null); // Error state
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
   const [modalType, setModalType] = useState(""); // Modal type (deposit or withdraw)
-  const [filterQuery, setFilterQuery] = useState(""); // New state for filtering
+  const [selectedMember, setSelectedMember] = useState(null); // Selected member for modal actions
+  const [filterQuery, setFilterQuery] = useState(""); // State for filtering
 
-  const handleOpenModal = (type) => {
+  // Updated to accept a member object as a parameter
+  const handleOpenModal = (type, member = null) => {
     setModalType(type); // Set modal type
+    setSelectedMember(member); // Set selected member record
     setIsModalOpen(true); // Open modal
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false); // Close modal
     setModalType(""); // Reset modal type
+    setSelectedMember(null); // Reset selected member
   };
 
   // Fetch active time deposits
@@ -32,7 +36,11 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
       }
       setTimeDeposits(response.data);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Error fetching time deposits.");
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Error fetching time deposits."
+      );
     } finally {
       setLoading(false);
     }
@@ -53,7 +61,6 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
 
   return (
     <div className="p-0">
-
       <div className="p-4 bg-white shadow-lg rounded-lg mb-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           {/* Left: Title */}
@@ -63,8 +70,6 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
 
           {/* Right: Button and Search Input */}
           <div className="flex flex-col md:flex-row md:items-center gap-4">
-
-
             <div className="relative w-full md:w-64">
               <input
                 type="text"
@@ -72,7 +77,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-                />
+              />
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <FaSearch className="text-gray-400" />
               </div>
@@ -94,6 +99,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
         showModal={isModalOpen}
         closeModal={handleCloseModal}
         modalType={modalType} // Pass modalType to the modal
+        member={selectedMember} // Pass the selected member to the modal (if needed)
       />
 
       {/* Loading, Error, and Table */}
@@ -108,13 +114,14 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
               <tr>
                 {[
                   "Code Number",
+                  "Account No.",
                   "Full Name",
                   "Amount",
                   "Interest",
                   "Payout",
                   "Fixed Term",
                   "Maturity Date",
-                  "Remarks",
+                  "Status",
                   "Actions",
                 ].map((heading) => (
                   <th key={heading} className="py-3 px-4 border-b border-gray-300">
@@ -130,6 +137,9 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                     key={`${depositor.id}-${index}`}
                     className="text-center hover:bg-gray-100 cursor-pointer"
                   >
+                    <td className="py-3 px-4 border-b border-gray-300">
+                      {depositor.memberCode || "N/A"}
+                    </td>
                     <td className="py-3 px-4 border-b border-gray-300">
                       {depositor.memberCode || "N/A"}
                     </td>
@@ -156,17 +166,43 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                       })}
                     </td>
                     <td className="py-3 px-4 border-b border-gray-300">
-                      {depositor.remarks}
+                      <span
+                        className={`px-2 py-1 rounded-full font-semibold ${
+                          (!depositor.remarks || depositor.remarks === "ACTIVE")
+                            ? "bg-green-500 text-white"
+                            : "bg-red-500 text-white"
+                        }`}
+                      >
+                        {depositor.remarks}
+                      </span>
                     </td>
                     <td className="px-4 py-2 border-b border-gray-300 text-center">
-                      {/* You can add action buttons here if needed */}
-                      {/* Example: <button className="text-blue-500 hover:text-blue-700"><FaEye /></button> */}
+                      <div className="flex justify-center space-x-3">
+                        <button
+                          onClick={() => handleOpenModal("withdraw", depositor)}
+                          className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-600 flex items-center"
+                        >
+                          <FaDollarSign className="mr-1" /> Early withdraw
+                        </button>
+                        <button
+                          onClick={() => handleOpenModal("deposit", depositor)}
+                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center"
+                        >
+                          <FaPiggyBank className="mr-1" /> Roll over
+                        </button>
+                        <button
+                          onClick={() => handleOpenModal("withdraw", depositor)}
+                          className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
+                        >
+                          <FaPiggyBank className="mr-1" /> Withdraw
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="py-4 text-center">
+                  <td colSpan={10} className="py-4 text-center">
                     No active time deposits found.
                   </td>
                 </tr>

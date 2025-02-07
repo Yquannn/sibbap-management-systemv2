@@ -40,7 +40,8 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50 overflow-y-auto">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-5xl w-full relative">
+      {/* Expanded width by using max-w-7xl instead of max-w-5xl */}
+      <div className="bg-white p-8 rounded-lg shadow-lg max-w-7xl w-full relative">
         {/* Header */}
         <div className="flex justify-between items-center border-b pb-4 mb-6">
           <h2 className="text-2xl font-bold">Loan Evaluation</h2>
@@ -87,53 +88,77 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
         {activeTab === "memberInfo" && (
           <>
             {/* Member Information Section */}
-            <div className="flex flex-col md:flex-row mb-6 ">
+            <div className="flex flex-col md:flex-row mb-6">
               {/* Left Column: Profile Image & Basic Info */}
-                <div className="md:w-1/3 text-center mb-4 md:mb-0 bg-gray-100 rounded-lg shadow mr-6">
-                  <img
-                    src={idPictureUrl}
-                    alt="ID Picture"
-                    className="w-32 h-32 rounded-full object-cover mx-auto border mt-4"
+              <div className="md:w-1/3 text-center mb-4 md:mb-0 bg-gray-100 rounded-lg shadow mr-6">
+                <img
+                  src={idPictureUrl}
+                  alt="ID Picture"
+                  className="w-40 h-40 rounded-full object-cover mx-auto border mt-8"
                   />
-                  <h5 className="text-sm mt-2">{memberState.memberType || "Member Type"}</h5>
-                  <h3 className="text-xl font-bold mt-1">
-                    {memberState.LastName}, {memberState.FirstName} {memberState.MiddleName}
-                  </h3>
-                </div>
+                <h5 className="text-XL mt-2">{memberState.memberType || "Member Type"}</h5>
+                <h3 className="text-3xl font-bold mt-1">
+                  {memberState.LastName}, {memberState.FirstName} {memberState.MiddleName}
+                </h3>
+              </div>
               <div className="md:w-2/3">
                 <div className="columns-1 md:columns-2 gap-4 p-4 bg-gray-100 rounded-lg shadow">
                   <p className="break-inside-avoid mb-2">
                     <strong className="text-gray-600">Code Number:</strong> {memberState.memberCode}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Tax Identification Number:</strong> {memberState.tinNumber}
+                    <strong className="text-gray-600">Occupation Source of Income:</strong> {memberState.occupationSourceOfIncome}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Civil Status:</strong> {memberState.civilStatus}
-                  </p>
-                  <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Sex:</strong> {memberState.sex}
+                    <strong className="text-gray-600">Monthly salary:</strong> {memberState.memberCode}
                   </p>
                   <p className="break-inside-avoid mb-2">
                     <strong className="text-gray-600">Date of birth:</strong> {memberState.dateOfBirth}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Age:</strong> {memberState.age}
+                    <strong className="text-gray-600">Place of birth:</strong> {memberState.birthplaceProvince}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Occupation Source of Income:</strong> {memberState.occupationSourceOfIncome}
+                    <strong className="text-gray-600">Spouse name:</strong> {memberState.spouseName}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Contact:</strong> {memberState.contactNumber}
+                    <strong className="text-gray-600">Occupation:</strong> {memberState.spouseOccupationSourceOfIncome}
                   </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Monthly salary:</strong> 98,000
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Other income/business:</strong> N/A
+                  </p>
+
+
+
                   <p className="break-inside-avoid">
                     <strong className="text-gray-600">Address:</strong> {memberState.houseNoStreet} {memberState.barangay} {memberState.city}
                   </p>
+                  <p className="break-inside-avoid">
+                    <strong className="text-gray-600">Employer Address:</strong> Tabangao Ambulong Batangas city
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Age:</strong> {memberState.age}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Gender:</strong> {memberState.sex}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Civil Status:</strong> {memberState.civilStatus}
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">No. of dependents:</strong> {memberState.civilStatus}
+                  </p>
+                  <p className="break-inside-avoid">
+                    <strong className="text-gray-600">Employer Address:</strong> Tabangao Ambulong Batangas city
+                  </p>
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Monthly salary:</strong> 100,000
+                  </p>
                 </div>
               </div>
-
-
-
             </div>
 
             {/* Detailed Information Cards */}
@@ -163,22 +188,22 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                   {/* Left Column */}
                   <div>
                     <p className="text-gray-700 mb-2">
-                      <span className="font-bold">Account Number:</span> {memberState.accountNumber || "N/A"}
+                      <strong className="font-bold">Account Number:</strong> {memberState.accountNumber || "N/A"}
                     </p>
                     <p className="text-gray-700 mb-2">
-                      <span className="font-bold">Code Number:</span> {memberState.memberCode || "N/A"}
+                      <strong className="font-bold">Code Number:</strong> {memberState.memberCode || "N/A"}
                     </p>
                   </div>
                   {/* Right Column */}
                   <div>
                     <p className="text-gray-700 mb-2">
-                      <span className="font-bold">Regular Savings:</span>{" "}
+                      <strong className="font-bold">Regular Savings:</strong>{" "}
                       <span className="px-2 py-1 bg-orange-500 rounded-full text-white">
                         {memberState.savingsAmount || "N/A"}
                       </span>
                     </p>
                     <p className="text-gray-700 mb-2">
-                      <span className="font-bold">Share Capital:</span>{" "}
+                      <strong className="font-bold">Share Capital:</strong>{" "}
                       <span className="px-2 py-1 bg-green-500 rounded-full text-white">
                         {memberState.shareCapital || "N/A"}
                       </span>
