@@ -104,6 +104,16 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
               Member Info
             </button>
             <button
+              onClick={() => setActiveTab("loanDetails")}
+              className={`px-5 py-2 font-semibold transition-colors ${
+                activeTab === "loanDetails"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Loan Details
+            </button>
+            <button
               onClick={() => setActiveTab("loanApplication")}
               className={`px-5 py-2 font-semibold transition-colors ${
                 activeTab === "loanApplication"
@@ -256,6 +266,77 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
           </>
         )}
 
+
+        {activeTab === "loanDetails" && (
+          <div className="mb-6 p-4 bg-gray-100 rounded-lg shadow">
+            <h3 className="text-xl font-bold text-center mb-4">Loan details</h3>
+            {memberState.loanDetails ? (
+              <div className="grid grid-cols-2 gap-6 mt-4 text-sm p-6 bg-white shadow-lg rounded-lg">
+            {/* Left Column */}
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Monthly Interest:</span> 
+                <span className="font-semibold ">₱{memberState.loanDetails.interest || 100}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Loan Amount:</span> 
+                <span className="font-semibold">₱{memberState.loanDetails.loanAmount || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Monthly Amortization:</span> 
+                <span className="font-semibold">₱450</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Terms:</span> 
+                <span className="font-semibold">{memberState.loanDetails.terms || "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Date Release:</span> 
+                <span className="font-semibold">N/A</span>
+              </div>         
+           </div>
+
+            {/* Right Column */}
+            <div className="space-y-3">
+             <div className="flex justify-between">
+                <span className="text-gray-600">Service Fee (3%):</span> 
+                <span className="font-semibold">₱150</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Additional Savings Deposit (1%):</span> 
+                <span className="font-semibold">₱50</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Capital Buildup (1%):</span> 
+                <span className="font-semibold">₱50</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Gift Check:</span> 
+                <span className="font-semibold">₱30</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Insurance:</span> 
+                <span className="font-semibold">₱70</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Others/Receivables:</span> 
+                <span className="font-semibold">₱40</span>
+              </div>
+              <div className="flex justify-between border-t pt-3 font-bold text-lg">
+                <span className="text-gray-800">Total Disbursed:</span> 
+                <span className="text-green-600">₱4,460</span>
+              </div>
+            </div>
+          </div>
+            ) : (
+              <p className="text-center text-gray-700">No existing loan details.</p>
+            )}
+          </div>
+        )}
+        
+
+        
+
         {activeTab === "existingLoan" && (
           <div className="mb-6 p-4 bg-gray-100 rounded-lg shadow">
             <h3 className="text-xl font-bold text-center mb-4">Existing Loan</h3>
@@ -282,6 +363,7 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
             )}
           </div>
         )}
+        
 
         {activeTab === "loanApplication" && (
   <div className="mb-6 p-6 bg-gray-100 rounded-lg shadow">

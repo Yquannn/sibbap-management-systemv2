@@ -46,13 +46,8 @@ export default function LoanDetailsModal({ isOpen, onClose, borrower }) {
               <div className="flex justify-between">
                 <span className="text-gray-600">Date Release:</span> 
                 <span className="font-semibold">N/A</span>
-              </div>
-             
-
-
-             
-
-            </div>
+              </div>         
+           </div>
 
             {/* Right Column */}
             <div className="space-y-3">

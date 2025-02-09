@@ -195,12 +195,12 @@ const LoanApproval = () => {
               <th className="px-4 py-2 text-center">Code Number</th>
               <th className="px-4 py-2 text-center">Full Name</th>
               <th className="px-4 py-2 text-center">Loan Type</th>
-              <th className="px-4 py-2 text-center">Application</th>
+              {/* <th className="px-4 py-2 text-center">Application</th> */}
               <th className="px-4 py-2 text-center">Loan Amount</th>
               <th className="px-4 py-2 text-center">Interest</th>
               <th className="px-4 py-2 text-center">Terms</th>
               <th className="px-4 py-2 text-center">Application Date</th>
-              {/* <th className="px-4 py-2 text-center">Balance</th> */}
+              <th className="px-4 py-2 text-center">Status</th>
               <th className="px-4 py-2 text-center">Remarks</th>
               <th className="px-4 py-2 text-center">Actions</th>
             </tr>
@@ -221,9 +221,9 @@ const LoanApproval = () => {
                   <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.loan_type || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-gray-700">
+                  {/* <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.application || "N/A"}
-                  </td>
+                  </td> */}
                   <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.loan_amount || "N/A"}
                   </td>
@@ -238,9 +238,9 @@ const LoanApproval = () => {
                       ? new Date(borrower.created_at).toISOString().split('T')[0] 
                       : "N/A"}
                   </td>
-                  {/* <td className="px-4 py-2 text-center text-gray-700">
-                    {borrower.balance || 0}
-                  </td> */}
+                  <td className="px-4 py-2 text-center text-gray-700">
+                    {borrower.status || "N/A"}
+                  </td>
                   <td className="px-4 py-2 text-center">
                     <span
                       className={`inline-block px-2 py-1 rounded-full font-semibold ${
@@ -258,9 +258,21 @@ const LoanApproval = () => {
                     <div className="flex justify-center space-x-3">
                       <button
                         onClick={() => openModal('viewOpen', borrower)}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
+                        className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
                       >
                         View Evaluation
+                      </button>
+                      <button
+                        onClick={() => openModal('viewOpen', borrower)}
+                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
+                      >
+                        Passed
+                      </button>
+                      <button
+                        onClick={() => openModal('viewOpen', borrower)}
+                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
+                      >
+                        Failed
                       </button>
                     </div>
                   </td>

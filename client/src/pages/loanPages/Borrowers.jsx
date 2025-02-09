@@ -4,7 +4,7 @@ import { FaDollarSign, FaFilter, FaSearch } from 'react-icons/fa';
 import RepaymentModal from './component/modal/RepaymentModal';
 
 const Borrowers = () => {
-  const apiBaseURL = 'http://localhost:3001/api/members'; // Ensure this URL is correct
+  const apiBaseURL = 'http://localhost:3001/api/loan-application/all'; // test api to get all applicant in loan 
 
   const [borrowers, setBorrowers] = useState([]);
   const [activeTab, setActiveTab] = useState("All"); // Default to "All" loans
@@ -161,19 +161,19 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
               filteredBorrowers.map((borrower) => (
                 <tr key={borrower.id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.clientVoucherNumber || "N/A"}
+                    {borrower.client_voucher_number || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
                     {borrower.LastName}, {borrower.FirstName} {borrower.MiddleName}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.loanType || "N/A"}
+                    {borrower.loan_type || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.applicationDate || "N/A"}
+                    {borrower.application|| "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
-                    {borrower.loanAmount || "N/A"}
+                    {borrower.loan_amount || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
                     {borrower.interest || "N/A"}
@@ -182,7 +182,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
                     {borrower.terms || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
-                    {borrower.applicationDate || "N/A"}
+                    {borrower.created_at || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
                     {borrower.balance || 0}
