@@ -265,7 +265,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </div>
           ) : (
             memberInfo && (
-              <div className="mb-4 p-5 bg-gray-50 rounded-lg">
+              <div className="mb-4 p-6 bg-white shadow-lg rounded-lg">
                 <h3 className="text-lg font-semibold mb-3">Borrower Information</h3>
                 <div className="grid grid-cols-2 gap-3 text-gray-700 text-sm">
                   <p>

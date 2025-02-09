@@ -29,18 +29,19 @@ async function getLoanApplication(req, res) {
   }
 }
 
-// async function getAllLoanApplications(req, res) {
-//   try {
-//     const applications = await loanApplicationModel.getAllLoanApplications();
-//     res.json(applications);
-//   } catch (error) {
-//     console.error('Error fetching loan applications:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// }
+async function getAllLoanApplicant(req, res) {
+    try {
+      const applications = await loanApplicationModel.getAllLoanApplicant();
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching loan applications:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+  
 
 module.exports = {
   createLoanApplication,
   getLoanApplication,
-//   getAllLoanApplications,
+  getAllLoanApplicant,
 };

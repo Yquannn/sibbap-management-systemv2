@@ -1,10 +1,20 @@
 const db = require('../config/db');
 
+function generateVoucherNumber() {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(1000 + Math.random() * 9000); 
+    return `VOUCHER-${timestamp}-${randomNum}`;
+}
+
+
+
 
 
 async function createLoanApplication(data) {
-  const { memberId, loan_type, loan_amount, terms, details } = data;
+  const { client_voucher_number, memberId, loan_type, application, loan_amount, interest, terms, balance, details } = data;
   let conn;
+
+  const voucherNumber = client_voucher_number || generateVoucherNumber();
 
   try {
     conn = await db.getConnection();
@@ -12,16 +22,16 @@ async function createLoanApplication(data) {
 
     // Insert into common loan_applications table
     const [result] = await conn.query(
-      `INSERT INTO loan_applications (memberId, loan_type, loan_amount, terms)
-       VALUES (?, ?, ?, ?)`,
-      [memberId, loan_type, loan_amount, terms]
+      `INSERT INTO loan_applications (client_voucher_number, memberId, loan_type, application, loan_amount, interest, terms, balance)
+       VALUES (?, ?, ?, ?,?,?,?, ?)`,
+      [voucherNumber, memberId, loan_type, application, loan_amount, interest, terms, balance]
     );
     const loanApplicationId = result.insertId;
 
     // Insert into the appropriate detail table based on loan_type
     switch (loan_type) {
-      case 'feeds':
-      case 'rice':
+      case 'Feeds Loan':
+      case 'Rice Loan':
         await conn.query(
           `INSERT INTO feeds_rice_details 
            (loan_application_id, statement_of_purpose, sacks, max_sacks, proof_of_business)
@@ -36,7 +46,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'marketing':
+      case 'Marketing Loan':
         await conn.query(
           `INSERT INTO marketing_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id)
@@ -50,7 +60,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'backToBack':
+      case 'BackToBack Loan':
         await conn.query(
           `INSERT INTO backtoback_details 
            (loan_application_id, statement_of_purpose, coborrower_member_id, coborrower_relationship, coborrower_name, coborrower_contact, coborrower_address)
@@ -67,7 +77,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'regular':
+      case 'Regular Loan':
         await conn.query(
           `INSERT INTO regular_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id)
@@ -81,7 +91,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'livelihood':
+      case 'Livelihood Loan':
         await conn.query(
           `INSERT INTO livelihood_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id)
@@ -95,7 +105,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'educational':
+      case 'Educational Loan':
         await conn.query(
           `INSERT INTO educational_details 
            (loan_application_id, statement_of_purpose, relative_relationship, student_name, institution, course, year_level, document)
@@ -113,7 +123,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'emergency':
+      case 'Emergency Loan':
         await conn.query(
           `INSERT INTO emergency_details 
            (loan_application_id, statement_of_purpose, emergency_other_purpose, document)
@@ -127,7 +137,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'quickCash':
+      case 'QuickCash Loan':
         await conn.query(
           `INSERT INTO quickcash_details 
            (loan_application_id, statement_of_purpose)
@@ -136,7 +146,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'car':
+      case 'Car Loan':
         await conn.query(
           `INSERT INTO car_details 
            (loan_application_id, statement_of_purpose, vehicle_type, comaker_name, comaker_member_id, coborrower_member_id, coborrower_relationship, coborrower_name, coborrower_contact, coborrower_address, document)
@@ -157,7 +167,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'housing':
+      case 'Housing Loan':
         await conn.query(
           `INSERT INTO housing_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id, coborrower_member_id, coborrower_relationship, coborrower_name, coborrower_contact, coborrower_address, document)
@@ -177,7 +187,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'motorcycle':
+      case 'Motorcycle Loan':
         await conn.query(
           `INSERT INTO motorcycle_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id, coborrower_member_id, coborrower_relationship, coborrower_name, coborrower_contact, coborrower_address, document)
@@ -197,7 +207,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'memorialLot':
+      case 'MemorialLot Loan':
         await conn.query(
           `INSERT INTO memoriallot_details 
            (loan_application_id, statement_of_purpose, coborrower_member_id, coborrower_name)
@@ -211,7 +221,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'intermentLot':
+      case 'IntermentLot Loan':
         await conn.query(
           `INSERT INTO intermentlot_details 
            (loan_application_id, statement_of_purpose, coborrower_member_id, coborrower_name, interment_interest)
@@ -226,7 +236,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'travel':
+      case 'Travel Loan':
         await conn.query(
           `INSERT INTO travel_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id, document)
@@ -241,7 +251,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'ofw':
+      case 'Ofw Loan':
         await conn.query(
           `INSERT INTO ofw_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id, coborrower_member_id, coborrower_name, coborrower_relationship, coborrower_contact, coborrower_address, document)
@@ -261,7 +271,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'savings':
+      case 'Savings Loan':
         await conn.query(
           `INSERT INTO savings_details 
            (loan_application_id, statement_of_purpose, document)
@@ -270,7 +280,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'health':
+      case 'Health Loan':
         await conn.query(
           `INSERT INTO health_details 
            (loan_application_id, statement_of_purpose, document)
@@ -279,7 +289,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'special':
+      case 'Special Loan':
         await conn.query(
           `INSERT INTO special_details 
            (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id, document, gift_check_amount)
@@ -295,7 +305,7 @@ async function createLoanApplication(data) {
         );
         break;
 
-      case 'reconstruction':
+      case 'Reconstruction Loan':
         await conn.query(
           `INSERT INTO reconstruction_details 
            (loan_application_id, statement_of_purpose, scheduled_payment, comaker1_name, comaker1_member_id, comaker2_name, comaker2_member_id, document)
@@ -329,79 +339,98 @@ async function createLoanApplication(data) {
   }
 }
 
-
 async function getLoanApplicationById(id) {
     let conn;
     try {
       conn = await db.getConnection();
   
-      // Get the common loan application record
+      // Join with the members table to get member information.
       const [rows] = await conn.query(
-        `SELECT * FROM loan_applications WHERE loan_application_id = ?`,
+        `SELECT la.*, 
+                m.FirstName, 
+                m.LastName, 
+                m.MiddleName, 
+                m.memberCode, 
+                m.civilStatus, 
+                m.sex, 
+                m.dateOfBirth, 
+                m.age, 
+                m.occupationSourceOfIncome, 
+                m.contactNumber, 
+                m.houseNoStreet, 
+                m.barangay, 
+                m.city,
+                m.idPicture,
+                m.birthPlaceProvince,
+                m.spouseName,
+                m.spouseOccupationSourceOfIncome
+         FROM loan_applications la
+         LEFT JOIN members m ON la.memberId = m.memberId
+         WHERE la.loan_application_id = ?`,
         [id]
       );
       if (rows.length === 0) return null;
       const application = rows[0];
   
-      // Determine which details table to query based on the loan_type
+      // Determine which details table to query based on the loan_type.
       let detailQuery = null;
       switch (application.loan_type) {
-        case 'feeds':
-        case 'rice':
+        case 'Feeds Loan':
+        case 'Rice Loan':
           detailQuery = `SELECT * FROM feeds_rice_details WHERE loan_application_id = ?`;
           break;
-        case 'marketing':
+        case 'Marketing Loan':
           detailQuery = `SELECT * FROM marketing_details WHERE loan_application_id = ?`;
           break;
-        case 'backToBack':
+        case 'BackToBack Loan':
           detailQuery = `SELECT * FROM backtoback_details WHERE loan_application_id = ?`;
           break;
-        case 'regular':
+        case 'Regular Loan':
           detailQuery = `SELECT * FROM regular_details WHERE loan_application_id = ?`;
           break;
-        case 'livelihood':
+        case 'Livelihood Loan':
           detailQuery = `SELECT * FROM livelihood_details WHERE loan_application_id = ?`;
           break;
-        case 'educational':
+        case 'Educational Loan':
           detailQuery = `SELECT * FROM educational_details WHERE loan_application_id = ?`;
           break;
-        case 'emergency':
+        case 'Emergency Loan':
           detailQuery = `SELECT * FROM emergency_details WHERE loan_application_id = ?`;
           break;
-        case 'quickCash':
+        case 'QuickCash Loan':
           detailQuery = `SELECT * FROM quickcash_details WHERE loan_application_id = ?`;
           break;
-        case 'car':
+        case 'Car Loan':
           detailQuery = `SELECT * FROM car_details WHERE loan_application_id = ?`;
           break;
-        case 'housing':
+        case 'Housing Loan':
           detailQuery = `SELECT * FROM housing_details WHERE loan_application_id = ?`;
           break;
-        case 'motorcycle':
+        case 'Motorcycle Loan':
           detailQuery = `SELECT * FROM motorcycle_details WHERE loan_application_id = ?`;
           break;
-        case 'memorialLot':
+        case 'MemorialLot Loan':
           detailQuery = `SELECT * FROM memoriallot_details WHERE loan_application_id = ?`;
           break;
-        case 'intermentLot':
+        case 'IntermentLot Loan':
           detailQuery = `SELECT * FROM intermentlot_details WHERE loan_application_id = ?`;
           break;
-        case 'travel':
+        case 'Travel Loan':
           detailQuery = `SELECT * FROM travel_details WHERE loan_application_id = ?`;
           break;
-        case 'ofw':
+        case 'Ofw Loan':
           detailQuery = `SELECT * FROM ofw_details WHERE loan_application_id = ?`;
           break;
-        case 'savings':
+        case 'Savings Loan':
           detailQuery = `SELECT * FROM savings_details WHERE loan_application_id = ?`;
           break;
-        case 'health':
+        case 'Health Loan':
           detailQuery = `SELECT * FROM health_details WHERE loan_application_id = ?`;
           break;
-        case 'special':
+        case 'Special Loan':
           detailQuery = `SELECT * FROM special_details WHERE loan_application_id = ?`;
           break;
-        case 'reconstruction':
+        case 'Reconstruction Loan':
           detailQuery = `SELECT * FROM reconstruction_details WHERE loan_application_id = ?`;
           break;
         default:
@@ -414,7 +443,7 @@ async function getLoanApplicationById(id) {
           details = detailRows[0];
         }
       }
-      // Attach the details to the common record
+      // Attach the details to the common record.
       application.details = details;
       return application;
     } catch (error) {
@@ -425,27 +454,29 @@ async function getLoanApplicationById(id) {
   }
   
   // Optionally, fetch all applications with their details
-//   async function getAllLoanApplications() {
-//     let conn;
-//     try {
-//       conn = await db.getConnection();
-//       const [rows] = await conn.query(`SELECT loan_application_id FROM loan_applications`);
-//       const applications = [];
-//       // For each application, fetch the complete data including details
-//       for (const row of rows) {
-//         const app = await getLoanApplicationById(row.loanApplicationId);
-//         if (app) applications.push(app);
-//       }
-//       return applications;
-//     } catch (error) {
-//       throw error;
-//     } finally {
-//       if (conn) conn.release();
-//     }
-//   }
+  async function getAllLoanApplicant() {
+    let conn;
+    try {
+      conn = await db.getConnection();
+      // Only retrieve the loan_application_id to then fetch the complete record.
+      const [rows] = await conn.query(
+        `SELECT loan_application_id FROM loan_applications`
+      );
+      
+      // Use Promise.all to fetch all detailed applications concurrently.
+      const applications = await Promise.all(
+        rows.map((row) => getLoanApplicationById(row.loan_application_id))
+      );
+      return applications;
+    } catch (error) {
+      throw error;
+    } finally {
+      if (conn) conn.release();
+    }
+  }
 
 module.exports = {
     createLoanApplication,
     getLoanApplicationById,
-    // getAllLoanApplications,
+    getAllLoanApplicant,
 };

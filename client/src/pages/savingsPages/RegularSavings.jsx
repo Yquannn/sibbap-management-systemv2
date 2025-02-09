@@ -117,7 +117,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                   <td className="py-3 px-4 border-b border-gray-300">{member.city || "N/A"}</td>
                   <td className="py-3 px-4 border-b border-gray-300">{member.savingsAmount}</td>
                   <td className="py-3 px-4 border-b border-gray-300"> <span  className={`px-2 py-1 rounded-full font-semibold ${
-                        (!member.savingsStatus || member.savingsStatus === "ACTIVE")
+                        (!member.savingsStatus || member.savingsStatus === "ACTIVE" || member.savingsStatus === "Active")
                           ? "bg-green-500 text-white"
                           : "bg-red-500 text-white"
                       }`}

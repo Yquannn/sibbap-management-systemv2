@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaDollarSign, FaFilter, FaSearch } from 'react-icons/fa';
+import RepaymentModal from './component/modal/RepaymentModal';
 
 const Borrowers = () => {
   const apiBaseURL = 'http://localhost:3001/api/members'; // Ensure this URL is correct
@@ -10,6 +11,11 @@ const Borrowers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [error, setError] = useState(""); // State for handling error messages
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBorrower, setSelectedBorrower] = useState(null);
+  const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
+const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
+
 
   // List of loan types available for filtering
   const loanTypes = [
@@ -56,6 +62,17 @@ const Borrowers = () => {
     return matchesLoanType && matchesSearch && matchesStatus;
   });
 
+  const openLoanDetailsModal = (borrower) => {
+    setSelectedLoanBorrower(borrower);
+    setIsLoanModalOpen(true);
+  };
+
+  const openRepaymentModal = (borrower) => {
+    console.log("Opening modal for borrower:", borrower); // Debugging
+    setSelectedBorrower(borrower);
+    setIsModalOpen(true);
+  };
+  
   return (
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-6">Borrowers</h2>
@@ -183,7 +200,17 @@ const Borrowers = () => {
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
                     <div className="flex justify-center space-x-3">
-                      <button className="bg-orange-500 text-sm m-2 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center">
+                    <button
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2"
+                        onClick={() => openLoanDetailsModal(borrower)}
+                      >
+                        View Loan
+                      </button>
+
+                      <button
+                        className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
+                        onClick={() => openRepaymentModal(borrower)}
+                      >
                         <FaDollarSign className="mr-1" /> Repayment
                       </button>
                     </div>
@@ -200,6 +227,14 @@ const Borrowers = () => {
           </tbody>
         </table>
       </div>
+      {isLoanModalOpen && selectedLoanBorrower && (
+        <RepaymentModal
+          isOpen={isLoanModalOpen}
+          onClose={() => setIsLoanModalOpen(false)}
+          borrower={selectedLoanBorrower}
+        />
+      )}
+
     </div>
   );
 };

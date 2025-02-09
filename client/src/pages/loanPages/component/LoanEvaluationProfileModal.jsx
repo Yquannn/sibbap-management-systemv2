@@ -1,34 +1,77 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import pic from "../component/blankPicture.png"; // Fallback placeholder image
 
 const LoanEvaluationProfileModal = ({ member, onClose }) => {
+  // Store the member data from props (and update only when a new member is passed)
   const [memberState, setMemberState] = useState(member);
-  // Top-level tabs: "memberInfo", "existingLoan", "loanApplication"
   const [activeTab, setActiveTab] = useState("memberInfo");
   const [showMessage, setShowMessage] = useState(false); // For future success/error messages
   const [messageType, setMessageType] = useState(""); // e.g. "success" or "error"
   const [message, setMessage] = useState(""); // Message to display
 
+  // --- Separate State for Loan Application ---
+  // This avoids re-setting the entire member state (and accidentally losing our fetched data)
+  const [loanApplication, setLoanApplication] = useState(null);
+  const [loanApplicationLoading, setLoanApplicationLoading] = useState(false);
+  const [loanApplicationError, setLoanApplicationError] = useState(null);
+
+  // When the member prop changes (for example, if a new member is selected),
+  // update the local member state and clear any previously fetched loan application.
   useEffect(() => {
-    setMemberState(member);
+    // Compare a unique member identifier if available (here assumed as member.id)
+    if (!memberState || memberState.id !== member.id) {
+      setMemberState(member);
+      setLoanApplication(null);
+      setLoanApplicationError(null);
+    }
   }, [member]);
+
+  // --- Fetch Loan Application Only Once ---
+  useEffect(() => {
+    // Only attempt to fetch if:
+    // 1. The active tab is "loanApplication"
+    // 2. We have a valid member with a loan_application_id
+    // 3. We haven’t fetched the loan application yet and we aren’t already loading it.
+    if (
+      activeTab === "loanApplication" &&
+      memberState &&
+      memberState.loan_application_id &&
+      !loanApplication &&
+      !loanApplicationLoading
+    ) {
+      setLoanApplicationLoading(true);
+      axios
+        .get(`http://localhost:3001/api/loan-application/${memberState.loan_application_id}`)
+        .then((res) => {
+          setLoanApplication(res.data);
+        })
+        .catch((error) => {
+          console.error("Error fetching loan application:", error);
+          setLoanApplicationError("Failed to fetch loan application.");
+        })
+        .finally(() => {
+          setLoanApplicationLoading(false);
+        });
+    }
+  }, [activeTab, memberState.loan_application_id, loanApplication, loanApplicationLoading]);
 
   if (!memberState) return null;
 
-  // Format dates
+  // --- Date Formatting ---
   const memberSinceDate = new Date(memberState.registrationDate);
-  const formattedDate = memberSinceDate.toLocaleDateString('en-US', { 
-    year: 'numeric', month: 'long', day: 'numeric' 
+  const formattedDate = memberSinceDate.toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
   });
 
   const dateOfBirth = new Date(memberState.dateOfBirth);
-  const formDate = dateOfBirth.toLocaleDateString('en-US', { 
-    year: 'numeric', month: 'long', day: 'numeric' 
+  const formattedDOB = dateOfBirth.toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
   });
 
-  // Profile picture URL fallback to pic if not available.
-  const idPictureUrl = memberState.idPicture 
-    ? `http://localhost:3001/uploads/${memberState.idPicture}` 
+  // Use the provided profile picture or a fallback image
+  const idPictureUrl = memberState.idPicture
+    ? `http://localhost:3001/uploads/${memberState.idPicture}`
     : pic;
 
   // Optional: Function to hide success/error messages later.
@@ -40,7 +83,6 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50 overflow-y-auto">
-      {/* Expanded width by using max-w-7xl instead of max-w-5xl */}
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-7xl w-full relative">
         {/* Header */}
         <div className="flex justify-between items-center border-b pb-4 mb-6">
@@ -87,10 +129,9 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
         {/* Tab Content */}
         {activeTab === "memberInfo" && (
           <>
-            {/* Member Information Section */}
-            <div className="flex flex-col md:flex-row mb-6">
+          <div className="flex flex-col md:flex-row mb-6">
               {/* Left Column: Profile Image & Basic Info */}
-              <div className="md:w-1/3 text-center mb-4 md:mb-0 bg-gray-100 rounded-lg shadow mr-6">
+              <div className="md:w-1/3 text-center mb-4 md:mb-0 p-6 bg-white shadow-lg rounded-lg mr-6 ">
                 <img
                   src={idPictureUrl}
                   alt="ID Picture"
@@ -102,7 +143,7 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                 </h3>
               </div>
               <div className="md:w-2/3">
-                <div className="columns-1 md:columns-2 gap-4 p-4 bg-gray-100 rounded-lg shadow">
+                <div className="columns-1 md:columns-2 gap-4 p-4 bg-white shadow-lg rounded-lg">
                   <p className="break-inside-avoid mb-2">
                     <strong className="text-gray-600">Code Number:</strong> {memberState.memberCode}
                   </p>
@@ -164,7 +205,7 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
             {/* Detailed Information Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Eligibility Card */}
-              <div className="p-4 bg-gray-100 rounded-lg shadow">
+              <div className="p-4 bg-gray-100 bg-white shadow-lg rounded-lg">
                 <h3 className="text-xl font-bold text-center mb-4">ELIGIBILITY</h3>
                 <p className="text-gray-700 mb-2">
                   <span className="font-bold">Note:</span> Company’s loan eligibility will prevail.
@@ -182,9 +223,9 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
               </div>
 
               {/* Accounts Card */}
-              <div className="p-4 bg-gray-100 rounded-lg shadow">
+              <div className="p-4 bg-gray-100 bg-white shadow-lg rounded-lg">
                 <h3 className="text-xl font-bold text-center mb-4">ACCOUNTS</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Left Column */}
                   <div>
                     <p className="text-gray-700 mb-2">
@@ -243,28 +284,75 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
         )}
 
         {activeTab === "loanApplication" && (
-          <div className="mb-6 p-4 bg-gray-100 rounded-lg shadow">
-            <h3 className="text-xl font-bold text-center mb-4">Loan Application</h3>
-            {memberState.loanApplication ? (
-              <div className="space-y-2 text-gray-700">
-                <p>
-                  <span className="font-bold">Requested Amount:</span> {memberState.loanApplication.requestedAmount || "N/A"}
-                </p>
-                <p>
-                  <span className="font-bold">Loan Purpose:</span> {memberState.loanApplication.loanPurpose || "N/A"}
-                </p>
-                <p>
-                  <span className="font-bold">Application Date:</span> {memberState.loanApplication.applicationDate || "N/A"}
-                </p>
-                <p>
-                  <span className="font-bold">Status:</span> {memberState.loanApplication.status || "N/A"}
-                </p>
-              </div>
+  <div className="mb-6 p-6 bg-gray-100 rounded-lg shadow">
+    <h3 className="text-2xl font-bold text-center mb-6">Loan Application</h3>
+    {loanApplicationLoading ? (
+      <div className="flex justify-center items-center py-6">
+        <p className="text-gray-700 text-lg">Loading loan application...</p>
+      </div>
+    ) : loanApplicationError ? (
+      <div className="text-center text-red-500 py-6">
+        <p className="mb-4">{loanApplicationError}</p>
+        <button
+          onClick={() => {
+            // Reset error and loan application to retry the fetch
+            setLoanApplication(null);
+            setLoanApplicationError(null);
+          }}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+            ) : loanApplication ? (
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-gray-700">
+                <div>
+                  <dt className="font-semibold">Requested Amount:</dt>
+                  <dd>{loanApplication.loan_amount || "N/A"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Loan Purpose:</dt>
+                  <dd>{loanApplication.loanPurpose || "N/A"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Loan Type:</dt>
+                  <dd>{loanApplication.loan_type || "N/A"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Application Date:</dt>
+                  <dd>
+                    {loanApplication.created_at
+                      ? new Date(loanApplication.created_at).toLocaleDateString()
+                      : "N/A"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Interest:</dt>
+                  <dd>{loanApplication.interest || "N/A"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Term:</dt>
+                  <dd>{loanApplication.terms ? `${loanApplication.terms} months` : "N/A"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-semibold">Statement of Purpose:</dt>
+                  <dd>{loanApplication.statement_of_purpose || "N/A"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Sacks:</dt>
+                  <dd>{loanApplication.sacks || "N/A"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Proof of Business:</dt>
+                  <dd>{loanApplication.proof_of_business || "N/A"}</dd>
+                </div>
+              </dl>
             ) : (
-              <p className="text-center text-gray-700">No loan application.</p>
+              <p className="text-center text-gray-700 py-6">No loan application.</p>
             )}
           </div>
         )}
+
 
       </div>
     </div>

@@ -4,7 +4,7 @@ import { FaDollarSign, FaSearch, FaFilter } from 'react-icons/fa';
 import LoanEvaluationProfileModal from './component/LoanEvaluationProfileModal';
 
 const LoanApproval = () => {
-  const apiBaseURL = 'http://localhost:3001/api/members'; // Ensure this URL is correct
+  const apiBaseURL = 'http://localhost:3001/api/loan-application/all'; // Ensure this URL is correct
 
   const [modalState, setModalState] = useState({
     addOpen: false,
@@ -18,7 +18,7 @@ const LoanApproval = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All"); // New state for status filtering
   const [error, setError] = useState(""); // For handling error messages
-
+  
   // List of loan types available for filtering
   const loanTypes = [
     "Feeds Loan", "Rice Loan", "Marketing Loan", "Back-to-Back Loan",
@@ -102,11 +102,11 @@ const LoanApproval = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-3xl font-bold mb-6">List of Loan Applicant</h2>
+      <h2 className="text-3xl font-bold mb-6">Loan Applicant</h2>
 
       {/* Filter Section */}
       <div className="mb-6 p-6 bg-white shadow-lg rounded-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {/* Loan Type Dropdown */}
           <div>
             <label htmlFor="loanType" className="block text-sm font-medium text-gray-600 mb-1">
@@ -187,63 +187,63 @@ const LoanApproval = () => {
           ? "All Loans"
           : activeTab.replace(/([A-Z])/g, ' $1').trim()}
       </h3>
-      <div className="overflow-x-auto" style={{ maxHeight: "65vh" }}>
-        <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
-          <thead className="sticky top-0 bg-green-200 z-20 text-center">
+      <div className="overflow-x-auto w-full" style={{ maxHeight: "65vh" }}>
+        <table className="min-w-full table-auto bg-white border border-gray-300 text-sm divide-y divide-gray-200">
+          <thead className="sticky top-0 bg-green-200 z-20">
             <tr>
-              <th className="px-4 py-2 text-left text-sm">
-                Client Voucher Number
-              </th>
-              <th className="px-4 py-2 text-left text-sm">Code Number</th>
-              <th className="px-4 py-2 text-left text-sm">Full Name</th>
-              <th className="px-4 py-2 text-left text-sm">Loan Type</th>
-              <th className="px-4 py-2 text-left text-sm">Application</th>
-              <th className="px-4 py-2 text-center text-sm">Loan Amount</th>
-              <th className="px-4 py-2 text-center text-sm">Interest</th>
-              <th className="px-4 py-2 text-center text-sm">Terms</th>
-              <th className="px-4 py-2 text-center text-sm">Application Date</th>
-              <th className="px-4 py-2 text-center text-sm">Balance</th>
-              <th className="px-4 py-2 text-center text-sm">Remarks</th>
-              <th className="px-4 py-2 text-center text-sm">Actions</th>
+              <th className="px-4 py-2 text-center">Client Voucher Number</th>
+              <th className="px-4 py-2 text-center">Code Number</th>
+              <th className="px-4 py-2 text-center">Full Name</th>
+              <th className="px-4 py-2 text-center">Loan Type</th>
+              <th className="px-4 py-2 text-center">Application</th>
+              <th className="px-4 py-2 text-center">Loan Amount</th>
+              <th className="px-4 py-2 text-center">Interest</th>
+              <th className="px-4 py-2 text-center">Terms</th>
+              <th className="px-4 py-2 text-center">Application Date</th>
+              {/* <th className="px-4 py-2 text-center">Balance</th> */}
+              <th className="px-4 py-2 text-center">Remarks</th>
+              <th className="px-4 py-2 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200">
             {filteredBorrowers.length > 0 ? (
               filteredBorrowers.map((borrower) => (
-                <tr key={borrower.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.clientVoucherNumber || "N/A"}
+                <tr key={borrower.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 text-center text-gray-700">
+                    {borrower.client_voucher_number || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.memberCode || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.LastName}, {borrower.FirstName} {borrower.MiddleName}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.loanType || "N/A"}
+                  <td className="px-4 py-2 text-center text-gray-700">
+                    {borrower.loan_type || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.applicationDate || "N/A"}
+                  <td className="px-4 py-2 text-center text-gray-700">
+                    {borrower.application || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
-                    {borrower.loanAmount || "N/A"}
+                  <td className="px-4 py-2 text-center text-gray-700">
+                    {borrower.loan_amount || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.interest || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.terms || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
-                    {borrower.applicationDate || "N/A"}
+                  <td className="px-4 py-2 text-center text-gray-700">
+                    {borrower.created_at 
+                      ? new Date(borrower.created_at).toISOString().split('T')[0] 
+                      : "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  {/* <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.balance || 0}
-                  </td>
-                  <td className="px-4 py-2 text-center text-sm">
+                  </td> */}
+                  <td className="px-4 py-2 text-center">
                     <span
-                      className={`px-2 py-1 rounded-full font-semibold ${
+                      className={`inline-block px-2 py-1 rounded-full font-semibold ${
                         borrower.remarks === "Approved"
                           ? "bg-green-500 text-white"
                           : borrower.remarks === "Rejected"
@@ -254,11 +254,11 @@ const LoanApproval = () => {
                       {borrower.remarks || "Waiting for Approval"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     <div className="flex justify-center space-x-3">
                       <button
                         onClick={() => openModal('viewOpen', borrower)}
-                        className="bg-green-500 text-sm text-white px-4 py-2 rounded hover:bg-green-600"
+                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
                       >
                         View Evaluation
                       </button>
@@ -268,7 +268,7 @@ const LoanApproval = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="11" className="text-center py-4 text-gray-600">
+                <td colSpan="12" className="text-center py-4 text-gray-600">
                   No borrowers available.
                 </td>
               </tr>
