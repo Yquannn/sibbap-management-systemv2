@@ -4,13 +4,14 @@ const memberModel= require('../models/memberModel')
 const { queryDatabase, generateUniqueMemberId, formatDate } = require('../utils/databaseHelper');
 
 
-exports.getMembers = async (req, res) => {
-  const memberName = req.query.name;
 
-  // Removed the extra comma after savingsAmount
-  let query = `
-    SELECT 
-      mi.*, 
+exports.getMembers = async (req, res) => {
+  try {
+    const memberName = req.query.search ? req.query.search.trim().toLowerCase() : null;
+
+    let query = `
+      SELECT 
+         mi.*, 
       ma.email, 
       ma.password, 
       ma.accountStatus, 
@@ -26,62 +27,109 @@ exports.getMembers = async (req, res) => {
     LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
     LEFT JOIN character_references c ON mi.memberId = c.memberId
     LEFT JOIN regular_savings s ON mi.memberId = s.memberId
-  `;
+    `;
 
-  const queryParams = [];
+    const queryParams = [];
 
-  // Append filtering by member name if provided
-  if (memberName) {
-    query += ' WHERE LOWER(mi.lastName) = ?';
-    queryParams.push(memberName.toLowerCase());
-  }
+    if (memberName) {
+      query += ' WHERE LOWER(mi.lastName) = ?';
+      queryParams.push(memberName);
+    }
 
-  try {
+    // Execute the safe query
     const members = await queryDatabase(query, queryParams);
 
-    if (members.length > 0) {
-      // Use a Map to merge duplicate member entries (due to JOINs)
-      const memberMap = new Map();
 
-      members.forEach(member => {
-        // If the member is not in the map, add it
-        if (!memberMap.has(member.memberId)) {
-          memberMap.set(member.memberId, {
-            ...member,
-            beneficiaries: [],
-            references: []
-          });
-        }
 
-        // Append beneficiary data if available
-        if (member.beneficiaryName) {
-          memberMap.get(member.memberId).beneficiaries.push({
-            beneficiaryName: member.beneficiaryName,
-            relationship: member.relationship,
-            beneficiaryContactNumber: member.beneficiaryContactNumber
-          });
-        }
-
-        // Append character reference data if available
-        if (member.referenceName) {
-          memberMap.get(member.memberId).references.push({
-            referenceName: member.referenceName,
-            position: member.position,
-            referenceContactNumber: member.referenceContactNumber
-          });
-        }
-      });
-
-      // Convert the map back to an array and return it as JSON
-      res.json(Array.from(memberMap.values()));
-    } else {
-      res.status(404).json({ message: 'No members found' });
-    }
+    res.json(members.length > 0 ? members : { message: 'No members found' });
   } catch (error) {
     console.error('Error fetching data from MySQL:', error);
-    res.status(500).json({ message: 'Error fetching data from MySQL' });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+
+
+//VULNERATBLE TO SQL INJECTION
+
+// exports.getMembers = async (req, res) => {
+//   const memberName = req.query.name;
+
+//   // Removed the extra comma after savingsAmount
+//   let query = `
+//     SELECT 
+//       mi.*, 
+//       ma.email, 
+//       ma.password, 
+//       ma.accountStatus, 
+//       b.beneficiaryName, 
+//       b.relationship, 
+//       b.beneficiaryContactNumber, 
+//       c.referenceName, 
+//       c.position, 
+//       c.referenceContactNumber,
+//       s.amount AS savingsAmount
+//     FROM members mi
+//     LEFT JOIN member_account ma ON mi.memberId = ma.memberId
+//     LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
+//     LEFT JOIN character_references c ON mi.memberId = c.memberId
+//     LEFT JOIN regular_savings s ON mi.memberId = s.memberId
+//   `;
+
+//   const queryParams = [];
+
+//   // Append filtering by member name if provided
+//   if (memberName) {
+//     query += ' WHERE LOWER(mi.lastName) = ?';
+//     queryParams.push(memberName.toLowerCase());
+//   }
+
+//   try {
+//     const members = await queryDatabase(query, queryParams);
+
+//     if (members.length > 0) {
+//       // Use a Map to merge duplicate member entries (due to JOINs)
+//       const memberMap = new Map();
+
+//       members.forEach(member => {
+//         // If the member is not in the map, add it
+//         if (!memberMap.has(member.memberId)) {
+//           memberMap.set(member.memberId, {
+//             ...member,
+//             beneficiaries: [],
+//             references: []
+//           });
+//         }
+
+//         // Append beneficiary data if available
+//         if (member.beneficiaryName) {
+//           memberMap.get(member.memberId).beneficiaries.push({
+//             beneficiaryName: member.beneficiaryName,
+//             relationship: member.relationship,
+//             beneficiaryContactNumber: member.beneficiaryContactNumber
+//           });
+//         }
+
+//         // Append character reference data if available
+//         if (member.referenceName) {
+//           memberMap.get(member.memberId).references.push({
+//             referenceName: member.referenceName,
+//             position: member.position,
+//             referenceContactNumber: member.referenceContactNumber
+//           });
+//         }
+//       });
+
+//       // Convert the map back to an array and return it as JSON
+//       res.json(Array.from(memberMap.values()));
+//     } else {
+//       res.status(404).json({ message: 'No members found' });
+//     }
+//   } catch (error) {
+//     console.error('Error fetching data from MySQL:', error);
+//     res.status(500).json({ message: 'Error fetching data from MySQL' });
+//   }
+// };
 
 
 
