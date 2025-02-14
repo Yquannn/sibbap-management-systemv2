@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { FaPlus, FaTrash, FaEdit, FaSearch } from "react-icons/fa";
-import AddUserModal from "../components/modal/AddUserModal";
+import AddUserModal from "../../components/modal/AddUserModal";
 
 const Users = () => {
   const [users, setUsers] = useState([]);

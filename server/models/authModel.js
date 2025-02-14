@@ -10,3 +10,14 @@ exports.findByEmail = async (email) => {
     throw new Error('Error finding user');
   }
 };
+
+
+exports.findMembers = async (email) => {
+  try {
+    const [members] = await db.query('SELECT email FROM members WHERE email = ?', [email]);
+    return members; 
+  } catch (error) {
+    console.error('Error finding members:', error.message);
+    throw new Error('Error finding members');
+  }
+}

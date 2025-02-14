@@ -4,6 +4,8 @@ const authController = require('../controllers/authController.js');
 
 
 router.post('/auth', authController.login);
+router.post('/auth/login-member', authController.loginMember);
+
 
 router.use((err, req, res, next) => {
   console.error('Error:', err); 

@@ -1,20 +1,18 @@
-import { Outlet } from "react-router-dom";
-import ContentLayout from "./ContentLayout";
-import SideBar from "../shared/components/partials/Sidebar";
-import LogIn from "../pages/LogIn";
+import { Navigate, Outlet } from "react-router-dom";
+import AdminLayout from "./AdminLayout";
+import MemberLayout from "./MemberLayout";
 
 const RootLayout = () => {
-  return (
-    <div className="flex">
-      <SideBar />
-      <div className="flex-1">
-        <ContentLayout>
-          <Outlet /> 
-          <LogIn/>
-        </ContentLayout>
-      </div>
-    </div>
-  );
-}
+  // Get user type from localStorage or API
+  const userType = localStorage.getItem("userType"); 
+
+  if (userType === "admin") {
+    return <AdminLayout />;
+  } else if (userType === "member") {
+    return <MemberLayout />;
+  } else {
+    return <Navigate to="/" />; // Redirect if not logged in
+  }
+};
 
 export default RootLayout;

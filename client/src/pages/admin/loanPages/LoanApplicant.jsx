@@ -3,7 +3,7 @@ import axios from 'axios';
 import { FaDollarSign, FaSearch, FaFilter } from 'react-icons/fa';
 import LoanEvaluationProfileModal from './component/LoanEvaluationProfileModal';
 
-const LoanApproval = () => {
+const LoanApplicant = () => {
   const apiBaseURL = 'http://localhost:3001/api/loan-application/all'; // Ensure this URL is correct
 
   const [modalState, setModalState] = useState({
@@ -195,12 +195,12 @@ const LoanApproval = () => {
               <th className="px-4 py-2 text-center">Code Number</th>
               <th className="px-4 py-2 text-center">Full Name</th>
               <th className="px-4 py-2 text-center">Loan Type</th>
-              {/* <th className="px-4 py-2 text-center">Application</th> */}
+              <th className="px-4 py-2 text-center">Application</th>
               <th className="px-4 py-2 text-center">Loan Amount</th>
               <th className="px-4 py-2 text-center">Interest</th>
               <th className="px-4 py-2 text-center">Terms</th>
               <th className="px-4 py-2 text-center">Application Date</th>
-              <th className="px-4 py-2 text-center">Status</th>
+              {/* <th className="px-4 py-2 text-center">Balance</th> */}
               <th className="px-4 py-2 text-center">Remarks</th>
               <th className="px-4 py-2 text-center">Actions</th>
             </tr>
@@ -221,9 +221,9 @@ const LoanApproval = () => {
                   <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.loan_type || "N/A"}
                   </td>
-                  {/* <td className="px-4 py-2 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.application || "N/A"}
-                  </td> */}
+                  </td>
                   <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.loan_amount || "N/A"}
                   </td>
@@ -238,9 +238,9 @@ const LoanApproval = () => {
                       ? new Date(borrower.created_at).toISOString().split('T')[0] 
                       : "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-gray-700">
-                    {borrower.status || "N/A"}
-                  </td>
+                  {/* <td className="px-4 py-2 text-center text-gray-700">
+                    {borrower.balance || 0}
+                  </td> */}
                   <td className="px-4 py-2 text-center">
                     <span
                       className={`inline-block px-2 py-1 rounded-full font-semibold ${
@@ -300,4 +300,4 @@ const LoanApproval = () => {
   );
 };
 
-export default LoanApproval;
+export default LoanApplicant;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { FaPlus, FaEye, FaTrash, FaEdit } from 'react-icons/fa';
-import MemberProfileModal from '../components/modal/MemberProfileModal';
-import AddMemberModal from '../components/modal/AddMemberModal';
+import MemberProfileModal from '../../components/modal/MemberProfileModal';
+import AddMemberModal from '../../components/modal/AddMemberModal';
 
 const apiBaseURL = 'http://localhost:3001/api/members';
 

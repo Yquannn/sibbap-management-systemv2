@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import TableWithGrouping from '../components/datagrid/GridComponent';
+import TableWithGrouping from '../../components/datagrid/GridComponent';
 
 const FileMaintenance = () => {
   const [selectedMonth, setSelectedMonth] = useState('');

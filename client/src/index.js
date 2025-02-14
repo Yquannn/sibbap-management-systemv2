@@ -1,16 +1,19 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.js'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.js';
 import './App.css';
+import { BrowserRouter } from 'react-router-dom';
+import { register } from './serviceWorker'; // ✅ Import the register function
 
-import {BrowserRouter} from 'react-router-dom'
+const root = ReactDOM.createRoot(document.getElementById('root'));
 
-
-ReactDOM.createRoot(document.getElementById('root')).render(
+root.render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
+  </React.StrictMode>
+);
 
-  </React.StrictMode>,
-)
+// ✅ Register the service worker
+register();

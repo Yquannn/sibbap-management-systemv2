@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FaDollarSign, FaPiggyBank, FaSearch } from "react-icons/fa";
 import axios from "axios"; 
-import TransactionForm from "../../components/modal/TransactionForm";
+import TransactionForm from "../../../components/modal/TransactionForm";
 
 const RegularSavings = ({ openModal, handleDelete }) => {
   const [members, setMembers] = useState([]);
