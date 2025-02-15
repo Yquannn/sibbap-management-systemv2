@@ -18,6 +18,8 @@ import LoanApproval from "./pages/admin/loanPages/LoanApproval";
 import MemberDashboard from "./pages/members/home/MemberDashboard";
 import AdminLayout from "./layouts/AdminLayout";
 import MemberLayout from "./layouts/MemberLayout";
+import Transaction from "./pages/members/transaction/MemberTransaction";
+import Inbox from "./pages/members/inbox/MemberInbox";
 
 function App() {
   return (
@@ -52,6 +54,9 @@ function App() {
       <Route element={<MemberLayout />}>
         <Route path="member-dashboard" element={<MemberDashboard />} />
         {/* No wildcard route for members, preventing access to NotFoundPage */}
+        <Route path="member-transactions" element={<Transaction />} />
+        <Route path="member-inbox" element={<Inbox />} />
+
       </Route>
     </Routes>
   );

@@ -154,7 +154,7 @@ const MembershipInformationModal = ({ member, onClose }) => {
                         </div>
                     </div>
 
-                    {memberState.accountStatus !== 'Active' && (
+                    {memberState.accountStatus !== 'ACTIVATED' && (
                         <button
                             onClick={async () => {
                                 try {
@@ -167,7 +167,7 @@ const MembershipInformationModal = ({ member, onClose }) => {
                                     // Update the member state with new values if activation is successful
                                     setMemberState((prevState) => ({
                                         ...prevState,
-                                        accountStatus: 'Active',
+                                        accountStatus: 'ACTIVATED',
                                         email: member.memberCode,
                                         password: member.memberCode,
                                     }));

@@ -21,6 +21,8 @@ router.get('/total', dashboardController.getTotalMembers);
 router.get('/members', memberController.getMembers); 
 router.get('/members/savings', memberController.getMemberSavings);
 
+router.get('/member/email/:email', memberController.getMemberByEmail);
+
 // router.get('/members/beneficiaries', memberController.getBeneficiaries);        
 router.get('/members/:id', memberController.getMemberById); 
 router.post('/members', upload.single('idPicture'), memberController.addMember);

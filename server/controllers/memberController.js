@@ -526,4 +526,23 @@ exports.activateAccount = async (req, res) => {
 
 
 
+exports.getMemberByEmail = async (req, res) => {
+  try {
+    const { email } = req.params; // Get email from the request URL parameters
 
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const member = await memberModel.getMemberByEmail(email);
+
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    res.status(200).json(member);
+  } catch (error) {
+    console.error('Error fetching member by email:', error.message);
+    res.status(500).json({ error: 'Failed to fetch member data' });
+  }
+};

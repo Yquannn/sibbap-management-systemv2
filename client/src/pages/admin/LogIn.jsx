@@ -81,7 +81,7 @@ const LogIn = () => {
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-1">Email</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border rounded-md py-2 px-3 focus:ring focus:ring-green-300"
