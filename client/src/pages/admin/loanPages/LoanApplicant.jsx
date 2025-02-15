@@ -233,11 +233,13 @@ const LoanApplicant = () => {
                   <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.terms || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-gray-700">
-                    {borrower.created_at 
-                      ? new Date(borrower.created_at).toISOString().split('T')[0] 
-                      : "N/A"}
-                  </td>
+                  <td className="py-3 px-4 border-b border-gray-300">
+                      {new Date(borrower.created_at).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </td>
                   {/* <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.balance || 0}
                   </td> */}

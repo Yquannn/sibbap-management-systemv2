@@ -20,6 +20,9 @@ import AdminLayout from "./layouts/AdminLayout";
 import MemberLayout from "./layouts/MemberLayout";
 import Transaction from "./pages/members/transaction/MemberTransaction";
 import Inbox from "./pages/members/inbox/MemberInbox";
+import MemberProfile from "./pages/members/profile/MemberProfile";
+import TimedepositCalculatorPage from "./pages/members/home/TimedepositCalculatorPage";
+import RegularSavingsCalculator from "./pages/members/home/utils/RegularSavingsCalculator";
 
 function App() {
   return (
@@ -56,6 +59,11 @@ function App() {
         {/* No wildcard route for members, preventing access to NotFoundPage */}
         <Route path="member-transactions" element={<Transaction />} />
         <Route path="member-inbox" element={<Inbox />} />
+        <Route path="member-profile" element={<MemberProfile />} />
+        <Route path="timedeposit-calculator" element={<TimedepositCalculatorPage />} />
+        <Route path="regular-savings-calculator" element={<RegularSavingsCalculator />} />
+
+
 
       </Route>
     </Routes>

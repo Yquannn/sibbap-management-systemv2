@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import TransactionAuthenticate from './TranscationAuthenticate';
 
 const BASE_URL = 'http://localhost:3001/api'; // Base API URL
 
@@ -9,35 +8,8 @@ const TransactionForm = ({ member, modalType, onClose }) => {
   const [balance, setBalance] = useState(parseFloat(member.savingsAmount) || 0); // Ensure balance is a number
   const [loading, setLoading] = useState(false); // To handle loading state
   const [error, setError] = useState(null); // To display error messages
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track if the user is authenticated
-  const [password, setPassword] = useState(''); // For storing entered password
-  
-  const [showAuthModal, setShowAuthModal] = useState(false); // Control the password modal visibility
-
-  const handleAuthentication = async (enteredPassword) => {
-    try {
-      // API call to verify password (Replace with actual endpoint)
-      const response = await axios.post(`${BASE_URL}/authenticate`, {
-        memberId: member.memberId,
-        password: enteredPassword,
-      });
-      if (response.data.success) {
-        setIsAuthenticated(true);
-        setShowAuthModal(false);  // Close auth modal
-      } else {
-        setError('Authentication failed. Please try again.');
-      }
-    } catch (err) {
-      setError('An error occurred while authenticating.');
-    }
-  };
 
   const handleTransaction = async () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true); // Show authentication modal if not authenticated
-      return;
-    }
-
     const amountValue = parseFloat(amount);
 
     // Validate amount
@@ -82,14 +54,6 @@ const TransactionForm = ({ member, modalType, onClose }) => {
 
   return (
     <div>
-      {/* Transaction Authentication Modal */}
-      {showAuthModal && (
-        <TransactionAuthenticate
-          onAuthenticate={handleAuthentication}
-          onClose={() => setShowAuthModal(false)} // Close auth modal
-        />
-      )}
-
       {/* Transaction Form Modal */}
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg shadow-lg w-96 p-6">

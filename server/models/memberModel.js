@@ -26,22 +26,28 @@ exports.activateAccount = async (memberId) => {
     throw error; // Throw the error to be handled in the controller
   }
 };
+
 exports.getMemberByEmail = async (email) => {
   try {
-    const [member] = await db.query(`
+    const [member] = await db.query(
+      `
       SELECT 
         ma.*, 
         m.*, 
-        s.amount AS savingsAmount  -- Get the savings amount
+        s.amount AS savingsAmount,  -- Get the savings amount
+        l.amount AS timeDepositAmount  -- Get the time deposit amount
       FROM member_account ma
       JOIN members m ON ma.memberId = m.memberId
-      LEFT JOIN regular_savings s ON ma.memberId = s.memberId  -- Join saving table
+      LEFT JOIN regular_savings s ON ma.memberId = s.memberId  -- Join savings table
+      LEFT JOIN time_deposit l ON ma.memberId = l.memberId  -- Join time deposit table
       WHERE ma.email = ?
-    `, [email]);
+    `,
+      [email]
+    );
 
-    return member.length > 0 ? member[0] : null;  
+    return member.length > 0 ? member[0] : null;
   } catch (error) {
-    console.error('Error fetching member by email:', error.message);
-    throw new Error('Error fetching member');
+    console.error("Error fetching member by email:", error.message);
+    throw new Error("Error fetching member");
   }
 };

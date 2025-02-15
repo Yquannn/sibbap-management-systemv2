@@ -2,7 +2,7 @@ import React from "react";
 import { Mail, Bell } from "lucide-react";
 
 const dummyTransactions = [
-  { date: "Feb 10, 2025", title: "Sale for upcoming Valentine's Day", content: "We have an offer for you: a 50% discount!", targetAudience: "All", status: "Update" },
+  { date: "Feb 10, 2025", title: "Sale for upcoming Valentine's Day🥰", content: "We have an offer for you: a 50% discount!👩‍❤️‍👩", targetAudience: "All", status: "Update" },
   { date: "Feb 11, 2025", title: "System Maintenance", content: "Scheduled maintenance on Feb 15 from 1 AM to 4 AM.", targetAudience: "All Users", status: "Notice" },
   { date: "Feb 12, 2025", title: "New Feature Alert!", content: "Introducing instant transfers with zero fees.", targetAudience: "Premium Users", status: "Update" },
   { date: "Feb 13, 2025", title: "Security Reminder", content: "Enable two-factor authentication for better security.", targetAudience: "All", status: "Reminder" },
@@ -15,7 +15,7 @@ const Inbox = ({ transactions = dummyTransactions }) => {
   return (
     <div className="w-full max-w-md mx-auto">
       <h2 className="text-lg font-semibold text-white mb-4">Inbox</h2>
-      <div className="divide-y divide-gray-200">
+      <div className="">
         {transactions.map((transaction, index) => (
           <div key={index} className="flex items-start gap-3 py-3">
             <Bell className="text-green-700 flex-shrink-0" size={24} />
