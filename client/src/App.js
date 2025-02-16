@@ -25,6 +25,8 @@ import TimedepositCalculatorPage from "./pages/members/home/TimedepositCalculato
 import RegularSavingsCalculator from "./pages/members/home/utils/RegularSavingsCalculator";
 import ShareCapitalCalculator from "./pages/members/home/utils/ShareCapitalCalculator";
 import MemberLoanPage from "./pages/members/loan/LoanPage"
+import RegularSavingsTransactionHistory from "./pages/members/home/transaction/RegularSavingsTransaction";
+import LoanDetails from "./pages/members/loan/LoanDetails";
 
 function App() {
   return (
@@ -66,6 +68,11 @@ function App() {
         <Route path="regular-savings-calculator" element={<RegularSavingsCalculator />} />
         <Route path="share-capital-calculator" element={<ShareCapitalCalculator />} />
         <Route path="member-loan" element={<MemberLoanPage />} />
+        <Route path="member-regular-savings-transaction" element={<RegularSavingsTransactionHistory />} />
+        <Route path="member-loan-details" element={<LoanDetails />} />
+
+       
+
 
 
 

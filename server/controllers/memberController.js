@@ -453,57 +453,9 @@ exports.deleteMember = async (req, res) => {
     connection.release();
   }
 };
-// async function checkAndUpdateAccounts() {
-//   let connection;
-//   try {
-//     connection = await db.getConnection();
-//     const query = `
-//       UPDATE savings
-//       SET status = 'dormonth'
-//       WHERE last_updated < NOW() - INTERVAL 20 SECOND
-//       AND status <> 'dormonth';
-//     `;
-//     const [result] = await connection.query(query);
-//     console.log(`${result.affectedRows} accounts updated to dormonth due to inactivity.`);
-//   } catch (error) {
-//     console.error('Failed to update accounts:', error.message);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-//   // Schedule the next execution
-//   setTimeout(checkAndUpdateAccounts, 20000); // Check every 20 seconds
-// }
 
-// // Initialize the first execution
-// setTimeout(checkAndUpdateAccounts, 20000);
 
-// Function to apply interest to savings
-async function applyInterest() {
-  const connection = await db.getConnection();
 
-  try {
-    // Only apply interest to accounts with an amount >= 1000
-    const query = 'UPDATE regular_savings SET amount = amount * 1.01 WHERE amount >= 1000';
-    await connection.query(query);
-    console.log('Interest applied to qualifying savings accounts');
-  } catch (error) {
-    console.error('Failed to apply interest:', error.message);
-  } finally {
-    connection.release();
-  }
-}
-
-// Start the interval to apply interest every 5 seconds
-// setInterval(applyInterest, 5000);
-
-function getNextMonthDelay() {
-  const now = new Date();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1); // First day of the next month
-  return nextMonth - now; // Milliseconds until the first day of next month
-}
-
-// Initialize the first execution
-// setTimeout(applyInterest, getNextMonthDelay());
 
 
 exports.activateAccount = async (req, res) => {

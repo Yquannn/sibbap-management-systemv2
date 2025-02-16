@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { User, Mail, Settings, LogOut, ArrowLeft } from "lucide-react";
 import defaultPicture from "../assets/blankPicture.png";
-import { useNavigate } from "react-router-dom";  // Import useNavigate
+import { useNavigate } from "react-router-dom"; 
 
 
 const MemberProfile = () => {
@@ -14,7 +14,8 @@ const MemberProfile = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null)
-
+  const navigate = useNavigate(); 
+  
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -57,7 +58,6 @@ const MemberProfile = () => {
     }
   };
 
-  const navigate = useNavigate();  // Initialize navigation function
 
   const handleLogout = () => {
     localStorage.removeItem("userEmail"); // Clear stored user email
@@ -107,12 +107,12 @@ const MemberProfile = () => {
   return (
     <div className="w-full max-w-sm mx-auto text-center">
       {/* User Profile (Always Visible) */}
-      <button
+      {/* <button
         className="flex items-center text-gray-700 hover:text-black mb-4"
           onClick={() => navigate(-1)} // Go back to the previous page
         >
           <ArrowLeft size={20} className="mr-2" /> Back
-        </button>
+        </button> */}
       <img
           src={
             imagePreview ||

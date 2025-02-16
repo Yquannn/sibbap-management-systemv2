@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { CheckCircle, Clock, XCircle, Eye, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";  // Import useNavigate
+import { CheckCircle, Clock, XCircle, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const dummyLoans = [
   { id: 1, type: "Personal Loan", amount: 50000, status: "Approved", date: "2025-02-10" },
@@ -10,9 +10,8 @@ const dummyLoans = [
 ];
 
 const MemberLoanPage = () => {
-  const [loans] = useState(dummyLoans);
-const navigate = useNavigate();  
-  
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState("All");
 
   // Function to get status color
   const getStatusColor = (status) => {
@@ -42,47 +41,67 @@ const navigate = useNavigate();
     }
   };
 
+  // Filter loans based on selection
+  const filteredLoans = filter === "All" ? dummyLoans : dummyLoans.filter((loan) => loan.status === filter);
+
   return (
-<div className="max-w-lg mx-auto">
-  <button
-    className="flex items-center text-gray-700 hover:text-black mb-4"
-    onClick={() => navigate(-1)} // Go back to the previous page
-  >
-    <ArrowLeft size={20} className="mr-2" /> Back
-  </button>
-  <h2 className="text-xl font-semibold">Loan Application Tracker</h2>
+    <div className="max-w-lg mx-auto">
+      <h2 className="text-xl font-semibold mb-4">Loan Application Tracker</h2>
 
-  <div className="divide-y divide-gray-200 mt-2">
-    {loans.map((loan) => (
-      <div key={loan.id} className="flex justify-between items-center py-4">
-        {/* Left Section: Loan Details */}
-        <div className="space-y-1">
-          <p className="text-sm text-gray-500">
-            {new Date(loan.date).toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </p>
-          <p className="font-medium">{loan.type}</p>
-          <p className="text-gray-700 font-semibold">₱{loan.amount.toLocaleString()}</p>
-        </div>
-
-        {/* Right Section: Status & View Button */}
-        <div className="flex items-center gap-3">
-          {getStatusIcon(loan.status)}
-          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(loan.status)}`}>
-            {loan.status}
-          </span>
-          <button className="text-gray-600 hover:text-black">
-            <Eye size={20} />
+      {/* Filter Buttons */}
+      <div className="flex gap-2 mb-4">
+        {["All", "Approved", "Pending", "Rejected"].map((status) => (
+          <button
+            key={status}
+            className={`px-4 py-2 rounded-lg text-sm ${
+              filter === status ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+            }`}
+            onClick={() => setFilter(status)}
+          >
+            {status}
           </button>
-        </div>
+        ))}
       </div>
-    ))}
-  </div>
-</div>
 
+      <div className="divide-y divide-gray-200">
+        {filteredLoans.map((loan) => (
+          <div
+            key={loan.id}
+            className="flex justify-between items-center py-4 cursor-pointer hover:bg-gray-100 rounded-lg"
+            // onClick={() => navigate(`/member-loan-details/${loan.id}`)}
+               onClick={() => navigate(`/member-loan-details`)}
+
+          >
+            {/* Left Section: Loan Details */}
+            <div className="space-y-1">
+              <p className="text-sm text-gray-500">
+                {new Date(loan.date).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+              <p className="font-medium">{loan.type}</p>
+              <p className="text-gray-700 font-semibold">₱{loan.amount.toLocaleString()}</p>
+            </div>
+
+            {/* Right Section: Status & Icon */}
+            <div className="flex items-center gap-3">
+              {getStatusIcon(loan.status)}
+              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(loan.status)}`}>
+                {loan.status}
+              </span>
+              <ChevronRight size={30} className="text-gray-400 hover:text-black" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Show message if no loans match the filter */}
+      {filteredLoans.length === 0 && (
+        <p className="text-gray-500 text-center mt-4">No loans found for the selected filter.</p>
+      )}
+    </div>
   );
 };
 

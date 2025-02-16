@@ -155,7 +155,10 @@ const Dashboard = () => {
           {/* Row with "Total Earnings" text and button */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-100">Total Earnings</p>         
-            <button className="text-white rounded-lg transition">
+            <button className="text-white rounded-lg transition"
+              onClick={() => navigate("/member-regular-savings-transaction")}
+
+            >
               <CircleAlert size={25} />
             </button>            
           </div>
@@ -181,7 +184,8 @@ const Dashboard = () => {
           {/* Row with "Total Earnings" text and button */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-100">Total Earnings</p>         
-            <button className="text-white rounded-lg transition ">
+            <button className="text-white rounded-lg transition "
+            >
               <CircleAlert size={25} />
             </button>            
           </div>
@@ -258,8 +262,6 @@ const Dashboard = () => {
         ))}
       </div>
     </div>
-
-
 
       <div className="mt-4">
       <h2 className="text-lg font-semibold text-gray-700">Let’s Do Some Math!</h2>

@@ -7,6 +7,12 @@ router.put('/withdraw', savingsController.withdraw);
 
 // Update balance for deposit
 router.put('/deposit', savingsController.deposit);
+router.get('/member/earnings/:memberId', savingsController.getEarnings); 
+
+
+router.post('/transaction', savingsController.createTransaction);  // Create a transaction
+router.get('/transactions', savingsController.getAllTransactions); // Get all transactions
+router.get('/transactions/:transactionNumber', savingsController.getTransactionById); // Get transaction by ID
 
 // Centralized error handling middleware
 router.use((err, req, res, next) => {

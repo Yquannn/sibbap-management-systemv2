@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { HandCoins, ArrowLeft } from "lucide-react";
 
 const dummyNotifications = [
@@ -13,7 +13,7 @@ const dummyNotifications = [
 ];
 
 const Transaction = ({ notifications = dummyNotifications }) => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [filter, setFilter] = useState("Latest");
 
   // Function to sort and filter notifications
@@ -32,9 +32,12 @@ const Transaction = ({ notifications = dummyNotifications }) => {
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Back Button */}
-      <button className="flex items-center text-gray-700 hover:text-black mb-4" onClick={() => navigate(-1)}>
+      {/* <button className="flex items-center text-gray-700 hover:text-black mb-4" onClick={() => navigate(-1)}>
         <ArrowLeft size={20} className="mr-2" /> Back
-      </button>
+      </button> */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Transaction History</h2>
+      </div>
 
       {/* Filter Buttons */}
       <div className="flex space-x-3 mb-4">
