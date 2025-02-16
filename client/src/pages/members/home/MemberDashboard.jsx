@@ -1,10 +1,14 @@
 import React, { useEffect, useState, useRef  } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ConciergeBell,  PiggyBank, Banknote, ArrowRight, Briefcase, DollarSign  } from "lucide-react";
+import { ConciergeBell,  PiggyBank, Banknote, ArrowRight, Briefcase, DollarSign, History, CircleAlert } from "lucide-react";
 import { motion } from "framer-motion";
 import defaultPicture from "../assets/blankPicture.png";
 import TimedepositCalculator from "./utils/TimedepositCalculator"
+import ShareCapital from "../../admin/savingsPages/SharedCapital";
+import ShareCapitalCalculator from "./utils/ShareCapitalCalculator";
+import {count} from "../notification/NotificationPage";
+
 
 const Dashboard = () => {
   const [member, setMember] = useState({});
@@ -18,9 +22,9 @@ const Dashboard = () => {
   // const [calculatorModalVisible, setCalculatorModalVisible] = useState(false);
   // const [selectedMember, setSelectedMember] = useState(null);
   // const [modalType, setModalType] = useState("calculate");
-  
-  
+  const [modalOpen, setModalOpen] = useState(false);
 
+  let notificationCount = count; 
 
   const dummyMember = {
     announcements: [
@@ -96,12 +100,12 @@ const Dashboard = () => {
       {/* Header Section */}
       <div className="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
         <div className="flex items-center">
-        <img
-          src={member?.idPicture ? `http://192.168.254.103:3001/uploads/${member.idPicture}` : defaultPicture}
-          alt="Profile"
-          className="w-10 h-10 rounded-full border-2 border-green-500 cursor-pointer"
-          onClick={() => navigate("/member-profile")}
-        />
+          <img
+            src={member?.idPicture ? `http://192.168.254.103:3001/uploads/${member.idPicture}` : defaultPicture}
+            alt="Profile"
+            className="w-10 h-10 rounded-full border-2 border-green-500 cursor-pointer"
+            onClick={() => navigate("/member-profile")}
+          />
           <div className="ml-3">
             <p className="text-gray-500 text-sm">Welcome</p>
             <p className="text-lg font-semibold">
@@ -109,10 +113,27 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
-        <button className="text-green-600 p-2 rounded-full hover:bg-green-100">
-          <ConciergeBell className="w-6 h-6" />
-        </button>
+
+        {/* Notification Button with Count Badge */}
+        <div className="relative">
+          <button
+            className="text-green-600 p-2 rounded-full hover:bg-green-100 flex items-center justify-center"
+            onClick={() => navigate("/member-notification")}
+          >
+            <ConciergeBell className="w-7 h-7" />
+            {notificationCount > 0 && (
+              <span
+                className={`absolute top-1.5 -right-0 bg-red-500 text-white font-bold rounded-full flex items-center justify-center 
+              px-2 py-0.5 ${notificationCount >= 100 ? "text-[10px] min-w-[28px]" : "text-xs min-w-[20px]"}`}
+              >
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </span>
+
+            )}
+          </button>
+        </div>
       </div>
+
 
       <div className="relative w-full max-w-md mx-auto mt-4">
       <div 
@@ -121,62 +142,107 @@ const Dashboard = () => {
         className="flex overflow-x-auto space-x-4 snap-x snap-mandatory pb-4 scrollbar-hide"
       >
         <motion.div className="snap-center shrink-0 w-[300px]">
-          <div className="bg-green-600 text-white p-6 rounded-lg text-center w-full">
-            <p className="text-sm">Regular Savings Balance</p>
-            <p className="text-3xl font-bold">
-              ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.savingsAmount || 0)}
-            </p>
-            <div className="mt-3 flex justify-center gap-4">
-              <button className="bg-white text-sm text-green-700 px-4 py-2 rounded-lg font-semibold hover:bg-green-100 transition">
-                View Transaction
-              </button>
-            </div>
+        
+        <div className="bg-green-600 text-white p-6 rounded-lg w-full">
+          <p className="text-sm text-gray-100">Regular Savings Balance</p>
+          <p className="text-4xl font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.savingsAmount || 0)}
+          </p>
+
+          {/* Divider */}
+          <hr className="my-3 border-t border-white/30" />
+
+          {/* Row with "Total Earnings" text and button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-100">Total Earnings</p>         
+            <button className="text-white rounded-lg transition">
+              <CircleAlert size={25} />
+            </button>            
           </div>
+
+          {/* Earnings Amount Below */}
+          <p className="text-sm font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.00)}
+          </p>
+        </div>
         </motion.div>
 
         {/* Monthly Dividend */}
         <motion.div className="snap-center shrink-0 w-[300px]">
-          <div className="bg-cyan-600 text-white p-6 rounded-lg text-center w-full">
-            <p className="text-sm">Monthly Dividend Collected</p>
-            <p className="text-3xl font-bold">
-              ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.dividend || 0)}
-            </p>
-            <div className="mt-3 flex justify-center gap-4">
-              <button className="bg-white text-sm text-cyan-700 px-4 py-2 rounded-lg font-semibold hover:bg-cyan-100 transition">
-                View Transaction
-              </button>
-            </div>
+          <div className="bg-cyan-600 text-white p-6 rounded-lg w-full">
+          <p className="text-sm text-gray-100">Dividend Collected Balance</p>
+          <p className="text-4xl font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.dividend || 0)}
+          </p>
+
+          {/* Divider */}
+          <hr className="my-3 border-t border-white/30" />
+
+          {/* Row with "Total Earnings" text and button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-100">Total Earnings</p>         
+            <button className="text-white rounded-lg transition ">
+              <CircleAlert size={25} />
+            </button>            
           </div>
+
+          {/* Earnings Amount Below */}
+          <p className="text-sm font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.00)}
+          </p>
+        </div>
         </motion.div>
 
         {/* Time Deposit */}
         <motion.div className="snap-center shrink-0 w-[300px]">
-          <div className="bg-green-600 text-white p-6 rounded-lg text-center w-full">
-            <p className="text-sm">Time Deposit Balance</p>
-            <p className="text-3xl font-bold">
-              ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.timeDepositAmount || 0)}
-            </p>
-            <div className="mt-3 flex justify-center gap-4">
-              <button className="bg-white text-sm text-green-700 px-4 py-2 rounded-lg font-semibold hover:bg-green-100 transition">
-                View Transaction
-              </button>
-            </div>
+        <div className="bg-green-600 text-white p-6 rounded-lg w-full">
+          <p className="text-sm text-gray-100">Time Deposit Balance</p>
+          <p className="text-4xl font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.timeDepositAmount || 0)}
+          </p>
+
+          {/* Divider */}
+          <hr className="my-3 border-t border-white/30" />
+
+          {/* Row with "Total Earnings" text and button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-100">Total Earnings</p>         
+            <button className="text-white rounded-lg transition">
+              <CircleAlert size={25} />
+            </button>            
           </div>
+
+          {/* Earnings Amount Below */}
+          <p className="text-sm font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.00)}
+          </p>
+        </div>
         </motion.div>
 
         {/* Share Capital */}
         <motion.div className="snap-center shrink-0 w-[300px]">
-          <div className="bg-cyan-600 text-white p-6 rounded-lg text-center w-full">
-            <p className="text-sm">Share Capital</p>
-            <p className="text-3xl font-bold">
-              ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.shareCapital || 0)}
-            </p>
-            <div className="mt-3 flex justify-center gap-4">
-              <button className="bg-white text-sm text-cyan-700 px-4 py-2 rounded-lg font-semibold hover:bg-cyan-100 transition">
-                View Transaction
-              </button>
-            </div>
+        <div className="bg-cyan-600 text-white p-6 rounded-lg w-full">
+          <p className="text-sm text-gray-100">Share Capital</p>
+          <p className="text-4xl font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.shareCapital || 0)}
+          </p>
+
+          {/* Divider */}
+          <hr className="my-3 border-t border-white/30" />
+
+          {/* Row with "Total Earnings" text and button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-100">Total Earnings</p>         
+            <button className="text-white rounded-lg transition">
+              <CircleAlert size={25} />
+            </button>            
           </div>
+
+          {/* Earnings Amount Below */}
+          <p className="text-sm font-bold">
+            ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.00)}
+          </p>
+        </div>
         </motion.div>
       </div>
 
@@ -243,7 +309,12 @@ const Dashboard = () => {
           <DollarSign size={40} className="text-cyan-500 mx-auto" /> 
           <h3 className="text-md font-semibold mt-2">Share Capital</h3>
           <p className="text-gray-600 text-sm">Investing today secures tomorrow.</p>
-          <button className="mt-3 flex items-center justify-center w-full bg-cyan-500 text-white py-2 px-4 rounded-lg shadow hover:bg-cyan-600">
+          <button className="mt-3 flex items-center justify-center w-full bg-cyan-500 text-white py-2 px-4 rounded-lg shadow hover:bg-cyan-600"
+            // onClick={() => navigate("/share-capital-calculator")}
+            onClick={() => setModalOpen(true)}
+
+
+          >
             Calculate <ArrowRight size={18} className="ml-2" />
           </button>
         </div>
@@ -282,6 +353,9 @@ const Dashboard = () => {
         <p className="text-lg font-bold">{member?.badge || dummyMember.badge}</p>
       </div>
     </div>
+
+    <ShareCapitalCalculator isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+
 
     {/* {calculatorModalVisible && (
           <TimedepositCalculator

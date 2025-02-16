@@ -19,10 +19,12 @@ import MemberDashboard from "./pages/members/home/MemberDashboard";
 import AdminLayout from "./layouts/AdminLayout";
 import MemberLayout from "./layouts/MemberLayout";
 import Transaction from "./pages/members/transaction/MemberTransaction";
-import Inbox from "./pages/members/inbox/MemberInbox";
+import Notification from "./pages/members/notification/NotificationPage";
 import MemberProfile from "./pages/members/profile/MemberProfile";
 import TimedepositCalculatorPage from "./pages/members/home/TimedepositCalculatorPage";
 import RegularSavingsCalculator from "./pages/members/home/utils/RegularSavingsCalculator";
+import ShareCapitalCalculator from "./pages/members/home/utils/ShareCapitalCalculator";
+import MemberLoanPage from "./pages/members/loan/LoanPage"
 
 function App() {
   return (
@@ -58,10 +60,14 @@ function App() {
         <Route path="member-dashboard" element={<MemberDashboard />} />
         {/* No wildcard route for members, preventing access to NotFoundPage */}
         <Route path="member-transactions" element={<Transaction />} />
-        <Route path="member-inbox" element={<Inbox />} />
+        <Route path="member-notification" element={<Notification />} />
         <Route path="member-profile" element={<MemberProfile />} />
         <Route path="timedeposit-calculator" element={<TimedepositCalculatorPage />} />
         <Route path="regular-savings-calculator" element={<RegularSavingsCalculator />} />
+        <Route path="share-capital-calculator" element={<ShareCapitalCalculator />} />
+        <Route path="member-loan" element={<MemberLoanPage />} />
+
+
 
 
 

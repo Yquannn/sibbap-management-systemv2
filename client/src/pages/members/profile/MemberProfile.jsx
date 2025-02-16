@@ -107,6 +107,12 @@ const MemberProfile = () => {
   return (
     <div className="w-full max-w-sm mx-auto text-center">
       {/* User Profile (Always Visible) */}
+      <button
+        className="flex items-center text-gray-700 hover:text-black mb-4"
+          onClick={() => navigate(-1)} // Go back to the previous page
+        >
+          <ArrowLeft size={20} className="mr-2" /> Back
+        </button>
       <img
           src={
             imagePreview ||
@@ -170,7 +176,7 @@ const MemberProfile = () => {
 
       {/* Editable Account Info & Settings */}
       {activeTab !== null && (
-        <div className="mt-6 text-left">
+        <div className="mt-6 text-left min-h-[550px]">
           {activeTab === "account" && (
             <div>
               <h3 className="text-lg font-bold mb-2 text-center">Account Information</h3>
