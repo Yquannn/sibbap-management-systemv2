@@ -59,39 +59,38 @@ const RegularSavingsTransactionHistory = () => {
     new Date(b.transaction_date_time) - new Date(a.transaction_date_time)
   );
 
-  const totalBalance = Array.isArray(transactions)
-    ? transactions.reduce((acc, txn) => {
-        const amount = Number(txn.amount) || 0; 
-        return txn.transaction_type === "Withdrawal" ? acc - amount : acc + amount;
-      }, 0)
-    : 0;
+  // const totalBalance = Array.isArray(transactions)
+  //   ? transactions.reduce((acc, txn) => {
+  //       const amount = Number(txn.amount) || 0; 
+  //       return txn.transaction_type === "Withdrawal" ? acc - amount : acc + amount;
+  //     }, 0)
+  //   : 0;
     
   return (
     <div className="max-w-lg mx-auto">
-    <div className="header">
-      <button className="flex items-center text-gray-700 hover:text-black mb-6" onClick={() => navigate(-1)}>
-        <ArrowLeft size={20} className="mr-2" /> Back
-      </button>
+      <div className="header">
+        <button className="flex items-center text-gray-700 hover:text-black mb-6" onClick={() => navigate(-1)}>
+          <ArrowLeft size={20} className="mr-2" /> Back
+        </button>
 
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Regular Savings Transaction History</h2>
-      </div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Regular Savings Transaction History</h2>
+        </div>
 
-      <div className="flex space-x-2 mb-4">
-        {Object.keys(filterMapping).map((category) => (
-          <button
-            key={category}
-            className={`px-3 py-0.5 rounded-lg text-sm ${
-              filter === category ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
-            }`}
-            onClick={() => setFilter(category)}
-          >
-            {category}
-          </button>
-        ))}
+        <div className="flex space-x-2 mb-4">
+          {Object.keys(filterMapping).map((category) => (
+            <button
+              key={category}
+              className={`px-3 py-0.5 rounded-lg text-sm ${
+                filter === category ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+              }`}
+              onClick={() => setFilter(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-      
 
       {loading ? (
         <p className="text-center text-gray-500">Loading transactions...</p>
@@ -115,7 +114,7 @@ const RegularSavingsTransactionHistory = () => {
                     <p className="text-sm text-gray-500">
                       {moment.utc(txn.transaction_date_time)
                         .tz("Asia/Manila")
-                        .format("MMMM D, YYYY • hh:mm:ss A")}
+                        .format("MMMM D, YYYY • hh:mm")}
                     </p>
 
                     <div className="flex items-center text-xs text-gray-400">
@@ -126,7 +125,7 @@ const RegularSavingsTransactionHistory = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className={`font-semibold ${txn.transaction_type === "Withdrawal" ? "text-red-500" : "text-green-500"}`}>
-                    {txn.transaction_type === "Withdrawal" ? "-" : "+"}₱{txn.interest_amount}
+                    {txn.transaction_type === "Withdrawal" ? "−" : "+"}₱{Math.abs(txn.amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}
                   </p>
                 </div>
               </div>
@@ -136,10 +135,11 @@ const RegularSavingsTransactionHistory = () => {
           )}
         </div>
       )}
-      <div className="mt-4 p-3 bg-gray-100 rounded-lg text-center">
+
+      {/* <div className="mt-4 p-3 bg-gray-100 rounded-lg text-center">
         <p className="text-gray-500 text-sm">Total Balance</p>
         <p className="text-lg font-bold">₱{totalBalance.toLocaleString()}</p>
-      </div>
+      </div> */}
     </div>
   );
 };

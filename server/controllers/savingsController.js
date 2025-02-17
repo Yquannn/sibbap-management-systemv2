@@ -1,96 +1,122 @@
 const { findSavingsByMemberId, updateSavingsAmount, getEarnings, createTransaction, getAllTransactions, getTransactionById } = require('../models/savingsModel');
-
+const { generateTransactionNumber } = require('../utils/generateTransactionNumber')
 
 exports.withdraw = async (req, res) => {
-    const { memberId, amount } = req.body;
-  
-    // Input validation
-    if (!memberId) {
-      return res.status(400).json({ error: 'Member ID is required' });
+  const { memberId, amount } = req.body;
+
+  // Input validation
+  if (!memberId) {
+    return res.status(400).json({ error: 'Member ID is required' });
+  }
+
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: 'Amount must be greater than zero' });
+  }
+
+  try {
+    console.log(`Processing withdrawal for memberId=${memberId}, amount=${amount}`);
+
+    // Fetch the savings record
+    const savings = await findSavingsByMemberId(memberId);
+
+    if (!savings) {
+      return res.status(404).json({ error: 'Savings record not found for this member' });
     }
-  
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Amount must be greater than zero' });
+
+    console.log(`Current balance for memberId=${memberId}: ${savings.amount}`);
+
+    if (savings.amount < amount) {
+      return res.status(400).json({ error: 'Insufficient funds for withdrawal' });
     }
-  
-    try {
-      console.log(`Processing withdrawal for memberId=${memberId}, amount=${amount}`);
-  
-      // Fetch the savings record
-      const savings = await findSavingsByMemberId(memberId);
-  
-      if (!savings) {
-        return res.status(404).json({ error: 'Savings record not found for this member' });
-      }
-  
-      console.log(`Current balance for memberId=${memberId}: ${savings.amount}`);
-  
-      if (savings.amount < amount) {
-        return res.status(400).json({ error: 'Insufficient funds for withdrawal' });
-      }
-  
-      const newBalance = parseFloat((savings.amount - amount).toFixed(2));
-      console.log(`New balance calculated for memberId=${memberId}: ${newBalance}`);
-  
-      const updated = await updateSavingsAmount(memberId, newBalance);
-  
-      if (!updated) {
-        return res.status(500).json({ error: 'Failed to update savings record' });
-      }
-  
-      res.status(200).json({
-        success: 'Withdrawal successful',
-        withdrawnAmount: amount,
-        newBalance,
-      });
-    } catch (error) {
-      console.error('Error during withdrawal:', error.message);
-      res.status(500).json({ error: 'An error occurred while processing the withdrawal' });
+
+    const newBalance = parseFloat((savings.amount - amount).toFixed(2));
+    console.log(`New balance calculated for memberId=${memberId}: ${newBalance}`);
+
+    // Step 1: Update the savings amount and record the transaction in a single call
+    const transactionNumber = generateTransactionNumber();  // Generate unique transaction number
+    const transactionType = 'Withdrawal';  // Withdrawal type
+
+    // Step 2: Update savings and insert transaction history
+    const updated = await updateSavingsAmount(memberId, amount, transactionType);
+
+    // Ensure the update function returns a success status
+    if (updated.success !== true) {
+      return res.status(500).json({ error: 'Failed to update savings record' });
     }
-  };
-  
+
+    res.status(200).json({
+      success: 'Withdrawal successful',
+      withdrawnAmount: amount,
+      newBalance,
+      transactionNumber
+    });
+  } catch (error) {
+    console.error('Error during withdrawal:', error.message);
+    res.status(500).json({ error: 'An error occurred while processing the withdrawal' });
+  }
+};
 
 exports.deposit = async (req, res) => {
-    const { memberId, amount } = req.body;
-  
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Amount must be greater than zero.' });
+  const { memberId, amount } = req.body;
+
+  // Ensure the amount is valid
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: 'Amount must be greater than zero.' });
+  }
+
+  try {
+    console.log(`Processing deposit: memberId=${memberId}, amount=${amount}`);
+
+    // Fetch the current savings record
+    const savings = await findSavingsByMemberId(memberId);
+
+    if (!savings) {
+      return res.status(404).json({ error: 'Savings record not found for this member.' });
     }
-  
-    try {
-      console.log(`Processing deposit: memberId=${memberId}, amount=${amount}`);
-  
-      const savings = await findSavingsByMemberId(memberId);
-  
-      if (!savings) {
-        return res.status(404).json({ error: 'Savings record not found for this member.' });
-      }
-  
-      const currentBalance = parseFloat(savings.amount); // Convert savings.amount to a number
-      const depositAmount = parseFloat(amount); // Convert amount to a number
-  
-      console.log(`Current balance for memberId=${memberId}: ${currentBalance}`);
-  
-      const newBalance = parseFloat((currentBalance + depositAmount).toFixed(2)); // Calculate new balance with two decimal precision
-      console.log(`New balance calculated for memberId=${memberId}: ${newBalance}`);
-  
-      const updated = await updateSavingsAmount(memberId, newBalance);
-  
-      if (!updated) {
-        console.error(`Failed to update savings for memberId=${memberId}`);
-        return res.status(500).json({ error: 'Failed to update savings record.' });
-      }
-  
-      res.status(200).json({
-        success: 'Deposit successful',
-        depositedAmount: depositAmount,
-        newBalance,
-      });
-    } catch (error) {
-      console.error('Error during deposit:', error); // Log the full error object for debugging
-      res.status(500).json({ error: 'An error occurred while processing the deposit.' });
+
+    // Ensure savings.amount is a valid number
+    const currentBalance = parseFloat(savings.amount);
+    const depositAmount = parseFloat(amount);
+
+    if (isNaN(currentBalance)) {
+      console.error('Current balance is not a valid number:', savings.amount);
+      return res.status(500).json({ error: 'Current balance is not valid.' });
     }
-  };
+
+    console.log(`Current balance for memberId=${memberId}: ${currentBalance}`);
+
+    const newBalance = currentBalance + depositAmount; // Add deposit to the current balance
+    console.log(`New balance calculated for memberId=${memberId}: ${newBalance}`);
+
+    // Transaction type is Deposit
+    const transactionNumber = generateTransactionNumber();  // Generate unique transaction number
+
+    const transactionType = 'Deposit';
+
+    // Call updateSavingsAmount to update the balance and record the transaction
+    const updated = await updateSavingsAmount(memberId, depositAmount, transactionType);
+
+    if (!updated.success) {
+      console.error(`Failed to update savings for memberId=${memberId}`);
+      return res.status(500).json({ error: 'Failed to update savings record.' });
+    }
+
+    // Send success response
+    res.status(200).json({
+      success: 'Deposit successful',
+      depositedAmount: depositAmount.toFixed(2), // Format deposit amount with two decimal places
+      newBalance: newBalance.toFixed(2), // Format new balance with two decimal places
+      transactionNumber,
+    });
+  } catch (error) {
+    console.error('Error during deposit:', error); // Log the error for debugging
+    res.status(500).json({ error: 'An error occurred while processing the deposit.' });
+  }
+};
+
+
+
+
 
   exports.getEarnings = async (req, res) => {
     const { memberId } = req.params;
@@ -142,9 +168,9 @@ exports.deposit = async (req, res) => {
  
 exports.createTransaction = async (req, res) => {
   try {
-    const { regular_savings_id, transaction_number, transaction_type, interest_amount, transaction_date_time } = req.body;
+    const { regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time } = req.body;
     
-    if (!transaction_number || !transaction_type || !interest_amount || !transaction_date_time) {
+    if (!transaction_number || !transaction_type || !amount || !transaction_date_time) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
@@ -152,7 +178,7 @@ exports.createTransaction = async (req, res) => {
       regular_savings_id,
       transaction_number,
       transaction_type,
-      interest_amount,
+      amount,
       transaction_date_time,
     };
 

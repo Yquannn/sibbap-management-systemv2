@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { generateTransactionNumber } = require('../utils/generateTransactionNumber')
 
 /**
  * Find a savings record by memberId
@@ -28,16 +29,92 @@ const findSavingsByMemberId = async (memberId) => {
  * @param {number} newAmount - The new amount to set
  * @returns {boolean} - True if the record was updated, false otherwise
  */
-const updateSavingsAmount = async (memberId, newAmount) => {
-    const query = 'UPDATE regular_savings SET amount = ? WHERE memberId = ?';
-    try {
-      const [result] = await db.execute(query, [newAmount, memberId]);
-      return result.affectedRows > 0; // Return true if at least one row was updated
-    } catch (error) {
-      console.error('Error updating savings amount:', error.message);
-      throw new Error('Database query failed');
+
+const updateSavingsAmount = async (memberId, amount, transactionType) => {
+  let conn;
+  const transactionNumber = generateTransactionNumber(); // Generate the transaction number
+
+  try {
+    // Ensure the amount is valid
+    if (amount === undefined || amount === null || isNaN(amount) || amount <= 0) {
+      throw new Error('Invalid deposit amount');
     }
-  };
+
+    // Fetch the current savings balance to calculate the new amount
+    const savings = await findSavingsByMemberId(memberId);
+    if (!savings) {
+      throw new Error('Savings record not found for the member');
+    }
+
+    let newAmount;
+    if (transactionType === 'Deposit') {
+      // Add deposit amount to current balance
+      newAmount = parseFloat(savings.amount) + parseFloat(amount);
+    } else if (transactionType === 'Withdrawal') {
+      // Ensure sufficient funds for withdrawal
+      if (parseFloat(savings.amount) < amount) {
+        throw new Error('Insufficient funds for withdrawal');
+      }
+      // Subtract amount for withdrawal
+      newAmount = parseFloat(savings.amount) - parseFloat(amount);
+    } else {
+      throw new Error('Invalid transaction type');
+    }
+
+    // Ensure newAmount is a valid number and round to two decimal places
+    newAmount = parseFloat(newAmount).toFixed(2);
+    if (isNaN(newAmount)) {
+      throw new Error('Invalid new amount calculated');
+    }
+
+    console.log(`New amount calculated for memberId=${memberId}: ${newAmount}`);
+
+    // Start a database transaction
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // Update the savings balance
+    const queryUpdate = 'UPDATE regular_savings SET amount = ? WHERE memberId = ?';
+    const [updateResult] = await conn.execute(queryUpdate, [newAmount, memberId]);
+
+    if (updateResult.affectedRows === 0) {
+      throw new Error('Failed to update savings amount');
+    }
+
+    // Step 2: Insert a new transaction history record
+    const amountToStore = transactionType === 'Withdrawal' ? -Math.abs(amount) : Math.abs(amount);
+
+    const queryInsertTransaction = `
+      INSERT INTO regular_savings_transaction 
+      (regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time)
+      VALUES (
+        (SELECT savingsId FROM regular_savings WHERE memberId = ? LIMIT 1),
+        ?, ?, ?, NOW()
+      )
+    `;
+    const values = [memberId, transactionNumber, transactionType, amountToStore];
+    const [insertResult] = await conn.execute(queryInsertTransaction, values);
+
+    if (insertResult.affectedRows === 0) {
+      throw new Error('Failed to record transaction');
+    }
+
+    // Commit the transaction if both steps succeed
+    await conn.commit();
+
+    return { success: true, message: 'Savings amount updated and transaction recorded' };
+  } catch (error) {
+    if (conn) await conn.rollback(); // Rollback in case of error
+    console.error('Error updating savings amount and transaction:', error.message);
+    throw error; // Throw error to be handled by the caller
+  } finally {
+    if (conn) conn.release(); // Release DB connection
+  }
+};
+
+
+
+
 
 
   const getEarnings = async (memberId) => {
@@ -99,16 +176,9 @@ const updateSavingsAmount = async (memberId, newAmount) => {
 
 
 
-function generateTransactionNumber() {
-  const timestamp = Date.now();
-  const randomPart = Math.floor(1000 + Math.random() * 9000);
-  return `TXN-${timestamp}-${randomPart}`;
-}
-
 
 async function applyInterest() {
   let connection;
-  const transactionNumber = generateTransactionNumber(); // Keep this constant
 
   try {
     connection = await db.getConnection();
@@ -132,7 +202,13 @@ async function applyInterest() {
     await connection.beginTransaction();
 
     const interestRate = 0.005 / 365; // Daily interest rate
+
+    // Loop over eligible accounts
     for (const account of accounts) {
+      // Generate a new transaction number for each account
+      const transactionNumber = generateTransactionNumber(); // Generate a new transaction number per iteration
+      console.log(`Generated transaction number: ${transactionNumber}`);
+
       // Convert earnings and amount to numbers explicitly
       const currentAmount = parseFloat(account.amount);
       const currentEarnings = parseFloat(account.earnings);
@@ -158,7 +234,7 @@ async function applyInterest() {
       // Insert into transaction history
       const insertQuery = `
         INSERT INTO regular_savings_transaction 
-          (regular_savings_id, transaction_number, transaction_type, interest_amount, transaction_date_time) 
+          (regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time) 
         VALUES (?, ?, 'Savings Interest', ?, NOW());
       `;
       const [insertResult] = await connection.query(insertQuery, [account.savingsId, transactionNumber, interestAmount]);
@@ -202,7 +278,7 @@ runDaily(() => console.log("Running daily task!"));
 
 // setInterval(() => {
 //   applyInterest();
-// }, 5000); // 50 seconds
+// }, 10000); // 50 seconds
 
 
 
@@ -214,7 +290,7 @@ async function createTransaction(transactionData) {
     if (
       !transactionData.regular_savings_id ||
       !transactionData.transaction_type ||
-      transactionData.interest_amount === undefined
+      transactionData.amount === undefined
     ) {
       throw new Error("All fields are required");
     }
@@ -227,7 +303,7 @@ async function createTransaction(transactionData) {
 
     const query = `
       INSERT INTO regular_savings_transaction 
-      (regular_savings_id, transaction_number, transaction_type, interest_amount, transaction_date_time)
+      (regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time)
       VALUES (?, ?, ?, ?, NOW())  -- Use NOW() for current timestamp
     `;
 
@@ -235,7 +311,7 @@ async function createTransaction(transactionData) {
       transactionData.regular_savings_id,
       transactionNumber,
       transactionData.transaction_type,
-      transactionData.interest_amount
+      transactionData.amount
     ];
 
     const [result] = await conn.query(query, values);
