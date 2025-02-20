@@ -27,7 +27,6 @@ exports.activateAccount = async (memberId) => {
   }
 };
 
-
 exports.getMemberByEmail = async (email) => {
   try {
     // Fetch member details along with savings and deposits
@@ -47,7 +46,10 @@ exports.getMemberByEmail = async (email) => {
       [email]
     );
 
-    if (members.length === 0) return null;
+    if (members.length === 0) {
+      console.log("No member found with that email.");
+      return null;
+    }
 
     const memberData = members[0];
 
@@ -69,6 +71,6 @@ exports.getMemberByEmail = async (email) => {
     };
   } catch (error) {
     console.error("Error fetching member by email:", error.message);
-    throw new Error("Error fetching member");
+    throw new Error("Error fetching member data from the database.");
   }
 };

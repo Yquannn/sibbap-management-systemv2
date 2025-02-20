@@ -27,6 +27,7 @@ import ShareCapitalCalculator from "./pages/members/home/utils/ShareCapitalCalcu
 import MemberLoanPage from "./pages/members/loan/LoanPage"
 import RegularSavingsTransactionHistory from "./pages/members/home/transaction/RegularSavingsTransaction";
 import LoanDetails from "./pages/members/loan/LoanDetails";
+import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration"; 
 
 function App() {
   return (
@@ -53,6 +54,10 @@ function App() {
         <Route path="users" element={<Users />} />
         <Route path="announcement" element={<Announcement />} />
 
+        {/* Membership Registration */}
+        <Route path="register-member/*" element={<MembershipRegistration />} />
+        
+
         {/* Admin-Specific 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
@@ -60,7 +65,6 @@ function App() {
       {/* Member Routes */}
       <Route element={<MemberLayout />}>
         <Route path="member-dashboard" element={<MemberDashboard />} />
-        {/* No wildcard route for members, preventing access to NotFoundPage */}
         <Route path="member-transactions" element={<Transaction />} />
         <Route path="member-notification" element={<Notification />} />
         <Route path="member-profile" element={<MemberProfile />} />
@@ -70,14 +74,6 @@ function App() {
         <Route path="member-loan" element={<MemberLoanPage />} />
         <Route path="member-regular-savings-transaction" element={<RegularSavingsTransactionHistory />} />
         <Route path="member-loan-details" element={<LoanDetails />} />
-
-       
-
-
-
-
-
-
       </Route>
     </Routes>
   );

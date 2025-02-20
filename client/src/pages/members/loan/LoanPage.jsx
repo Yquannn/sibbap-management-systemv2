@@ -62,6 +62,7 @@ const MemberLoanPage = () => {
           </button>
         ))}
       </div>
+      
 
       <div className="divide-y divide-gray-200">
         {filteredLoans.map((loan) => (

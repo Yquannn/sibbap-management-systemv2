@@ -161,66 +161,117 @@ exports.getMemberById = async (req, res) => {
     res.status(500).json({ message: 'Error fetching data from MySQL' });
   }
 };
-
 exports.addMember = async (req, res) => {
   const {
-    registrationType, memberType, registrationDate, shareCapital,
-    LastName, FirstName, MiddleName, maidenName,
-    tinNumber, dateOfBirth, birthplaceProvince, age,
-    sex, civilStatus, highestEducationalAttainment,
-    occupationSourceOfIncome, spouseName, spouseOccupationSourceOfIncome,
-    primaryBeneficiaryName, primaryBeneficiaryRelationship, primaryBeneficiaryContact,
-    secondaryBeneficiaryName, secondaryBeneficiaryRelationship, secondaryBeneficiaryContact,
-    contactNumber, houseNoStreet, barangay, city, referenceName, position, referenceContact,
-    email, password, savings
+    registration_type,
+    member_type,
+    registration_date,
+    share_capital,
+    annual_income,
+    number_of_dependents,
+    last_name,
+    first_name,
+    middle_name,
+    maiden_name,
+    extension_name,
+    religion,
+    tin_number,
+    date_of_birth,
+    birthplace_province,
+    age,
+    sex,
+    civil_status,
+    highest_educational_attainment,
+    occupation_source_of_income,
+    spouse_name,
+    spouse_occupation_source_of_income,
+    primary_beneficiary_name,
+    primary_beneficiary_relationship,
+    primary_beneficiary_contact,
+    secondary_beneficiary_name,
+    secondary_beneficiary_relationship,
+    secondary_beneficiary_contact,
+    contact_number,
+    house_no_street,
+    barangay,
+    city,
+    reference_name,
+    position,
+    reference_contact,
+    email,
+    password,
+    savings,
+    identification_card_fee,
+    membership_fee,
+    kalinga_fund_fee,
+    initial_savings
   } = req.body;
 
+  // Convert numeric fields (they come as strings from FormData)
+  const share_capitalNum = Number(share_capital) || 0;
+  const annual_incomeNum = Number(annual_income) || 0;
+  const number_of_dependentsNum = Number(number_of_dependents) || 0;
+  const ageNum = Number(age) || null;
+  const identification_card_fee_num = Number(identification_card_fee) || 0;
+  const membership_fee_num = Number(membership_fee) || 0;
+  const kalinga_fund_fee_num = Number(kalinga_fund_fee) || 0;
+  const initial_savings_num = Number(initial_savings) || 0;
+
+  // If a file was uploaded, get its filename
   const idPicture = req.file ? req.file.filename : null;
-  const formattedRegistrationDate = registrationDate
-    ? formatDate(new Date(registrationDate))
+  const formattedRegistrationDate = registration_date
+    ? formatDate(new Date(registration_date))
     : formatDate(new Date());
 
-  // Adjust share capital and prepare to add to savings
-  const adjustedShareCapital = Math.max(0, shareCapital - 100); // Ensures share capital doesn't go negative
-  const additionalSavings = shareCapital >= 100 ? 100 : 0; // Only add 100 to savings if there was at least 100 in share capital
+  // Adjust share capital and prepare additional savings (example logic)
+  const adjustedShareCapital = Math.max(0, share_capitalNum - 100);
+  const additionalSavings = share_capitalNum >= 100 ? 100 : 0;
 
-  // Sanitize and validate data
+  // Build a sanitized data object using snake_case keys
   const sanitizedData = {
-    registrationType: registrationType || null,
-    memberType: memberType || null,
-    registrationDate: formattedRegistrationDate,
-    shareCapital: adjustedShareCapital,
-    LastName: LastName || null,
-    FirstName: FirstName || null,
-    MiddleName: MiddleName || null,
-    maidenName: maidenName || null,
-    tinNumber: tinNumber || null,
-    dateOfBirth: dateOfBirth || null,
-    birthplaceProvince: birthplaceProvince || null,
-    age: age || null,
+    registration_type: registration_type || null,
+    member_type: member_type || "Regular member",
+    registration_date: formattedRegistrationDate,
+    share_capital: adjustedShareCapital,
+    annual_income: annual_incomeNum,
+    number_of_dependents: number_of_dependentsNum,
+    last_name: last_name || null,
+    first_name: first_name || null,
+    middle_name: middle_name || null,
+    maiden_name: maiden_name || null,
+    extension_name: extension_name || null,
+    religion: religion || null,
+    tin_number: tin_number || null,
+    date_of_birth: date_of_birth || null,
+    birthplace_province: birthplace_province || null,
+    age: ageNum,
     sex: sex || null,
-    civilStatus: civilStatus || null,
-    highestEducationalAttainment: highestEducationalAttainment || null,
-    occupationSourceOfIncome: occupationSourceOfIncome || null,
-    spouseName: spouseName || null,
-    spouseOccupationSourceOfIncome: spouseOccupationSourceOfIncome || null,
-    primaryBeneficiaryName: primaryBeneficiaryName || null,
-    primaryBeneficiaryRelationship: primaryBeneficiaryRelationship || null,
-    primaryBeneficiaryContact: primaryBeneficiaryContact || null,
-    secondaryBeneficiaryName: secondaryBeneficiaryName || null,
-    secondaryBeneficiaryRelationship: secondaryBeneficiaryRelationship || null,
-    secondaryBeneficiaryContact: secondaryBeneficiaryContact || null,
-    contactNumber: contactNumber || null,
-    houseNoStreet: houseNoStreet || null,
+    civil_status: civil_status || null,
+    highest_educational_attainment: highest_educational_attainment || null,
+    occupation_source_of_income: occupation_source_of_income || null,
+    spouse_name: spouse_name || null,
+    spouse_occupation_source_of_income: spouse_occupation_source_of_income || null,
+    primary_beneficiary_name: primary_beneficiary_name || null,
+    primary_beneficiary_relationship: primary_beneficiary_relationship || null,
+    primary_beneficiary_contact: primary_beneficiary_contact || null,
+    secondary_beneficiary_name: secondary_beneficiary_name || null,
+    secondary_beneficiary_relationship: secondary_beneficiary_relationship || null,
+    secondary_beneficiary_contact: secondary_beneficiary_contact || null,
+    contact_number: contact_number || null,
+    house_no_street: house_no_street || null,
     barangay: barangay || null,
     city: city || null,
-    referenceName: referenceName || null,
+    reference_name: reference_name || null,
     position: position || null,
-    referenceContact: referenceContact || null,
+    reference_contact: reference_contact || null,
     email: email || null,
     password: password || null,
-    idPicture: idPicture || null,
-    savings: additionalSavings
+    id_picture: idPicture || null,
+    savings: additionalSavings,
+    identification_card_fee: identification_card_fee_num,
+    membership_fee: membership_fee_num,
+    kalinga_fund_fee: kalinga_fund_fee_num,
+    initial_savings: initial_savings_num
   };
 
   const connection = await db.getConnection();
@@ -228,25 +279,53 @@ exports.addMember = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Generate unique member code
+    // Generate a unique member code (e.g., "MEM123456")
     const memberCode = await generateUniqueMemberId();
 
-    // Insert member data
+    // INSERT into the members table using snake_case column names
     const memberQuery = `
       INSERT INTO members 
-        (memberCode, registrationType, memberType, registrationDate, shareCapital,
-        LastName, FirstName, MiddleName, maidenName, 
-        tinNumber, dateOfBirth, birthplaceProvince, age, sex, civilStatus, 
-        highestEducationalAttainment, occupationSourceOfIncome, spouseName, 
-        spouseOccupationSourceOfIncome, contactNumber, houseNoStreet, barangay, city, idPicture)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (memberCode, registration_type, member_type, registration_date, share_capital, annual_income, number_of_dependents,
+         last_name, first_name, middle_name, maiden_name, extension_name, religion,
+         tin_number, date_of_birth, birthplace_province, age, sex, civil_status, 
+         highest_educational_attainment, occupation_source_of_income, spouse_name, 
+         spouse_occupation_source_of_income, contact_number, house_no_street, barangay, city, id_picture,
+         identification_card_fee, membership_fee, kalinga_fund_fee, initial_savings)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const memberParams = [
-      memberCode, sanitizedData.registrationType, sanitizedData.memberType, sanitizedData.registrationDate, sanitizedData.shareCapital,
-      sanitizedData.LastName, sanitizedData.FirstName, sanitizedData.MiddleName, sanitizedData.maidenName,
-      sanitizedData.tinNumber, sanitizedData.dateOfBirth, sanitizedData.birthplaceProvince, sanitizedData.age, sanitizedData.sex, sanitizedData.civilStatus,
-      sanitizedData.highestEducationalAttainment, sanitizedData.occupationSourceOfIncome, sanitizedData.spouseName,
-      sanitizedData.spouseOccupationSourceOfIncome, sanitizedData.contactNumber, sanitizedData.houseNoStreet, sanitizedData.barangay, sanitizedData.city, sanitizedData.idPicture
+      memberCode,
+      sanitizedData.registration_type,
+      sanitizedData.member_type,
+      sanitizedData.registration_date,
+      sanitizedData.share_capital,
+      sanitizedData.annual_income,
+      sanitizedData.number_of_dependents,
+      sanitizedData.last_name,
+      sanitizedData.first_name,
+      sanitizedData.middle_name,
+      sanitizedData.maiden_name,
+      sanitizedData.extension_name,
+      sanitizedData.religion,
+      sanitizedData.tin_number,
+      sanitizedData.date_of_birth,
+      sanitizedData.birthplace_province,
+      sanitizedData.age,
+      sanitizedData.sex,
+      sanitizedData.civil_status,
+      sanitizedData.highest_educational_attainment,
+      sanitizedData.occupation_source_of_income,
+      sanitizedData.spouse_name,
+      sanitizedData.spouse_occupation_source_of_income,
+      sanitizedData.contact_number,
+      sanitizedData.house_no_street,
+      sanitizedData.barangay,
+      sanitizedData.city,
+      sanitizedData.id_picture,
+      sanitizedData.identification_card_fee,
+      sanitizedData.membership_fee,
+      sanitizedData.kalinga_fund_fee,
+      sanitizedData.initial_savings
     ];
     const [memberResult] = await connection.execute(memberQuery, memberParams);
 
@@ -256,48 +335,69 @@ exports.addMember = async (req, res) => {
 
     const memberId = memberResult.insertId;
 
-    // Insert member account
+    // INSERT into member_account table using snake_case column names
     const accountStatus = email && password ? "ACTIVE" : "NOT ACTIVATED";
     const accountQuery = `
       INSERT INTO member_account
-      (memberId, email, password, accountStatus)
+        (memberId, email, password, accountStatus)
       VALUES (?, ?, ?, ?)
     `;
     const accountParams = [memberId, sanitizedData.email, sanitizedData.password, accountStatus];
     await connection.execute(accountQuery, accountParams);
 
-    // Insert beneficiaries and references
-    if (sanitizedData.primaryBeneficiaryName) {
+    // INSERT primary beneficiary if provided
+    if (sanitizedData.primary_beneficiary_name) {
       const primaryBeneficiaryQuery = `
-        INSERT INTO beneficiaries (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
+        INSERT INTO beneficiaries 
+          (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
         VALUES (?, ?, ?, ?)
       `;
-      const primaryBeneficiaryParams = [memberId, sanitizedData.primaryBeneficiaryName, sanitizedData.primaryBeneficiaryRelationship, sanitizedData.primaryBeneficiaryContact];
+      const primaryBeneficiaryParams = [
+        memberId,
+        sanitizedData.primary_beneficiary_name,
+        sanitizedData.primary_beneficiary_relationship,
+        sanitizedData.primary_beneficiary_contact
+      ];
       await connection.execute(primaryBeneficiaryQuery, primaryBeneficiaryParams);
     }
 
-    if (sanitizedData.secondaryBeneficiaryName) {
+    // INSERT secondary beneficiary if provided
+    if (sanitizedData.secondary_beneficiary_name) {
       const secondaryBeneficiaryQuery = `
-        INSERT INTO beneficiaries (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
+        INSERT INTO beneficiaries 
+          (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
         VALUES (?, ?, ?, ?)
       `;
-      const secondaryBeneficiaryParams = [memberId, sanitizedData.secondaryBeneficiaryName, sanitizedData.secondaryBeneficiaryRelationship, sanitizedData.secondaryBeneficiaryContact];
+      const secondaryBeneficiaryParams = [
+        memberId,
+        sanitizedData.secondary_beneficiary_name,
+        sanitizedData.secondary_beneficiary_relationship,
+        sanitizedData.secondary_beneficiary_contact
+      ];
       await connection.execute(secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
     }
 
-    if (sanitizedData.referenceName) {
+    // INSERT character reference if provided
+    if (sanitizedData.reference_name) {
       const characterReferencesQuery = `
-        INSERT INTO character_references (memberId, referenceName, position, referenceContactNumber)
+        INSERT INTO character_references 
+          (memberId, referenceName, position, referenceContactNumber)
         VALUES (?, ?, ?, ?)
       `;
-      const characterReferencesParams = [memberId, sanitizedData.referenceName, sanitizedData.position, sanitizedData.referenceContact];
+      const characterReferencesParams = [
+        memberId,
+        sanitizedData.reference_name,
+        sanitizedData.position,
+        sanitizedData.reference_contact
+      ];
       await connection.execute(characterReferencesQuery, characterReferencesParams);
     }
 
-    // Insert into savings table
+    // INSERT into regular_savings if applicable
     if (sanitizedData.savings > 0) {
       const savingsQuery = `
-        INSERT INTO regular_savings (memberId, amount)
+        INSERT INTO regular_savings 
+          (memberId, amount)
         VALUES (?, ?)
       `;
       const savingsParams = [memberId, sanitizedData.savings];
@@ -305,15 +405,15 @@ exports.addMember = async (req, res) => {
     }
 
     await connection.commit();
-    res.status(201).json({ message: "Member added successfully", idPicture });
+    res.status(201).json({ message: "Member added successfully", id_picture: sanitizedData.id_picture });
   } catch (error) {
     await connection.rollback();
+    console.error("Error during member insertion:", error);
     res.status(500).json({ message: "Error adding member", error: error.message });
   } finally {
     connection.release();
   }
 };
-
 
 
 
@@ -325,7 +425,7 @@ exports.getMemberSavings = async (req, res) => {
   try {
     const query = `
      SELECT 
-    CONCAT(m.FirstName, ' ', m.LastName) AS fullName,
+    CONCAT(m.first_name, ' ', m.last_name) AS fullName,
     m.*, 
     s.amount AS savingsAmount,
     s.remarks AS savingsStatus  

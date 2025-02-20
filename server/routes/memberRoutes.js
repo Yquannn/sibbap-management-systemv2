@@ -25,7 +25,7 @@ router.get('/member/email/:email', memberController.getMemberByEmail);
 
 // router.get('/members/beneficiaries', memberController.getBeneficiaries);        
 router.get('/members/:id', memberController.getMemberById); 
-router.post('/members', upload.single('idPicture'), memberController.addMember);
+router.post('/register-member', upload.single('idPicture'), memberController.addMember);
 router.put('/members/:id', upload.single('idPicture'), memberController.updateMember); 
 router.delete('/members/:id', memberController.deleteMember); 
 router.put('/activate/:memberId', memberController.activateAccount);

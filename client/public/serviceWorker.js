@@ -61,4 +61,3 @@ const unregister = () => {
     }
 };
 
-export { register, unregister };

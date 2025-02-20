@@ -83,7 +83,7 @@ const MemberProfile = () => {
     }
 
     const formData = new FormData();
-    formData.append("idPicture", selectedImage);
+    formData.append("id_picture", selectedImage);
     formData.append("email", user.email);
 
     try {
@@ -93,7 +93,7 @@ const MemberProfile = () => {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      setUser((prev) => ({ ...prev, idPicture: response.data.fileName }));
+      setUser((prev) => ({ ...prev, id_picture: response.data.fileName }));
       alert("Profile picture updated successfully.");
     } catch (error) {
       console.error("Image upload failed:", error);
@@ -116,8 +116,8 @@ const MemberProfile = () => {
       <img
           src={
             imagePreview ||
-            (user?.idPicture
-              ? `http://192.168.254.103:3001/uploads/${user.idPicture}`
+            (user?.id_picture
+              ? `http://192.168.254.103:3001/uploads/${user.id_picture}`
               : defaultPicture)
           }
           alt="Profile"
