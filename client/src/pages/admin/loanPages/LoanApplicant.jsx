@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaDollarSign, FaSearch, FaFilter } from 'react-icons/fa';
-import LoanEvaluationProfileModal from './component/LoanEvaluationProfileModal';
+import LoanEvaluationProfileModal from './LoanEvaluation';
 
 const LoanApplicant = () => {
   const apiBaseURL = 'http://localhost:3001/api/loan-application/all'; // Ensure this URL is correct

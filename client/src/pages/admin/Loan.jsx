@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { FaEdit, FaSearch } from 'react-icons/fa';
 import LoanCalculator from '../../components/utils/LoanCalculator';
-import LoanApplicationForm from './loanPages/component/ApplyForLoanModal';
+import LoanApplicationForm from './loanPages/LoanApplicationForm';
 
 const apiBaseURL = 'http://localhost:3001/api/members';
 

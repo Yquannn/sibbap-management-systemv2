@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaDollarSign, FaFilter, FaSearch } from 'react-icons/fa';
-import RepaymentModal from './component/modal/RepaymentModal';
+import RepaymentModal from './modal/RepaymentModal';
 
 const Borrowers = () => {
   const apiBaseURL = 'http://localhost:3001/api/loan-application/all'; // test api to get all applicant in loan 
