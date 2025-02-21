@@ -163,7 +163,7 @@ const Dashboard = () => {
           </motion.div>
 
           {/* Dividend Collected */}
-          <motion.div className="snap-center shrink-0 w-[300px]">
+          {/* <motion.div className="snap-center shrink-0 w-[300px]">
             <div className="bg-cyan-600 text-white p-6 rounded-lg w-full">
               <p className="text-sm text-gray-100">Dividend Collected Balance</p>
               <p className="text-4xl font-bold">
@@ -174,6 +174,31 @@ const Dashboard = () => {
                 <p className="text-sm text-gray-100">Total Earnings</p>
                 <button className="text-white rounded-lg transition">
                   <CircleAlert size={25} />
+                </button>
+              </div>
+              <p className="text-sm font-bold">
+                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
+              </p>
+            </div>
+          </motion.div> */}
+
+          
+
+          {/* Share Capital */}
+          <motion.div className="snap-center shrink-0 w-[300px]">
+            <div className="bg-cyan-600 text-white p-6 rounded-lg w-full">
+              <p className="text-sm text-gray-100">Share Capital</p>
+              <p className="text-4xl font-bold">
+                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.shareCapital || 0)}
+              </p>
+              <hr className="my-3 border-t border-white/30" />
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-100">Total Collected Dividends</p>
+                <button
+                  className="text-white text-sm font-semibold"
+                  onClick={() => navigate("/member-regular-savings-transaction")}
+                >
+                  View history
                 </button>
               </div>
               <p className="text-sm font-bold">
@@ -192,28 +217,11 @@ const Dashboard = () => {
               <hr className="my-3 border-t border-white/30" />
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-100">Total Earnings</p>
-                <button className="text-white rounded-lg transition">
-                  <CircleAlert size={25} />
-                </button>
-              </div>
-              <p className="text-sm font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Share Capital */}
-          <motion.div className="snap-center shrink-0 w-[300px]">
-            <div className="bg-cyan-600 text-white p-6 rounded-lg w-full">
-              <p className="text-sm text-gray-100">Share Capital</p>
-              <p className="text-4xl font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.shareCapital || 0)}
-              </p>
-              <hr className="my-3 border-t border-white/30" />
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-100">Total Earnings</p>
-                <button className="text-white rounded-lg transition">
-                  <CircleAlert size={25} />
+                <button
+                  className="text-white text-sm font-semibold"
+                  onClick={() => navigate("/member-regular-savings-transaction")}
+                >
+                  View history
                 </button>
               </div>
               <p className="text-sm font-bold">

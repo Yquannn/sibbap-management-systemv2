@@ -163,7 +163,6 @@ exports.getMemberById = async (req, res) => {
 };
 
 
-
 exports.addMember = async (req, res) => {
   const {
     registration_type,
@@ -220,24 +219,37 @@ exports.addMember = async (req, res) => {
   const kalinga_fund_fee_num = Number(kalinga_fund_fee) || 0;
   const initial_savings_num = Number(initial_savings) || 0;
 
-  // If files were uploaded, get their filenames.
-  // (Assumes that your file upload middleware populates req.file for idPicture 
-  // and req.files for the additional documents)
-  const id_picture = req.file ? req.file.filename : null;
-  const barangayClearance = req.files && req.files.barangay_clearance ? req.files.barangay_clearance[0].filename : null;
-  const taxIdentificationId = req.files && req.files.tax_identification ? req.files.tax_identification[0].filename : null;
-  const validId = req.files && req.files.valid_id ? req.files.valid_id[0].filename : null;
-  const membershipAgreement = req.files && req.files.membership_agreement ? req.files.membership_agreement[0].filename : null;
+  // Retrieve file names from req.files (since you're using multiUpload)
+  const id_picture =
+    req.files && req.files.id_picture
+      ? req.files.id_picture[0].filename
+      : null;
+  const barangayClearance =
+    req.files && req.files.barangay_clearance
+      ? req.files.barangay_clearance[0].filename
+      : null;
+  const taxIdentificationId =
+    req.files && req.files.tax_identification
+      ? req.files.tax_identification[0].filename
+      : null;
+  const validId =
+    req.files && req.files.valid_id
+      ? req.files.valid_id[0].filename
+      : null;
+  const membershipAgreement =
+    req.files && req.files.membership_agreement
+      ? req.files.membership_agreement[0].filename
+      : null;
 
   const formattedRegistrationDate = registration_date
     ? formatDate(new Date(registration_date))
     : formatDate(new Date());
 
-  // Adjust share capital and prepare additional savings (example logic)
+  // Adjust share capital and additional savings (example logic)
   const adjustedShareCapital = Math.max(0, share_capitalNum - 100);
   const additionalSavings = share_capitalNum >= 100 ? 100 : 0;
 
-  // Build a sanitized data object using snake_case keys and include the new document fields
+  // Build sanitized data object
   const sanitizedData = {
     registration_type: registration_type || null,
     member_type: member_type || "Regular member",
@@ -293,18 +305,18 @@ exports.addMember = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Generate a unique member code (e.g., "MEM123456")
+    // Generate unique member code
     const memberCode = await generateUniqueMemberId();
 
-    // INSERT into the members table using snake_case column names.
-    // Note: The query has been updated to include the new document columns.
+    // Insert into members table (include new document fields)
     const memberQuery = `
       INSERT INTO members 
-        (memberCode, registration_type, member_type, registration_date, share_capital, annual_income, number_of_dependents,
-         last_name, first_name, middle_name, maiden_name, extension_name, religion,
-         tin_number, date_of_birth, birthplace_province, age, sex, civil_status, 
-         highest_educational_attainment, occupation_source_of_income, spouse_name, 
-         spouse_occupation_source_of_income, contact_number, house_no_street, barangay, city, id_picture,
+        (memberCode, registration_type, member_type, registration_date, share_capital,
+         annual_income, number_of_dependents, last_name, first_name, middle_name,
+         maiden_name, extension_name, religion, tin_number, date_of_birth,
+         birthplace_province, age, sex, civil_status, highest_educational_attainment,
+         occupation_source_of_income, spouse_name, spouse_occupation_source_of_income,
+         contact_number, house_no_street, barangay, city, id_picture,
          barangay_clearance, tax_identification_id, valid_id, membership_agreement,
          identification_card_fee, membership_fee, kalinga_fund_fee, initial_savings)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -355,14 +367,19 @@ exports.addMember = async (req, res) => {
 
     const memberId = memberResult.insertId;
 
-    // INSERT into member_account table using snake_case column names
+    // Insert into member_account table
     const accountStatus = email && password ? "ACTIVE" : "NOT ACTIVATED";
     const accountQuery = `
       INSERT INTO member_account
         (memberId, email, password, accountStatus)
       VALUES (?, ?, ?, ?)
     `;
-    const accountParams = [memberId, sanitizedData.email, sanitizedData.password, accountStatus];
+    const accountParams = [
+      memberId,
+      sanitizedData.email,
+      sanitizedData.password,
+      accountStatus
+    ];
     await connection.execute(accountQuery, accountParams);
 
     // INSERT primary beneficiary if provided
@@ -425,7 +442,10 @@ exports.addMember = async (req, res) => {
     }
 
     await connection.commit();
-    res.status(201).json({ message: "Member added successfully", id_picture: sanitizedData.id_picture });
+    res.status(201).json({
+      message: "Member added successfully",
+      id_picture: sanitizedData.id_picture
+    });
   } catch (error) {
     await connection.rollback();
     console.error("Error during member insertion:", error);
@@ -434,9 +454,6 @@ exports.addMember = async (req, res) => {
     connection.release();
   }
 };
-
-
-
 
 
 

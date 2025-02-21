@@ -1,210 +1,420 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import pic from "../blankPicture.png"; // Fallback placeholder image
-import Success from '../Success'; // Import Success component
+import React, { useState } from "react";
+import axios from "axios";
 
-const MembershipInformationModal = ({ member, onClose }) => {
-  const [memberState, setMemberState] = useState(member); // Initialize memberState
-  const [showMessage, setShowMessage] = useState(false); // For showing the success/error modal
-  const [messageType, setMessageType] = useState(""); // success or error
-  const [message, setMessage] = useState(""); // Message to display
+const MemberProfileModal = ({ isOpen, onClose, member }) => {
+  const [activeTab, setActiveTab] = useState("personal");
+  const [activationLoading, setActivationLoading] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const [messageType, setMessageType] = useState(""); // "success" or "error"
+  const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    setMemberState(member);
-  }, [member]);
 
-  const handleCloseMessage = () => {
-    setShowMessage(false);
-    setMessage("");
-    setMessageType("");
+  if (!isOpen || !member) return null;
+
+  // Helper to build an image URL (adjust base URL as needed)
+  const imageUrl = (filename) =>
+    filename ? `http://localhost:3001/uploads/${filename}` : "";
+
+  // Format date helper
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
-  if (!memberState) return null;
+  // ------------------ Tab Panels ------------------
 
-  // Use snake_case property names from API
-  const memberSinceDate = new Date(memberState.registration_date);
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  const formattedDate = memberSinceDate.toLocaleDateString('en-US', options);
+  const PersonalInfo = () => (
+    <div className="bg-white p-6 rounded-lg shadow-lg">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-6 sm:space-y-0 sm:space-x-10">
+        {/* Member Picture */}
+        <div className="flex-shrink-0">
+          <img
+            src={imageUrl(member.id_picture)}
+            alt="Member ID"
+            className="w-32 h-32 rounded-full object-cover border-4 border-green-500 shadow-md"
+          />
+        </div>
+        {/* Member Details */}
+        <div className="flex-1 text-center sm:text-left">
+          <h3 className="text-3xl font-bold text-gray-800 mb-4">
+            {member.last_name}, {member.first_name} {member.middle_name}
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-gray-700 text-base">
+            <div>
+              <p>
+                <span className="font-semibold">Member Code:</span> {member.memberCode}
+              </p>
+              <p>
+                <span className="font-semibold">Member Type:</span> {member.member_type}
+              </p>
+              <p>
+                <span className="font-semibold">Registration Type:</span> {member.registration_type}
+              </p>
+              <p>
+                <span className="font-semibold">Birthplace:</span> {member.birth_place_province || member.birthplace_province}
+              </p>
+              <p>
+                <span className="font-semibold">Religion:</span> {member.religion}
+              </p>
+              <p>
+                <span className="font-semibold">Annual Income:</span> {member.annual_income}
+              </p>
+              <p>
+                <span className="font-semibold">Dependents:</span> {member.number_of_dependents}
+              </p>
+              <p>
+                <span className="font-semibold">Spouse Name:</span> {member.name_of_spouse || member.spouse_name}
+              </p>
+              <p>
+                <span className="font-semibold">Occupation:</span> {member.occupation_source_of_income}
+              </p>
+              <p>
+                <span className="font-semibold">Spouse Occupation:</span> {member.spouse_occupation_source_of_income}
+              </p>
+              <p>
+                <span className="font-semibold">TIN:</span> {member.tin_number}
+              </p>
+              <p>
+                <span className="font-semibold">DOB:</span> {formatDate(member.date_of_birth)}
+              </p>
+            </div>
+            <div>
+              <p>
+                <span className="font-semibold">Civil Status:</span> {member.civil_status}
+              </p>
+              <p>
+                <span className="font-semibold">Sex:</span> {member.sex}
+              </p>
+              <p>
+                <span className="font-semibold">Age:</span> {member.age}
+              </p>
+              <p>
+                <span className="font-semibold">Contact:</span> {member.contact_number}
+              </p>
+              <div>
+                <span className="font-semibold">Address:</span>
+                <p className="mt-1">
+                  {`${member.house_no_street}, ${member.barangay}, ${member.city}`}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  
+  
+  
+  
 
-  const dateOfBirth = new Date(memberState.date_of_birth);
-  const options2 = { year: 'numeric', month: 'long', day: 'numeric' };
-  const formDate = dateOfBirth.toLocaleDateString('en-US', options2);
+  const DocumentsTab = () => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+      {member.id_picture && (
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-semibold text-gray-600 mb-1">ID Picture</p>
+          <a 
+            href={imageUrl(member.id_picture)} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <img
+              src={imageUrl(member.id_picture)}
+              alt="ID Picture"
+              className="w-28 h-28 object-cover rounded shadow-md hover:opacity-75 transition"
+            />
+          </a>
+        </div>
+      )}
+      {member.barangay_clearance && (
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-semibold text-gray-600 mb-1">Barangay Clearance</p>
+          <a 
+            href={imageUrl(member.barangay_clearance)} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <img
+              src={imageUrl(member.barangay_clearance)}
+              alt="Barangay Clearance"
+              className="w-28 h-28 object-cover rounded shadow-md hover:opacity-75 transition"
+            />
+          </a>
+        </div>
+      )}
+      {member.tax_identification_id && (
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-semibold text-gray-600 mb-1">TIN Document</p>
+          <a 
+            href={imageUrl(member.tax_identification_id)} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <img
+              src={imageUrl(member.tax_identification_id)}
+              alt="TIN Document"
+              className="w-28 h-28 object-cover rounded shadow-md hover:opacity-75 transition"
+            />
+          </a>
+        </div>
+      )}
+      {member.valid_id && (
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-semibold text-gray-600 mb-1">Valid ID</p>
+          <a 
+            href={imageUrl(member.valid_id)} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <img
+              src={imageUrl(member.valid_id)}
+              alt="Valid ID"
+              className="w-28 h-28 object-cover rounded shadow-md hover:opacity-75 transition"
+            />
+          </a>
+        </div>
+      )}
+      {member.membership_agreement && (
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-semibold text-gray-600 mb-1">
+            Membership Agreement
+          </p>
+          <a 
+            href={imageUrl(member.membership_agreement)} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <img
+              src={imageUrl(member.membership_agreement)}
+              alt="Membership Agreement"
+              className="w-28 h-28 object-cover rounded shadow-md hover:opacity-75 transition"
+            />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+  
 
-  const idPictureUrl = memberState.id_picture ? `http://localhost:3001/uploads/${memberState.id_picture}` : pic;
+  // BENEFICIARIES & REFERENCES PANEL
+  const BeneficiariesReferences = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-gray-700 text-sm">
+      <div>
+        <h3 className="text-xl font-bold mb-2">Beneficiaries</h3>
+        <p>
+          <span className="font-bold">Name:</span>{" "}
+          {member.beneficiaryName || "N/A"}
+        </p>
+        <p>
+          <span className="font-bold">Relationship:</span>{" "}
+          {member.relationship || "N/A"}
+        </p>
+        <p>
+          <span className="font-bold">Contact:</span>{" "}
+          {member.beneficiary_contactNumber || "N/A"}
+        </p>
+      </div>
+      <div>
+        <h3 className="text-xl font-bold mb-2">Character Reference</h3>
+        <p>
+          <span className="font-bold">Name:</span>{" "}
+          {member.referenceName || "N/A"}
+        </p>
+        <p>
+          <span className="font-bold">Position:</span>{" "}
+          {member.position || "N/A"}
+        </p>
+        <p>
+          <span className="font-bold">Contact:</span>{" "}
+          {member.reference_contactNumber || "N/A"}
+        </p>
+      </div>
+    </div>
+  );
 
+ // ACCOUNT INFO PANEL (with Activate Account button)
+const AccountInfo = () => (
+  <div className="space-y-4 text-gray-700 text-sm">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <p className="font-bold">Email:</p>
+        <p>{member.email}</p>
+      </div>
+      <div>
+        <p className="font-bold">Password:</p>
+        <p>{member.password}</p>
+      </div>
+      <div>
+        <p className="font-bold">Status:</p>
+        <p>{member.accountStatus}</p>
+      </div>
+    </div>
+    {member.accountStatus &&
+      member.accountStatus.toUpperCase() !== "ACTIVATED" && (
+        <button
+          onClick={async () => {
+            setActivationLoading(true);
+            try {
+              const response = await axios.put(
+                `http://localhost:3001/api/activate/${member.memberId}`
+              );
+              // Update member's account status locally
+              member.accountStatus = "ACTIVATED";
+              member.email = member.memberCode;
+              member.password =  member.memberCode;
+              // Show success modal/message
+              setMessageType("success");
+              setMessage("Account activated successfully!");
+              setShowMessage(true);
+            } catch (error) {
+              console.error("Error activating account:", error);
+              // Optionally show error modal/message
+              setMessageType("error");
+              setMessage("Error activating account.");
+              setShowMessage(true);
+            } finally {
+              setActivationLoading(false);
+            }
+          }}
+          className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          disabled={activationLoading}
+        >
+          {activationLoading ? "Activating..." : "Activate Account"}
+        </button>
+      )}
+  </div>
+);
+
+
+  // LOAN HISTORY PANEL
+  const LoanHistory = () => {
+    if (!member.loan_history || member.loan_history.length === 0)
+      return <p className="text-gray-600">No loan history available.</p>;
+
+    return (
+      <div className="space-y-4">
+        {member.loan_history.map((loan, index) => (
+          <div
+            key={index}
+            className="border p-4 rounded-lg shadow-sm bg-gray-50"
+          >
+            <p className="text-sm">
+              <span className="font-bold">Loan Type:</span> {loan.loan_type}
+            </p>
+            <p className="text-sm">
+              <span className="font-bold">Amount:</span> ₱{loan.loan_amount}
+            </p>
+            <p className="text-sm">
+              <span className="font-bold">Term:</span> {loan.terms} months
+            </p>
+            <p className="text-sm">
+              <span className="font-bold">Status:</span> {loan.status}
+            </p>
+            <p className="text-xs text-gray-500">
+              Applied on: {formatDate(loan.application_date)}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // INITIAL CONTRIBUTION PANEL
+  const InitialContribution = () => {
+    if (!member.initial_contribution)
+      return <p className="text-gray-600">No initial contribution data.</p>;
+
+    const contrib = member.initial_contribution;
+    return (
+      <div className="space-y-2 text-gray-700 text-sm">
+        <p>
+          <span className="font-bold">Share Capital Contribution Amount:</span> ₱{contrib.share_capital}
+        </p>
+        <p>
+          <span className="font-bold">Identification Card fee:</span> ₱{contrib.tax_identification_id}
+        </p>
+        <p>
+          <span className="font-bold">Membership fee:</span> ₱{contrib.membership_fee}
+        </p>
+        <p>
+          <span className="font-bold">Kalinga fund fee:</span> ₱{contrib.kalinga_fund_fee}
+        </p>
+        <p>
+          <span className="font-bold">Initial Savings:</span> ₱{contrib.initial_savings}
+        </p>
+      </div>
+    );
+  };
+
+  // ----------------- Tab Headers -----------------
+  const tabs = [
+    { id: "personal", label: "Personal Info" },
+    { id: "documents", label: "Documents" },
+    { id: "beneficiaries", label: "Beneficiaries" },
+    { id: "account", label: "Account Info" },
+    { id: "loan", label: "Loan History" },
+    { id: "contribution", label: "Initial Contribution" },
+  ];
+
+  const renderTabHeaders = () => (
+    <div className="flex border-b border-gray-300 mb-4">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => setActiveTab(tab.id)}
+          className={`px-4 py-2 -mb-px text-lg font-semibold transition-colors ${
+            activeTab === tab.id
+              ? "border-b-4 border-green-600 text-green-600"
+              : "text-gray-600 hover:text-green-600"
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  // ----------------- Render Modal -----------------
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-7xl">
-        <div className="flex justify-end">
-          <button onClick={onClose} className="text-red-500 text-2xl font-bold">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 px-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl overflow-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center border-b px-6 py-4">
+          <h2 className="text-3xl font-bold text-gray-800">Member Profile</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-600 hover:text-red-500 text-3xl"
+          >
             &times;
           </button>
         </div>
-        <div className="flex items-start space-x-10">
-          <div className="text-center">
-            <img
-              src={idPictureUrl}
-              alt="ID Picture"
-              className="w-32 h-32 rounded-full object-cover mx-auto"
-            />
-            <h5 className="text-sm mt-2">{memberState.member_type}</h5>
-            <h3 className="text-3xl font-bold mt-1">
-              {memberState.last_name + ', ' + memberState.first_name + ', ' + memberState.middle_name}
-            </h3>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-4">Member Information</h2>
-            <div className="grid grid-cols-3">
-              <div className="mr-4">
-                <p className="text-gray-700">
-                  <span className="font-bold">Code Number:</span> {memberState.member_code}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Member since:</span> {formattedDate}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Age:</span> {memberState.age}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Sex:</span> {memberState.sex}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Contact No:</span> {memberState.contact_number}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-700">
-                  <span className="font-bold">TIN:</span> {memberState.tin_number}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Address:</span> {memberState.house_no_street + ', ' + memberState.barangay + ', ' + memberState.city}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Date of birth:</span> {formDate}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Place of birth:</span> {memberState.birthplace_province}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Civil status:</span> {memberState.civil_status}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-700">
-                  <span className="font-bold">Highest Education:</span> {memberState.highest_educational_attainment}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Occupation Source Of Income:</span> {memberState.occupation_source_of_income}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Spouse Name:</span> {memberState.spouse_name}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-bold">Spouse Occupation Source Of Income:</span> {memberState.spouse_occupation_source_of_income}
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* Tab Headers */}
+        <div className="px-6 py-4">{renderTabHeaders()}</div>
+        {/* Tab Content */}
+        <div className="px-6 py-4">
+          {activeTab === "personal" && <PersonalInfo />}
+          {activeTab === "documents" && <DocumentsTab />}
+          {activeTab === "beneficiaries" && <BeneficiariesReferences />}
+          {activeTab === "account" && <AccountInfo />}
+          {activeTab === "loan" && <LoanHistory />}
+          {activeTab === "contribution" && <InitialContribution />}
         </div>
-
-        <hr className="border-t border-solid border-gray-400 my-2" />
-        <div className="mt-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-2xl font-bold mb-2">Beneficiaries</h3>
-              <p className="text-gray-700">
-                <span className="font-bold">Beneficiary name:</span> {memberState.beneficiary_name}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-bold">Relationship:</span> {memberState.relationship}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-bold">Contact Number:</span> {memberState.beneficiary_contact_number}
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-2xl font-bold mb-2">Character reference</h3>
-              <p className="text-gray-700">
-                <span className="font-bold">Reference name:</span> {memberState.reference_name}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-bold">Position:</span> {memberState.position}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-bold">Contact Number:</span> {memberState.reference_contact_number}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <hr className="border-t border-solid border-gray-400 my-4" />
-        <div className="mt-8">
-          <h3 className="text-2xl font-bold mb-4">Account Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="font-bold">Email:</p>
-              <p>{memberState.email}</p>
-            </div>
-            <div>
-              <p className="font-bold">Password:</p>
-              <p>{memberState.password}</p>
-            </div>
-            <div>
-              <p className="font-bold">Account status:</p>
-              <p>{memberState.account_status}</p>
-            </div>
-          </div>
-
-          {/* Only show Activate Account button if account_status is not ACTIVATED */}
-          {(memberState.account_status && memberState.account_status.toUpperCase() !== 'ACTIVATED') && (
+        {/* Footer */}
+        <div className="flex justify-end border-t px-6 py-4">
           <button
-            onClick={async () => {
-              try {
-                const response = await axios.put(
-                  `http://localhost:3001/api/activate/${memberState.memberid}`
-                );
-                console.log("Activation response:", response.data);
-
-                // Update the member state with new values if activation is successful
-                setMemberState((prevState) => ({
-                  ...prevState,
-                  account_status: 'ACTIVATED',
-                  email: prevState.memberCode,
-                  password: prevState.memberCode,
-                }));
-
-                // Show success message
-                setMessageType("success");
-                setMessage("Account activated successfully!");
-                setShowMessage(true);
-              } catch (error) {
-                console.error("Error activating account:", error);
-                setMessageType("error");
-                setMessage("Error activating account.");
-                setShowMessage(true);
-              }
-            }}
-            className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            type="button"
+            onClick={onClose}
+            className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
           >
-            Activate Account
+            Close
           </button>
-        )}
-
         </div>
       </div>
-
-      {/* Show Success or Error Message */}
-      {showMessage && (
-        <Success
-          type={messageType}
-          message={message}
-          onClose={handleCloseMessage}
-        />
-      )}
     </div>
   );
 };
 
-export default MembershipInformationModal;
+export default MemberProfileModal;
