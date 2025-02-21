@@ -3,16 +3,14 @@ import React from "react";
 const Documents = ({ handleNext, handlePrevious, formData, setFormData }) => {
   // Default structure for documents
   const defaultDocuments = {
-    profilePicture: null, // You may still show "Profile Picture" label, but the file is saved as id_picture in backend.
     id_picture: null,
     barangay_clearance: null,
-    tax_identidicaton_id: null,
+    tax_identification: null,
     valid_id: null,
-    membership_agreenment: null,
+    membership_agreement: null,
   };
 
   // Merge parent's documents with defaults so that all keys exist.
-  // If both profilePicture and id_picture exist, id_picture will be used for upload.
   const documents = {
     ...defaultDocuments,
     ...formData.documents,
@@ -105,24 +103,24 @@ const Documents = ({ handleNext, handlePrevious, formData, setFormData }) => {
             </div>
           </div>
 
-          {/* TAX Identification ID */}
+          {/* Tax Identification */}
           <div className="grid grid-cols-2 items-center gap-4">
-            <label>TAX Identification ID:</label>
+            <label>Tax Identification:</label>
             <div>
               <input
                 type="file"
-                name="tax_identidicaton_id"
+                name="tax_identification"
                 className="border p-2 rounded-lg w-full"
                 onChange={handleFileChange}
               />
-              {documents.tax_identidicaton_id && (
+              {documents.tax_identification && (
                 <div className="mt-1">
                   <p className="text-sm text-gray-700">
-                    Uploaded: {documents.tax_identidicaton_id.name}
+                    Uploaded: {documents.tax_identification.name}
                   </p>
                   <button
                     className="text-red-500 text-sm mt-1"
-                    onClick={() => handleRemove("tax_identidicaton_id")}
+                    onClick={() => handleRemove("tax_identification")}
                     type="button"
                   >
                     Remove
@@ -165,18 +163,18 @@ const Documents = ({ handleNext, handlePrevious, formData, setFormData }) => {
             <div>
               <input
                 type="file"
-                name="membership_agreenment"
+                name="membership_agreement"
                 className="border p-2 rounded-lg w-full"
                 onChange={handleFileChange}
               />
-              {documents.membership_agreenment && (
+              {documents.membership_agreement && (
                 <div className="mt-1">
                   <p className="text-sm text-gray-700">
-                    Uploaded: {documents.membership_agreenment.name}
+                    Uploaded: {documents.membership_agreement.name}
                   </p>
                   <button
                     className="text-red-500 text-sm mt-1"
-                    onClick={() => handleRemove("membership_agreenment")}
+                    onClick={() => handleRemove("membership_agreement")}
                     type="button"
                   >
                     Remove

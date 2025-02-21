@@ -24,8 +24,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
     contactNumber: "",
     address: "",
   });
-  const [motercycleComaker, setMotercycleComaker] = useState("");
-  const [motercycleCoBorrower, setMotercycleCoBorrower] = useState("");
+  const [motercycleComaker, setMotercycleComaker] = useState({ name: "", memberId: "" });
+  const [motercycleCoBorrower, setMotercycleCoBorrower] = useState({
+    memberId: "",
+    relationship: "",
+    name: "",
+    contactNumber: "",
+    address: "",
+  });
+  // Added separate state for motorcycle documents
+  const [motorcycleDocuments, setMotorcycleDocuments] = useState(null);
 
   // Regular Loan – Memorandum of Agreement (if applicable)
   const [regularMOADocument, setRegularMOADocument] = useState(null);
@@ -118,9 +126,10 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
   const [specialCoMaker, setSpecialCoMaker] = useState({ name: "", memberId: "" });
   const [specialDocument, setSpecialDocument] = useState(null);
 
-  // Reconstruction
+  // Reconstruction – use two separate states for two co‑makers
   const [reconstructionScheduled, setReconstructionScheduled] = useState("");
-  const [reconstructionCoMaker, setReconstructionCoMaker] = useState({ name: "", memberId: "" });
+  const [reconstructionCoMaker1, setReconstructionCoMaker1] = useState({ name: "", memberId: "" });
+  const [reconstructionCoMaker2, setReconstructionCoMaker2] = useState({ name: "", memberId: "" });
   const [reconstructionDocument, setReconstructionDocument] = useState(null);
 
   // Fetch member details when form opens.
@@ -178,6 +187,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
     return "";
   };
 
+  // Auto-update terms for loans with computed terms (e.g., backToBack and regular)
+  useEffect(() => {
+    if (loanType === "backToBack" || loanType === "regular") {
+      const computed = computeVariableTerms(loanAmount);
+      if (computed !== "") {
+        setTerms(computed);
+      }
+    }
+  }, [loanAmount, loanType]);
+
   const handleSacksChange = (value) => {
     const sacksValue = parseInt(value, 10) || 0;
     if (sacksValue > maxSacks) {
@@ -188,21 +207,18 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
     }
   };
 
-  // ***********************
-  // ADD: Submit handler to connect to backend
-  // ***********************
+  // Submit handler to connect to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Build the details object based on the selected loan type.
-    // (Only a few cases are shown; add the remaining ones as needed.)
     let details = {};
     if (loanType === "feeds" || loanType === "rice") {
       details = {
         statement_of_purpose: statementOfPurpose,
         sacks: sacks,
         max_sacks: maxSacks,
-        proof_of_business: proofOfBusiness, // you might need to handle file uploads separately
+        proof_of_business: proofOfBusiness, // handle file uploads separately
       };
     } else if (loanType === "marketing") {
       details = {
@@ -231,11 +247,9 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
     };
 
     try {
-      // Send the POST request to your backend endpoint.
       const response = await axios.post("http://localhost:3001/api/loan-application", payload);
       console.log("Loan application submitted successfully:", response.data);
       alert("Application submitted successfully!");
-
       setIsOpen(false);
     } catch (error) {
       console.error("Error submitting loan application:", error);
@@ -247,7 +261,6 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
       <div className="relative max-w-3xl w-full p-6 bg-white rounded-lg shadow-lg overflow-y-auto max-h-screen">
-        {/* Close Button */}
         <button
           className="absolute top-2 right-3 text-gray-600 hover:text-red-500"
           onClick={() => setIsOpen(false)}
@@ -255,10 +268,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
           ✖
         </button>
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Loan Application</h2>
-        
-        {/* Wrap the form content with a form tag */}
         <form onSubmit={handleSubmit}>
-          {/* Member Information */}
           {loading ? (
             <div className="flex justify-center items-center my-4">
               <p className="text-center text-gray-500 animate-pulse">Fetching member details...</p>
@@ -272,35 +282,39 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
                     <strong className="text-gray-600">Code Number:</strong> {memberInfo.memberCode}
                   </p>
                   <p>
-                    <strong className="text-gray-600">Full name:</strong> {memberInfo.FirstName} {memberInfo.MiddleName} {memberInfo.LastName}
+                    <strong className="text-gray-600">Full name:</strong> {memberInfo.first_name} {memberInfo.middle_name} {memberInfo.last_name}
                   </p>
                   <p>
                     <strong className="text-gray-600">Share Capital:</strong>{" "}
-                    <span className="text-green-600 font-bold">₱{memberInfo.shareCapital}</span>
+                    <span className="text-green-600 font-bold">₱{memberInfo.share_capital}</span>
                   </p>
                   <p>
-                    <strong className="text-gray-600">Tax Identification Number:</strong> {memberInfo.tinNumber}
+                    <strong className="text-gray-600">Tax Identification Number:</strong> {memberInfo.tin_number}
                   </p>
                   <p>
-                    <strong className="text-gray-600">Civil Status:</strong> {memberInfo.civilStatus}
+                    <strong className="text-gray-600">Civil Status:</strong> {memberInfo.civil_status}
                   </p>
                   <p>
                     <strong className="text-gray-600">Sex:</strong> {memberInfo.sex}
                   </p>
                   <p>
-                    <strong className="text-gray-600">Date of birth:</strong> {memberInfo.dateOfBirth}
+                    <strong className="text-gray-600">Date of birth:</strong>{new Date(member.date_of_birth).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   </p>
                   <p>
                     <strong className="text-gray-600">Age:</strong> {memberInfo.age}
                   </p>
                   <p>
-                    <strong className="text-gray-600">Occupation Source of Income:</strong> {memberInfo.occupationSourceOfIncome}
+                    <strong className="text-gray-600">Occupation Source of Income:</strong> {memberInfo.occupation_source_of_income}
                   </p>
                   <p>
-                    <strong className="text-gray-600">Contact:</strong> {memberInfo.contactNumber}
+                    <strong className="text-gray-600">Contact:</strong> {memberInfo.contact_number}
                   </p>
                   <p>
-                    <strong className="text-gray-600">Address:</strong> {memberInfo.houseNoStreet} {memberInfo.barangay} {memberInfo.city}
+                    <strong className="text-gray-600">Address:</strong> {memberInfo.house_no_street} {memberInfo.barangay} {memberInfo.city}
                   </p>
                 </div>
               </div>
@@ -343,7 +357,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </select>
           </div>
 
-          {/* ================== FEEDS & RICE Loan Section ================== */}
+          {/* FEEDS & RICE Loan Section */}
           {(loanType === "feeds" || loanType === "rice") && (
             <>
               <div className="mb-4">
@@ -367,7 +381,6 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
                   )}
                 </select>
               </div>
-
               {statementOfPurpose === "business" && (
                 <div className="mb-4">
                   <label className="block font-medium text-gray-700">
@@ -380,7 +393,6 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
                   />
                 </div>
               )}
-
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Number of Sacks (50kg/Sack):</label>
                 <input
@@ -393,7 +405,6 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
                   You can loan up to <strong>{maxSacks}</strong> sacks based on your Share Capital.
                 </p>
               </div>
-
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Terms:</label>
                 <p className="p-2 border rounded-lg bg-gray-100">30 Days</p>
@@ -401,7 +412,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Marketing Loan Section ================== */}
+          {/* Marketing Loan Section */}
           {loanType === "marketing" && (
             <>
               <div className="mb-4">
@@ -468,7 +479,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Back to Back Loan Section ================== */}
+          {/* Back to Back Loan Section */}
           {loanType === "backToBack" && (
             <>
               <div className="mb-4">
@@ -574,7 +585,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Regular Loan Section ================== */}
+          {/* Regular Loan Section */}
           {loanType === "regular" && (
             <>
               <div className="mb-4">
@@ -640,7 +651,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Livelihood Assistance Loan Section ================== */}
+          {/* Livelihood Assistance Loan Section */}
           {loanType === "livelihood" && (
             <>
               <div className="mb-4">
@@ -716,7 +727,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Educational Loan Section ================== */}
+          {/* Educational Loan Section */}
           {loanType === "educational" && (
             <>
               <div className="mb-4">
@@ -814,7 +825,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.75%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.75%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
@@ -823,7 +834,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Emergency/Calamity Loan Section ================== */}
+          {/* Emergency/Calamity Loan Section */}
           {loanType === "emergency" && (
             <>
               <div className="mb-4">
@@ -877,11 +888,11 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.75%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.75%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">5%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">5%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Upload Supporting Documents:</label>
@@ -894,7 +905,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Quick Cash Loan Section ================== */}
+          {/* Quick Cash Loan Section */}
           {loanType === "quickCash" && (
             <>
               <div className="mb-4">
@@ -933,16 +944,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1%</p>
               </div>
             </>
           )}
 
-          {/* ================== Car Loan Section ================== */}
+          {/* Car Loan Section */}
           {loanType === "car" && (
             <>
               <div className="mb-4">
@@ -1059,16 +1070,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.75%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.75%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.2%</p>
               </div>
             </>
           )}
 
-          {/* ================== House and Lot/Housing/ Lot Loan Section ================== */}
+          {/* House and Lot/Housing Loan Section */}
           {loanType === "housing" && (
             <>
               <div className="mb-4">
@@ -1180,16 +1191,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.75%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.75%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.2%</p>
               </div>
             </>
           )}
 
-          {/* ================== Motorcycle Loan Section ================== */}
+          {/* Motorcycle Loan Section */}
           {loanType === "motorcycle" && (
             <>
               <div className="mb-4">
@@ -1234,14 +1245,14 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
                     className="w-full p-2 border rounded-lg"
                     placeholder="Co‑Maker Name"
                     value={motercycleComaker.name}
-                    onChange={(e) => setMotercycleComaker(e.target.value)}
+                    onChange={(e) => setMotercycleComaker({ ...motercycleComaker, name: e.target.value })}
                   />
                   <input
                     type="text"
                     className="w-full p-2 border rounded-lg"
                     placeholder="Co‑Maker Member ID"
                     value={motercycleComaker.memberId}
-                    onChange={(e) => setMotercycleComaker(e.target.value)}
+                    onChange={(e) => setMotercycleComaker({ ...motercycleComaker, memberId: e.target.value })}
                   />
                 </div>
               </div>
@@ -1290,21 +1301,21 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
                 <input
                   type="file"
                   className="w-full p-2 border rounded-lg"
-                  onChange={(e) => setHousingDocuments(e.target.files[0])}
+                  onChange={(e) => setMotorcycleDocuments(e.target.files[0])}
                 />
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2% </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">5%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">5%</p>
               </div>
             </>
           )}
 
-          {/* ================== Memorial Lot Section ================== */}
+          {/* Memorial Lot Section */}
           {loanType === "memorialLot" && (
             <>
               <div className="mb-4">
@@ -1376,7 +1387,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Interment Plan Lot Section ================== */}
+          {/* Interment Plan Lot Section */}
           {loanType === "intermentLot" && (
             <>
               <div className="mb-4">
@@ -1442,12 +1453,12 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2%</p>
               </div>
             </>
           )}
 
-          {/* ================== Travel Loan Section ================== */}
+          {/* Travel Loan Section */}
           {loanType === "travel" && (
             <>
               <div className="mb-4">
@@ -1517,16 +1528,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">5%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">5%</p>
               </div>
             </>
           )}
 
-          {/* ================== OFW Assistance Loan Section ================== */}
+          {/* OFW Assistance Loan Section */}
           {loanType === "ofw" && (
             <>
               <div className="mb-4">
@@ -1614,16 +1625,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">5%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">5%</p>
               </div>
             </>
           )}
 
-          {/* ================== Savings Loan Section ================== */}
+          {/* Savings Loan Section */}
           {loanType === "savings" && (
             <>
               <div className="mb-4">
@@ -1671,16 +1682,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.5%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.5%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2%</p>
               </div>
             </>
           )}
 
-          {/* ================== Health Insurance Loan Section ================== */}
+          {/* Health Insurance Loan Section */}
           {loanType === "health" && (
             <>
               <div className="mb-4">
@@ -1730,16 +1741,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.5%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.5%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">1.2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">1.2%</p>
               </div>
             </>
           )}
 
-          {/* ================== Special Loan Section ================== */}
+          {/* Special Loan Section */}
           {loanType === "special" && (
             <>
               <div className="mb-4">
@@ -1806,11 +1817,11 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2.5%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2.5%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">3%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">3%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Gift Check:</label>
@@ -1825,7 +1836,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
             </>
           )}
 
-          {/* ================== Reconstruction Section ================== */}
+          {/* Reconstruction Section */}
           {loanType === "reconstruction" && (
             <>
               <div className="mb-4">
@@ -1879,30 +1890,42 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
                     type="text"
                     className="w-full p-2 border rounded-lg"
                     placeholder="Co‑Maker Member ID"
-                    value={reconstructionCoMaker.memberId}
-                    onChange={(e) => setReconstructionCoMaker({ ...reconstructionCoMaker, memberId: e.target.value })}
+                    value={reconstructionCoMaker1.memberId}
+                    onChange={(e) =>
+                      setReconstructionCoMaker1({ ...reconstructionCoMaker1, memberId: e.target.value })
+                    }
                   />
                   <input
                     type="text"
                     className="w-full p-2 border rounded-lg"
                     placeholder="Co‑Maker Name"
-                    value={reconstructionCoMaker.name}
-                    onChange={(e) => setReconstructionCoMaker({ ...reconstructionCoMaker, name: e.target.value })}
+                    value={reconstructionCoMaker1.name}
+                    onChange={(e) =>
+                      setReconstructionCoMaker1({ ...reconstructionCoMaker1, name: e.target.value })
+                    }
                   />
-                  <label className="block font-medium text-gray-700">Co‑Maker 2:</label>
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block font-medium text-gray-700">Co‑Maker 2:</label>
+                <div className="grid grid-cols-1 gap-4">
                   <input
                     type="text"
                     className="w-full p-2 border rounded-lg"
                     placeholder="Co‑Maker Member ID"
-                    value={reconstructionCoMaker.memberId}
-                    onChange={(e) => setReconstructionCoMaker({ ...reconstructionCoMaker, memberId: e.target.value })}
+                    value={reconstructionCoMaker2.memberId}
+                    onChange={(e) =>
+                      setReconstructionCoMaker2({ ...reconstructionCoMaker2, memberId: e.target.value })
+                    }
                   />
                   <input
                     type="text"
                     className="w-full p-2 border rounded-lg"
                     placeholder="Co‑Maker Name"
-                    value={reconstructionCoMaker.name}
-                    onChange={(e) => setReconstructionCoMaker({ ...reconstructionCoMaker, name: e.target.value })}
+                    value={reconstructionCoMaker2.name}
+                    onChange={(e) =>
+                      setReconstructionCoMaker2({ ...reconstructionCoMaker2, name: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -1919,11 +1942,11 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Interest Rate:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">2%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">2%</p>
               </div>
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">Service Fee:</label>
-                <p className="p-2 border rounded-lg bg-gray-100">3%  </p>
+                <p className="p-2 border rounded-lg bg-gray-100">3%</p>
               </div>
             </>
           )}

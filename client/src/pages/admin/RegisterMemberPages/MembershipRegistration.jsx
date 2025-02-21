@@ -49,9 +49,12 @@ const Membership = () => {
     try {
       // Create a FormData object and flatten the nested formData
       const formDataObj = new FormData();
+
+      // Loop over each section (personalInfo, contactInfo, etc.)
       Object.entries(formData).forEach(([section, sectionData]) => {
         Object.entries(sectionData).forEach(([key, value]) => {
-          if (key === "id_picture" && value instanceof File) {
+          // If value is a File, append it; otherwise, append a string value.
+          if (value instanceof File) {
             formDataObj.append(key, value);
           } else {
             formDataObj.append(key, value !== undefined && value !== null ? value : "");
@@ -76,12 +79,12 @@ const Membership = () => {
   return (
     <div className="flex items-center justify-center w-full h-full">
       <div className="bg-white w-full h-full max-w-none rounded-lg p-2">
-        <h1 className="text-4xl font-extrabold text-center mb-6 text-green-700">
+        <h1 className="text-4xl font-extrabold text-center mb-4 text-green-700">
           MEMBERSHIP REGISTRATION
         </h1>
 
         {/* Step Tabs */}
-        <div className="flex border-b-2 mb-6 overflow-x-auto">
+        <div className="flex border-b-2 mb-4 overflow-x-auto">
           {tabs.map((tab, index) => (
             <div
               key={index}
@@ -97,7 +100,7 @@ const Membership = () => {
         </div>
 
         {/* Step Content */}
-        <div className="mt-6">
+        <div className="mt-4">
           {activeTab === 0 && (
             <PersonalInformation
               handleNext={handleNext}

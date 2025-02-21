@@ -1,10 +1,10 @@
 const express = require('express');
-
 const router = express.Router();
 const multer = require('multer');
 
 const memberController = require('../controllers/memberController');
 const dashboardController = require('../controllers/dashboardController');
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -16,21 +16,26 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Define the fields for multiple file uploads.
+const multiUpload = upload.fields([
+  { name: 'id_picture', maxCount: 1 },
+  { name: 'barangay_clearance', maxCount: 1 },
+  { name: 'tax_identification', maxCount: 1 },
+  { name: 'valid_id', maxCount: 1 },
+  { name: 'membership_agreement', maxCount: 1 }
+]);
 
 router.get('/total', dashboardController.getTotalMembers);
 router.get('/members', memberController.getMembers); 
 router.get('/members/savings', memberController.getMemberSavings);
-
 router.get('/member/email/:email', memberController.getMemberByEmail);
+router.get('/members/:id', memberController.getMemberById);
 
-// router.get('/members/beneficiaries', memberController.getBeneficiaries);        
-router.get('/members/:id', memberController.getMemberById); 
-router.post('/register-member', upload.single('idPicture'), memberController.addMember);
-router.put('/members/:id', upload.single('idPicture'), memberController.updateMember); 
+// Use multiUpload middleware for routes that require multiple file uploads.
+router.post('/register-member', multiUpload, memberController.addMember);
+router.put('/members/:id', multiUpload, memberController.updateMember); 
 router.delete('/members/:id', memberController.deleteMember); 
 router.put('/activate/:memberId', memberController.activateAccount);
-
-
 
 router.use((err, req, res, next) => {
   console.error('Error:', err); 

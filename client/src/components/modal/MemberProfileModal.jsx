@@ -4,7 +4,7 @@ import pic from "../blankPicture.png"; // Fallback placeholder image
 import Success from '../Success'; // Import Success component
 
 const MembershipInformationModal = ({ member, onClose }) => {
-  const [memberState, setMemberState] = useState(member);  // Initialize memberState
+  const [memberState, setMemberState] = useState(member); // Initialize memberState
   const [showMessage, setShowMessage] = useState(false); // For showing the success/error modal
   const [messageType, setMessageType] = useState(""); // success or error
   const [message, setMessage] = useState(""); // Message to display
@@ -57,7 +57,7 @@ const MembershipInformationModal = ({ member, onClose }) => {
             <div className="grid grid-cols-3">
               <div className="mr-4">
                 <p className="text-gray-700">
-                  <span className="font-bold">Code Number:</span> {memberState.memberCode}
+                  <span className="font-bold">Code Number:</span> {memberState.member_code}
                 </p>
                 <p className="text-gray-700">
                   <span className="font-bold">Member since:</span> {formattedDate}
@@ -156,40 +156,42 @@ const MembershipInformationModal = ({ member, onClose }) => {
             </div>
           </div>
 
-          {memberState.account_status !== 'ACTIVATED' && (
-            <button
-              onClick={async () => {
-                try {
-                  console.log(`Activating account with ID: ${memberState.member_id}`);
-                  const response = await axios.put(
-                    `http://localhost:3001/api/activate/${memberState.member_id}`
-                  );
-                  console.log("Activation response:", response.data);
+          {/* Only show Activate Account button if account_status is not ACTIVATED */}
+          {(memberState.account_status && memberState.account_status.toUpperCase() !== 'ACTIVATED') && (
+          <button
+            onClick={async () => {
+              try {
+                const response = await axios.put(
+                  `http://localhost:3001/api/activate/${memberState.memberid}`
+                );
+                console.log("Activation response:", response.data);
 
-                  // Update the member state with new values if activation is successful
-                  setMemberState((prevState) => ({
-                    ...prevState,
-                    account_status: 'ACTIVATED',
-                    email: memberState.memberCode,
-                    password: memberState.memberCode,
-                  }));
+                // Update the member state with new values if activation is successful
+                setMemberState((prevState) => ({
+                  ...prevState,
+                  account_status: 'ACTIVATED',
+                  email: prevState.memberCode,
+                  password: prevState.memberCode,
+                }));
 
-                  // Show success message
-                  setMessageType("success");
-                  setMessage("Account activated successfully!");
-                  setShowMessage(true);
-                } catch (error) {
-                  console.error("Error activating account:", error);
-                  setMessageType("error");
-                  setMessage("Error activating account.");
-                  setShowMessage(true);
-                }
-              }}
-              className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Activate Account
-            </button>
-          )}
+                // Show success message
+                setMessageType("success");
+                setMessage("Account activated successfully!");
+                setShowMessage(true);
+              } catch (error) {
+                console.error("Error activating account:", error);
+                setMessageType("error");
+                setMessage("Error activating account.");
+                setShowMessage(true);
+              }
+            }}
+            className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            type="button"
+          >
+            Activate Account
+          </button>
+        )}
+
         </div>
       </div>
 

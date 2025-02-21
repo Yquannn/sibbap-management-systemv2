@@ -65,7 +65,7 @@ const PersonalInformation = ({ handleNext, formData, setFormData }) => {
   return (
     <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {/* New Top Row for Member and Registration Types */}
-      <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">
           Member Type <span className="text-red-500">*</span>
           <select

@@ -190,7 +190,13 @@ const Members = () => {
                 <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.last_name} {member.first_name}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.member_type}</td>
-                <td className="py-3 px-4 border-b border-gray-300">{member.date_of_birth}</td>
+                <td className="py-3 px-4 border-b border-gray-300">
+                  {new Date(member.date_of_birth).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.civil_status}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.contact_number}</td>
                 <td className="py-3 px-4 border-b border-gray-300">{member.barangay}</td>
