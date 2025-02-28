@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
-const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData }) => {
-  // Retrieve existing contactInfo data from parent's state, or initialize with defaults using snake_case keys.
-  const contactInfo = formData.contactInfo || {
+const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData, fetchedData }) => {
+  const defaultContact = {
     house_no_street: "",
     street: "",
     barangay: "",
@@ -10,6 +9,28 @@ const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData 
     province: "",
     contact_number: "",
   };
+
+  // Get the current contact info (or default)
+  const contactInfo = formData.contactInfo || defaultContact;
+
+  // Update the contact info in the form state when fetchedData becomes available.
+  useEffect(() => {
+    if (fetchedData) {
+      setFormData((prevData) => ({
+        ...prevData,
+        contactInfo: {
+          ...defaultContact,            // start with defaults
+          ...prevData.contactInfo,        // preserve any existing values
+          house_no_street: fetchedData.house_no_street || "",
+          street: fetchedData.street || "",
+          barangay: fetchedData.barangay || "",
+          city: fetchedData.city || "",
+          province: fetchedData.province || "",
+          contact_number: fetchedData.contact_number || "",
+        },
+      }));
+    }
+  }, [fetchedData, setFormData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,7 +51,7 @@ const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData 
         {/* Contact Information Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <label className="block">
-            House Blk/Lot No.
+            House Blk/Lot No. Street
             <input
               name="house_no_street"
               className="border p-3 rounded-lg w-full"
@@ -39,7 +60,7 @@ const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData 
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          {/* <label className="block">
             Street
             <input
               name="street"
@@ -48,7 +69,7 @@ const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData 
               value={contactInfo.street}
               onChange={handleChange}
             />
-          </label>
+          </label> */}
           <label className="block">
             Barangay
             <input
@@ -69,7 +90,7 @@ const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData 
               onChange={handleChange}
             />
           </label>
-          <label className="block">
+          {/* <label className="block">
             Province
             <input
               name="province"
@@ -78,7 +99,7 @@ const ContactInformation = ({ handleNext, handlePrevious, formData, setFormData 
               value={contactInfo.province}
               onChange={handleChange}
             />
-          </label>
+          </label> */}
         </div>
 
         <label className="block mt-4">

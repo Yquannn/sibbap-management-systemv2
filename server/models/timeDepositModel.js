@@ -20,8 +20,8 @@ const TimeDeposit = {
         td.maturityDate, 
         td.remarks, 
         m.memberId,
-        m.LastName, 
-        m.firstName, 
+        m.last_name, 
+        m.first_name, 
         m.memberCode
       FROM 
         time_deposit td
@@ -38,14 +38,14 @@ const TimeDeposit = {
       SELECT 
         memberId,
         memberCode, 
-        lastName, 
-        firstName, 
-        contactNumber, 
+        last_name, 
+        first_name, 
+        contact_number, 
         barangay
       FROM 
         members
       WHERE 
-        is_timedepositor = 0;
+        is_time_depositor = 0;
     `;
     const [rows] = await db.execute(sql);
     return rows;
@@ -53,7 +53,7 @@ const TimeDeposit = {
   updateIsTimeDepositor: async (memberId) => {
     const sql = `
       UPDATE members
-      SET is_timedepositor = 1
+      SET is_time_depositor = 1
       WHERE memberId = ?
     `;
     const [result] = await db.execute(sql, [memberId]); // Pass the memberId as a parameter

@@ -108,9 +108,9 @@ import AmountModal from "./TimedepositAmountModal";
                         className="text-center hover:bg-gray-100 cursor-pointer"
                       >
                         <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
-                        <td className="py-3 px-4 border-b border-gray-300">{member.lastName}</td>
-                        <td className="py-3 px-4 border-b border-gray-300">{member.firstName}</td>
-                        <td className="py-3 px-4 border-b border-gray-300">{member.contactNumber}</td>
+                        <td className="py-3 px-4 border-b border-gray-300">{member.last_name}</td>
+                        <td className="py-3 px-4 border-b border-gray-300">{member.first_name}</td>
+                        <td className="py-3 px-4 border-b border-gray-300">{member.contact_number}</td>
                         <td className="py-3 px-4 border-b border-gray-300">{member.barangay}</td>
                         <td className="py-3 px-4 border-b border-gray-300">
                           <div className="flex justify-center space-x-3">

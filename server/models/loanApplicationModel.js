@@ -347,23 +347,23 @@ async function getLoanApplicationById(id) {
       // Join with the members table to get member information.
       const [rows] = await conn.query(
         `SELECT la.*, 
-                m.FirstName, 
-                m.LastName, 
-                m.MiddleName, 
+                m.first_name, 
+                m.last_name, 
+                m.middle_name, 
                 m.memberCode, 
-                m.civilStatus, 
+                m.civil_status, 
                 m.sex, 
-                m.dateOfBirth, 
+                m.date_of_birth, 
                 m.age, 
-                m.occupationSourceOfIncome, 
-                m.contactNumber, 
-                m.houseNoStreet, 
+                m.occupation_source_of_income, 
+                m.contact_number, 
+                m.house_no_street, 
                 m.barangay, 
                 m.city,
-                m.idPicture,
-                m.birthPlaceProvince,
-                m.spouseName,
-                m.spouseOccupationSourceOfIncome
+                m.id_picture,
+                m.birthplace_province,
+                m.spouse_name,
+                m.spouse_occupation_source_of_income
          FROM loan_applications la
          LEFT JOIN members m ON la.memberId = m.memberId
          WHERE la.loan_application_id = ?`,

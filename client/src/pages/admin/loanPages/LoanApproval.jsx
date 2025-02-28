@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaDollarSign, FaSearch, FaFilter } from 'react-icons/fa';
-import LoanEvaluationProfileModal from './LoanEvaluation';
+import LoanEvaluationProfileModal from './components/LoanEvaluationProfileModal';
 
 const LoanApproval = () => {
   const apiBaseURL = 'http://localhost:3001/api/loan-application/all'; // Ensure this URL is correct
@@ -216,7 +216,7 @@ const LoanApproval = () => {
                     {borrower.memberCode || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-gray-700">
-                    {borrower.LastName}, {borrower.FirstName} {borrower.MiddleName}
+                    {borrower.last_name}, {borrower.first_name} {borrower.middle_name}
                   </td>
                   <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.loan_type || "N/A"}
@@ -263,18 +263,6 @@ const LoanApproval = () => {
                         className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
                       >
                         View Evaluation
-                      </button>
-                      <button
-                        onClick={() => openModal('viewOpen', borrower)}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
-                      >
-                        Approved
-                      </button>
-                      <button
-                        onClick={() => openModal('viewOpen', borrower)}
-                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
-                      >
-                        Reject
                       </button>
                     </div>
                   </td>

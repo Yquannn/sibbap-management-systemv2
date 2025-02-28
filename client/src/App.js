@@ -3,7 +3,7 @@ import RootLayout from "./layouts/RootLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import FileMaintenance from "./pages/admin/FileMaintenance";
 import Savings from "./pages/admin/Savings";
-import Loan from "./pages/admin/Loan";
+import LoanApplication from "./pages/admin/LoanApplication";
 import Maintenance from "./pages/admin/Maintenance";
 import Members from "./pages/admin/Members";
 import Report from "./pages/admin/Report";
@@ -28,6 +28,7 @@ import MemberLoanPage from "./pages/members/loan/LoanPage"
 import RegularSavingsTransactionHistory from "./pages/members/home/transaction/RegularSavingsTransaction";
 import LoanDetails from "./pages/members/loan/LoanDetails";
 import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration"; 
+import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
 
 function App() {
   return (
@@ -45,7 +46,7 @@ function App() {
         <Route path="file-maintenance" element={<FileMaintenance />} />
         <Route path="maintenance" element={<Maintenance />} />
         <Route path="savings" element={<Savings />} />
-        <Route path="apply-for-loan" element={<Loan />} />
+        <Route path="apply-for-loan" element={<LoanApplication/>} />
         <Route path="borrower" element={<Borrowers />} />
         <Route path="loan-applicant" element={<LoanApplicant />} />
         <Route path="loan-evaluation" element={<LoanEvaluation />} />
@@ -56,6 +57,9 @@ function App() {
 
         {/* Membership Registration */}
         <Route path="register-member/*" element={<MembershipRegistration />} />
+        <Route path="apply-loan/*" element={<ApplyForLoan />} />
+
+
         
 
         {/* Admin-Specific 404 */}
