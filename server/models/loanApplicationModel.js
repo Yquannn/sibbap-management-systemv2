@@ -3,7 +3,7 @@ const db = require('../config/db');
 function generateVoucherNumber() {
   const timestamp = Date.now();
   const randomNum = Math.floor(1000 + Math.random() * 9000);
-  return `VOUCHER-${timestamp}-${randomNum}`;
+  return `CVN-${timestamp}-${randomNum}`;
 }
 
 async function createLoanApplication(data) {

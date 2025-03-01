@@ -147,7 +147,7 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                   alt="ID Picture"
                   className="w-40 h-40 rounded-full object-cover mx-auto border mt-8"
                   />
-                <h5 className="text-XL mt-2">{memberState.member_type || "Member Type"}</h5>
+                {/* <h5 className="text-XL mt-2">{memberState.member_type || "Member Type"}</h5> */}
                 <h3 className="text-3xl font-bold mt-1">
                   {memberState.last_name}, {memberState.first_name} {memberState.middle_name}
                 </h3>
@@ -240,36 +240,56 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                 </ul>
               </div>
 
-              {/* Accounts Card */}
-              <div className="p-4 bg-gray-100 bg-white shadow-lg rounded-lg">
-                <h3 className="text-xl font-bold text-center mb-4">ACCOUNTS</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Left Column */}
-                  <div>
-                    <p className="text-gray-700 mb-2">
-                      <strong className="font-bold">Account Number:</strong> {memberState.accountNumber || "N/A"}
-                    </p>
-                    <p className="text-gray-700 mb-2">
-                      <strong className="font-bold">Code Number:</strong> {memberState.memberCode || "N/A"}
-                    </p>
-                  </div>
-                  {/* Right Column */}
-                  <div>
-                    <p className="text-gray-700 mb-2">
-                      <strong className="font-bold">Regular Savings:</strong>{" "}
-                      <span className="px-2 py-1 bg-orange-500 rounded-full text-white">
-                        {memberState.amount || "N/A"}
-                      </span>
-                    </p>
-                    <p className="text-gray-700 mb-2">
-                      <strong className="font-bold">Share Capital:</strong>{" "}
-                      <span className="px-2 py-1 bg-green-500 rounded-full text-white">
-                        {memberState.share_capital || "N/A"}
-                      </span>
-                    </p>
-                  </div>
+            {/* Accounts Card */}
+            <div className="p-4 bg-white shadow-lg rounded-lg">
+              <h3 className="text-xl font-bold text-center mb-4">ACCOUNTS</h3>
+              {/* First Row: Account Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                {/* Left Column */}
+                <div>
+                  <p className="text-gray-700 mb-2">
+                    <strong className="font-bold">Account Number:</strong> {memberState.accountNumber || "N/A"}
+                  </p>
+                  <p className="text-gray-700 mb-2">
+                    <strong className="font-bold">Code Number:</strong> {memberState.memberCode || "N/A"}
+                  </p>
+                </div>
+                {/* Right Column */}
+                <div>
+                  <p className="text-gray-700 mb-2">
+                    <strong className="font-bold">Regular Savings:</strong>{" "}
+                    <span className="px-2 py-1 bg-orange-500 rounded-full text-white">
+                      {memberState.amount || "N/A"}
+                    </span>
+                  </p>
+                  <p className="text-gray-700 mb-2">
+                    <strong className="font-bold">Share Capital:</strong>{" "}
+                    <span className="px-2 py-1 bg-green-500 rounded-full text-white">
+                      {memberState.share_capital || "N/A"}
+                    </span>
+                  </p>
                 </div>
               </div>
+              {/* Second Row: Action Buttons */}
+              <div className="flex flex-col items-center gap-4">
+
+                {/* Separator */}
+                <hr className="w-full border-t-2 border-gray-300" />
+                <h3 className="text-xl font-bold text-center mb-2">ACTION</h3>
+
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Pass
+                  </button>
+                  <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    Failed
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
             </div>
           </>
         )}
@@ -400,10 +420,10 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                   <dt className="font-semibold">Requested Amount:</dt>
                   <dd>{loanApplication.loan_amount || "N/A"}</dd>
                 </div>
-                <div>
+                {/* <div>
                   <dt className="font-semibold">Loan Purpose:</dt>
                   <dd>{loanApplication.loanPurpose || "N/A"}</dd>
-                </div>
+                </div> */}
                 <div>
                   <dt className="font-semibold">Loan Type:</dt>
                   <dd>{loanApplication.loan_type || "N/A"}</dd>
@@ -426,15 +446,15 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="font-semibold">Statement of Purpose:</dt>
-                  <dd>{loanApplication.statement_of_purpose || "N/A"}</dd>
+                  <dd>{loanApplication.details.statement_of_purpose || "N/A"}</dd>
                 </div>
                 <div>
                   <dt className="font-semibold">Sacks:</dt>
-                  <dd>{loanApplication.sacks || "N/A"}</dd>
+                  <dd>{loanApplication.details.sacks || "N/A"}</dd>
                 </div>
                 <div>
                   <dt className="font-semibold">Proof of Business:</dt>
-                  <dd>{loanApplication.proof_of_business || "N/A"}</dd>
+                  <dd>{loanApplication.details.proof_of_business || "N/A"}</dd>
                 </div>
               </dl>
             ) : (
