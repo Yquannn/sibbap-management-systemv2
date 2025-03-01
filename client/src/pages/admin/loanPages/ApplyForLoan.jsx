@@ -10,7 +10,7 @@ export const FormDataContext = createContext();
 const ApplyForLoan = () => {
   const location = useLocation();
   const { selectedMember, members } = location.state || {};
-  
+
   // Derive memberId from selectedMember (if available)
   const memberId = selectedMember ? selectedMember.memberId : null;
 
@@ -35,8 +35,7 @@ const ApplyForLoan = () => {
     "PERSONAL INFORMATION",
     "CONTACT INFORMATION",
     "LOAN INFORMATION",
-    "CO-MAKER/CO-BORROWER",
-    "DOCUMENTS"
+    "CO-MAKER/CO-BORROWER"
   ];
 
   // Fetch data from the API when memberId is available
@@ -122,14 +121,14 @@ const ApplyForLoan = () => {
 
           {/* Step Content */}
           <div className="mt-4">
-          {activeTab === 0 && (
-            <PersonalInformation
+            {activeTab === 0 && (
+              <PersonalInformation
                 mode="loan"
                 handleNext={handleNext}
                 formData={formData}
                 setFormData={setFormData}
                 fetchedData={fetchedData}
-            />
+              />
             )}
 
             {activeTab === 1 && (
@@ -141,12 +140,14 @@ const ApplyForLoan = () => {
                 fetchedData={fetchedData} 
               />
             )}
+
             {activeTab === 2 && (
               <LoanInformation 
                 handleNext={handleNext} 
                 handlePrevious={handlePrevious} 
                 formData={formData} 
-
+                setFormData={setFormData} 
+                fetchedData={fetchedData}
               />
             )}
             

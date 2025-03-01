@@ -10,15 +10,14 @@ const LoanTypeSelector = ({
 }) => {
   return (
     <div className="mb-4">
-      <label className="block font-medium text-gray-700">Loan Type:</label>
       <select
         className="w-full p-2 border rounded-lg"
         value={loanType}
         onChange={(e) => {
-          setLoanType(e.target.value);
-          // If feeds or rice, update the max sacks.
-          if (e.target.value === "rice" || e.target.value === "feeds") {
-            setMaxSacks(getSackLimit(memberInfo?.shareCapital, e.target.value));
+          const selectedValue = e.target.value;
+          setLoanType(selectedValue);
+          if (selectedValue === "rice" || selectedValue === "feeds") {
+            setMaxSacks(getSackLimit(memberInfo?.share_capital, selectedValue));
           } else {
             setMaxSacks(0);
           }

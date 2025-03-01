@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 const PersonalInformation = ({
   handleNext,
   formData,
   setFormData,
-  fetchedData
+  fetchedData,
 }) => {
-  // Default values using your naming conventions, including two employer addresses.
+  // Define default values for all fields.
   const defaultInfo = {
     memberCode: "",
     last_name: "",
@@ -23,15 +23,16 @@ const PersonalInformation = ({
     occupation_source_of_income: "",
     annual_income: "",
     employer_address: "",
-    employer_address2: ""
+    employer_address2: "",
   };
 
-  // Use existing data from formData or defaultInfo.
+  // Use existing formData or default info.
   const personalInfo = formData.personalInfo || defaultInfo;
 
-  // When fetchedData becomes available, filter it to only include keys from defaultInfo.
+  // Merge fetchedData only if the user hasn't already modified the fields.
+  // (Here we assume that fetchedData always has a valid memberCode.)
   useEffect(() => {
-    if (fetchedData) {
+    if (fetchedData && !personalInfo.memberCode) {
       const filteredData = Object.keys(defaultInfo).reduce((acc, key) => {
         if (fetchedData[key] !== undefined) {
           acc[key] = fetchedData[key];
@@ -43,11 +44,11 @@ const PersonalInformation = ({
         personalInfo: {
           ...defaultInfo,
           ...prevData.personalInfo,
-          ...filteredData
-        }
+          ...filteredData,
+        },
       }));
     }
-  }, [fetchedData, setFormData]);
+  }, [fetchedData, setFormData, personalInfo.memberCode]);
 
   const [errors, setErrors] = useState({});
 
@@ -57,25 +58,26 @@ const PersonalInformation = ({
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "";
     const yyyy = date.getFullYear();
-    let mm = date.getMonth() + 1; // months are zero-indexed
+    let mm = date.getMonth() + 1; // Months are zero-indexed.
     let dd = date.getDate();
     mm = mm < 10 ? `0${mm}` : mm;
     dd = dd < 10 ? `0${dd}` : dd;
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  // Handle input changes.
+  // Update form data on input changes.
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
       personalInfo: {
-        ...personalInfo,
-        [name]: value
-      }
+        ...prevData.personalInfo,
+        [name]: value,
+      },
     }));
   };
 
+  // Basic validation (currently always returns true).
   const validateForm = () => true;
 
   const handleNextClick = (event) => {
@@ -85,7 +87,7 @@ const PersonalInformation = ({
     }
   };
 
-  // Define only the fields you want to display.
+  // Define the fields to display.
   const fields = [
     { label: "Member Code", name: "memberCode", type: "text" },
     { label: "Last Name", name: "last_name", type: "text", required: true },
@@ -98,13 +100,13 @@ const PersonalInformation = ({
       label: "Civil Status",
       name: "civil_status",
       type: "select",
-      options: ["Single", "Married", "Widow", "Separated"]
+      options: ["Single", "Married", "Widow", "Separated"],
     },
     {
       label: "Gender",
       name: "sex",
       type: "select",
-      options: ["Male", "Female", "Other"]
+      options: ["Male", "Female", "Other"],
     },
     { label: "Employer/Address 1", name: "employer_address", type: "text" },
     { label: "No. of Dependents", name: "number_of_dependents", type: "number" },
@@ -112,24 +114,28 @@ const PersonalInformation = ({
     {
       label: "Spouse Occupation/Source of Income",
       name: "spouse_occupation_source_of_income",
-      type: "text"
+      type: "text",
     },
     {
       label: "Occupation/Source of Income",
       name: "occupation_source_of_income",
-      type: "text"
+      type: "text",
     },
     { label: "Annual Income", name: "annual_income", type: "number" },
-    { label: "Employer/Address 2", name: "employer_address2", type: "text" }
+    { label: "Employer/Address 2", name: "employer_address2", type: "text" },
   ];
 
   return (
-    <form className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <form
+      onSubmit={(e) => e.preventDefault()}
+      className="grid grid-cols-1 md:grid-cols-3 gap-6"
+    >
       {fields.map((field, index) => {
         if (field.type === "select") {
           return (
             <label key={index} className="block">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+              {field.label}{" "}
+              {field.required && <span className="text-red-500">*</span>}
               <select
                 className={`border p-3 rounded-lg w-full ${
                   errors[field.name] ? "border-red-500" : ""
@@ -153,7 +159,8 @@ const PersonalInformation = ({
         } else if (field.type === "date") {
           return (
             <label key={index} className="block">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+              {field.label}{" "}
+              {field.required && <span className="text-red-500">*</span>}
               <input
                 className={`border p-3 rounded-lg w-full ${
                   errors[field.name] ? "border-red-500" : ""
@@ -172,7 +179,8 @@ const PersonalInformation = ({
         } else {
           return (
             <label key={index} className="block">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+              {field.label}{" "}
+              {field.required && <span className="text-red-500">*</span>}
               <input
                 className={`border p-3 rounded-lg w-full ${
                   errors[field.name] ? "border-red-500" : ""

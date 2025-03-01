@@ -65,21 +65,16 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
     }
   };
 
-  // Updated getSackLimit function:
-  // For feeds loan:
-  //   - If shareCapital < 6000: return 0.
-  //   - If shareCapital >= 20000: return 15.
-  //   - Otherwise, calculate proportionally.
-  // For rice loan:
-  //   - If shareCapital >= 20000: return 30.
-  //   - Else if shareCapital >= 6000: return 4.
-  //   - Else: return 2.
+  // Revised getSackLimit function.
   const getSackLimit = (share_capital, loanType) => {
-    const capital = parseFloat(member.share_capital);
+    const capital = parseFloat(share_capital);
     if (isNaN(capital)) return 0;
     
     if (loanType === "feeds") {
+      if (capital < 6000) return 0;
       if (capital >= 20000) return 15;
+      // Proportional calculation between 6000 and 20000.
+      return Math.floor(((capital - 6000) / (20000 - 6000)) * 15);
     } else if (loanType === "rice") {
       if (capital >= 20000) return 30;
       else if (capital >= 6000) return 4;

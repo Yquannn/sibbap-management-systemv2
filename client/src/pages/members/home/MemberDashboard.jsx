@@ -233,7 +233,7 @@ const Dashboard = () => {
 
         {/* Indicator Dots */}
         <div className="flex justify-center mt-[-3px] space-x-2">
-          {[0, 1, 2, 3].map((index) => (
+          {[0, 1, 2].map((index) => (
             <span
               key={index}
               className={`w-1.5 h-1.5 rounded-full transition-all ${

@@ -140,10 +140,8 @@ const MemberProfile = () => {
           </button>
         )}
 
-
-
       <h2 className="text-xl font-semibold text-gray-800 mt-4">
-        {user.FirstName} {user.LastName}
+        {user.first_name} {user.last_name}
       </h2>
       <p className="text-gray-500 text-sm flex items-center justify-center gap-2 mt-1">
         <Mail size={16} /> {user?.email || "No Email Provided"}

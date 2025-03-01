@@ -70,8 +70,8 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
   });
 
   // Use the provided profile picture or a fallback image
-  const idPictureUrl = memberState.idPicture
-    ? `http://localhost:3001/uploads/${memberState.idPicture}`
+  const idPictureUrl = memberState.id_picture
+    ? `http://localhost:3001/uploads/${memberState.id_picture}`
     : pic;
 
   // Optional: Function to hide success/error messages later.
@@ -147,9 +147,9 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                   alt="ID Picture"
                   className="w-40 h-40 rounded-full object-cover mx-auto border mt-8"
                   />
-                <h5 className="text-XL mt-2">{memberState.memberType || "Member Type"}</h5>
+                <h5 className="text-XL mt-2">{memberState.member_type || "Member Type"}</h5>
                 <h3 className="text-3xl font-bold mt-1">
-                  {memberState.LastName}, {memberState.FirstName} {memberState.MiddleName}
+                  {memberState.last_name}, {memberState.first_name} {memberState.middle_name}
                 </h3>
               </div>
               <div className="md:w-2/3">
@@ -158,25 +158,33 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                     <strong className="text-gray-600">Code Number:</strong> {memberState.memberCode}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Occupation Source of Income:</strong> {memberState.occupationSourceOfIncome}
+                    <strong className="text-gray-600">Occupation Source of Income:</strong> {memberState.occupation_source_of_income}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Monthly salary:</strong> {memberState.memberCode}
+                    <strong className="text-gray-600">Monthly salary:</strong> {memberState.monthly_income}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Date of birth:</strong> {memberState.dateOfBirth}
+                    <strong className="text-gray-600">Date of Birth:</strong>  
+                    <span className="ml-1">
+                      {new Date(memberState.date_of_birth).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </p>
+
+                  <p className="break-inside-avoid mb-2">
+                    <strong className="text-gray-600">Place of birth:</strong> {memberState.birthplace_province}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Place of birth:</strong> {memberState.birthplaceProvince}
+                    <strong className="text-gray-600">Spouse name:</strong> {memberState.spouse_name}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Spouse name:</strong> {memberState.spouseName}
+                    <strong className="text-gray-600">Occupation:</strong> {memberState.spouse_occupation_source_of_income}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Occupation:</strong> {memberState.spouseOccupationSourceOfIncome}
-                  </p>
-                  <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Monthly salary:</strong> 98,000
+                    <strong className="text-gray-600">Monthly salary:</strong>{memberState.spouse_monthly_income}
                   </p>
                   <p className="break-inside-avoid mb-2">
                     <strong className="text-gray-600">Other income/business:</strong> N/A
@@ -185,10 +193,10 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
 
 
                   <p className="break-inside-avoid">
-                    <strong className="text-gray-600">Address:</strong> {memberState.houseNoStreet} {memberState.barangay} {memberState.city}
+                    <strong className="text-gray-600">Address:</strong> {memberState.house_no_street} {memberState.barangay} {memberState.city}
                   </p>
                   <p className="break-inside-avoid">
-                    <strong className="text-gray-600">Employer Address:</strong> Tabangao Ambulong Batangas city
+                    <strong className="text-gray-600">Employer Address:</strong> {memberState.employer_address}
                   </p>
                   <p className="break-inside-avoid mb-2">
                     <strong className="text-gray-600">Age:</strong> {memberState.age}
@@ -197,16 +205,16 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                     <strong className="text-gray-600">Gender:</strong> {memberState.sex}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Civil Status:</strong> {memberState.civilStatus}
+                    <strong className="text-gray-600">Civil Status:</strong> {memberState.civil_status}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">No. of dependents:</strong> {memberState.civilStatus}
+                    <strong className="text-gray-600">No. of dependents:</strong> {memberState.number_of_dependents}
                   </p>
                   <p className="break-inside-avoid">
-                    <strong className="text-gray-600">Employer Address:</strong> Tabangao Ambulong Batangas city
+                    <strong className="text-gray-600">Employer Address:</strong>{memberState.employer_address2}
                   </p>
                   <p className="break-inside-avoid mb-2">
-                    <strong className="text-gray-600">Monthly salary:</strong> 100,000
+                    <strong className="text-gray-600">Monthly salary:</strong> {memberState.monthly_income}
                   </p>
                 </div>
               </div>
@@ -250,13 +258,13 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                     <p className="text-gray-700 mb-2">
                       <strong className="font-bold">Regular Savings:</strong>{" "}
                       <span className="px-2 py-1 bg-orange-500 rounded-full text-white">
-                        {memberState.savingsAmount || "N/A"}
+                        {memberState.amount || "N/A"}
                       </span>
                     </p>
                     <p className="text-gray-700 mb-2">
                       <strong className="font-bold">Share Capital:</strong>{" "}
                       <span className="px-2 py-1 bg-green-500 rounded-full text-white">
-                        {memberState.shareCapital || "N/A"}
+                        {memberState.share_capital || "N/A"}
                       </span>
                     </p>
                   </div>
