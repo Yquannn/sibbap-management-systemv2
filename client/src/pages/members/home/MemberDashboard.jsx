@@ -18,6 +18,9 @@ import ShareCapital from "../../admin/savingsPages/SharedCapital";
 import ShareCapitalCalculator from "./utils/ShareCapitalCalculator";
 import { count } from "../notification/NotificationPage";
 
+export let memberId = "";
+
+
 const Dashboard = () => {
   const [member, setMember] = useState({});
   const [loading, setLoading] = useState(true);
@@ -57,6 +60,7 @@ const Dashboard = () => {
     }
   };
 
+  memberId = member.memberId
   useEffect(() => {
     const fetchMemberData = async () => {
       try {

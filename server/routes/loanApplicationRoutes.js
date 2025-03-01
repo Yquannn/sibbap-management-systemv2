@@ -11,4 +11,16 @@ router.get('/loan-application/all', loanApplicationController.getAllLoanApplican
 // Get a single loan application by id (with details)
 router.get('/loan-application/:id', loanApplicationController.getLoanApplication);
 
+router.get("/loan-applicant/approve", loanApplicationController.getAllLoanApprove);
+
+router.get("/borrowers", loanApplicationController.getAllBorrowers);
+
+router.get("/member-loan-application/:id", loanApplicationController.getLoanById);
+
+router.put("/loan-applicant/:id/status", loanApplicationController.updateLoanStatus);
+
+router.put("/loan-applicant/:id/feedback", loanApplicationController.updateFeedback);
+
+
+
 module.exports = router;

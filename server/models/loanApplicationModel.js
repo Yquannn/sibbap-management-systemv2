@@ -535,8 +535,6 @@ WHERE
 }
 
 
-
-
 async function getAllLoanApplicant() {
   let conn;
   try {
@@ -555,8 +553,111 @@ async function getAllLoanApplicant() {
   }
 }
 
+
+async function getAllLoanApprove() {
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [rows] = await conn.query(
+      `SELECT loan_application_id FROM loan_applications WHERE status = "Passed"`
+    );
+    const applications = await Promise.all(
+      rows.map((row) => getLoanApplicationById(row.loan_application_id))
+    );
+    return applications;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+  
+}
+
+async function getAllBorrowers() {
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [rows] = await conn.query(`
+      SELECT la.*, m.memberCode, m.first_name, m.last_name, m.middle_name
+      FROM loan_applications la
+      JOIN members m ON la.memberId = m.memberId
+      WHERE la.status = "Approved"
+    `);
+    return rows;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+
+
+async function getMemberLoansById(memberId) {  
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [rows] = await conn.query(
+      `SELECT la.*, m.first_name, m.last_name, m.middle_name
+       FROM loan_applications la
+       JOIN members m ON la.memberId = m.memberId
+       WHERE m.memberId = ?`,
+      [memberId]
+    );
+    return rows;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+
+
+async function updateLoanStatus(id, newStatus, remarks = "Evaluated") {
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [result] = await conn.query(
+      `UPDATE loan_applications SET status = ?, remarks = ? WHERE loan_application_id = ?`,
+      [newStatus, remarks, id]
+    );
+    return result.affectedRows > 0;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+async function updateFeedback(id, remarks) {
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [result] = await conn.query(
+      `UPDATE loan_applications SET remarks = ? WHERE loan_application_id = ?`,
+      [remarks, id]
+    );
+    return result.affectedRows > 0;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+
+
+
+
+// ✅ Ensure all functions are correctly exported
 module.exports = {
-  createLoanApplication,
+  createLoanApplication, 
   getLoanApplicationById,
   getAllLoanApplicant,
+  updateLoanStatus,
+  updateFeedback,
+  getAllLoanApprove,
+  getAllBorrowers,
+  getMemberLoansById
 };

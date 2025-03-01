@@ -165,8 +165,8 @@ const LoanApplicant = () => {
               className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="All">All Status</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
+              <option value="Approved">Passed</option>
+              <option value="Rejected">Failed</option>
               <option value="Waiting for Approval">Waiting for Approval</option>
             </select>
           </div>
@@ -202,6 +202,8 @@ const LoanApplicant = () => {
               <th className="px-4 py-2 text-center">Application Date</th>
               {/* <th className="px-4 py-2 text-center">Balance</th> */}
               <th className="px-4 py-2 text-center">Remarks</th>
+              <th className="px-4 py-2 text-center">Status</th>
+
               <th className="px-4 py-2 text-center">Actions</th>
             </tr>
           </thead>
@@ -245,15 +247,23 @@ const LoanApplicant = () => {
                   </td> */}
                   <td className="px-4 py-2 text-center">
                     <span
+                      className={`inline-block px-2 py-1 rounded-full
+                      }`}
+                    >
+                      {borrower.remarks || "Waiting for Remarks"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    <span
                       className={`inline-block px-2 py-1 rounded-full font-semibold ${
-                        borrower.remarks === "Approved"
+                        borrower.status === "Passed" || borrower.status === "Approved"
                           ? "bg-green-500 text-white"
-                          : borrower.remarks === "Rejected"
+                          : borrower.status === "Failed" || borrower.status === "Rejected"
                           ? "bg-red-500 text-white"
                           : "bg-yellow-500 text-white"
                       }`}
                     >
-                      {borrower.remarks || "Waiting for Approval"}
+                      {borrower.status}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-center text-gray-700">

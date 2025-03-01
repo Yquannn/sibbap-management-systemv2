@@ -4,7 +4,7 @@ import { FaDollarSign, FaFilter, FaSearch } from 'react-icons/fa';
 import RepaymentModal from './modal/RepaymentModal';
 
 const Borrowers = () => {
-  const apiBaseURL = 'http://localhost:3001/api/loan-application/all'; // test api to get all applicant in loan 
+  const apiBaseURL = 'http://localhost:3001/api/borrowers'; // test api to get all applicant in loan 
 
   const [borrowers, setBorrowers] = useState([]);
   const [activeTab, setActiveTab] = useState("All"); // Default to "All" loans
@@ -46,7 +46,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
     const matchesLoanType = activeTab === "All" ? true : borrower.loanType === activeTab;
 
     // Create a full name string (case-insensitive)
-    const fullName = `${borrower.FirstName} ${borrower.LastName} ${borrower.MiddleName}`.toLowerCase();
+    const fullName = `${borrower.first_name} ${borrower.last_name} ${borrower.middle_name}`.toLowerCase();
 
     const matchesSearch =
       searchQuery === "" ||
@@ -144,6 +144,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
           <thead className="sticky top-0 bg-green-200 z-20 text-center">
             <tr>
               <th className="px-4 py-2 text-left text-sm">Client Voucher Number</th>
+              <th className="px-4 py-2 text-left text-sm">Code Number</th>
               <th className="px-4 py-2 text-left text-sm">Full Name</th>
               <th className="px-4 py-2 text-left text-sm">Loan Type</th>
               <th className="px-4 py-2 text-left text-sm">Application</th>
@@ -152,7 +153,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
               <th className="px-4 py-2 text-center text-sm">Terms</th>
               <th className="px-4 py-2 text-center text-sm">Application Date</th>
               <th className="px-4 py-2 text-center text-sm">Balance</th>
-              <th className="px-4 py-2 text-center text-sm">Remarks</th>
+              <th className="px-4 py-2 text-center text-sm">Status</th>
               <th className="px-4 py-2 text-center text-sm">Actions</th>
             </tr>
           </thead>
@@ -164,7 +165,10 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
                     {borrower.client_voucher_number || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.LastName}, {borrower.FirstName} {borrower.MiddleName}
+                    {borrower.memberCode|| "N/A"}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-700">
+                    {borrower.last_name}, {borrower.first_name} {borrower.middle_name}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
                     {borrower.loan_type || "N/A"}
@@ -194,12 +198,12 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
                   <td className="px-4 py-2 text-center text-sm">
                     <span
                       className={`px-2 py-1 rounded-full font-semibold ${
-                        (!borrower.remarks || borrower.remarks === "Approved")
+                        (!borrower.status || borrower.status === "Approved")
                           ? "bg-green-500 text-white"
                           : "bg-red-500 text-white"
                       }`}
                     >
-                      {borrower.remarks || "Approved"}
+                      {borrower.status || "Approved"}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">

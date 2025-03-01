@@ -1,19 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { CheckCircle, Clock, XCircle, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const dummyLoans = [
-  { id: 1, type: "Personal Loan", amount: 50000, status: "Approved", date: "2025-02-10" },
-  { id: 2, type: "Home Loan", amount: 200000, status: "Pending", date: "2025-02-08" },
-  { id: 3, type: "Car Loan", amount: 100000, status: "Rejected", date: "2025-02-05" },
-  { id: 4, type: "Business Loan", amount: 300000, status: "Approved", date: "2025-02-01" },
-];
+import { memberId } from "../home/MemberDashboard";
 
 const MemberLoanPage = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("All");
+  const [loans, setLoans] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Function to get status color
+  // Fetch loans from backend for the given memberId
+  useEffect(() => {
+    const fetchLoans = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(
+          `http://192.168.254.103:3001/api/member-loan-application/${memberId}`
+        );
+        setLoans(response.data);
+      } catch (err) {
+        console.error("Error fetching loans:", err);
+        setError("Failed to fetch loans.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLoans();
+  }, []);
+
+  // Map backend status to display status:
+  // "Waiting for evaluation" or "Passed" → "Pending"
+  // "Failed" → "Rejected"
+  const mapStatus = (status) => {
+    if (status === "Waiting for evaluation" || status === "Passed") {
+      return "Pending";
+    }
+    if (status === "Failed") {
+      return "Rejected";
+    }
+    return status;
+  };
+
+  // Return appropriate color classes based on display status
   const getStatusColor = (status) => {
     switch (status) {
       case "Approved":
@@ -27,7 +58,7 @@ const MemberLoanPage = () => {
     }
   };
 
-  // Function to get status icon
+  // Return the icon based on display status
   const getStatusIcon = (status) => {
     switch (status) {
       case "Approved":
@@ -41,20 +72,24 @@ const MemberLoanPage = () => {
     }
   };
 
-  // Filter loans based on selection
-  const filteredLoans = filter === "All" ? dummyLoans : dummyLoans.filter((loan) => loan.status === filter);
+  // Filter loans based on selected filter using mapped status
+  const filteredLoans = loans.filter((loan) => {
+    const displayStatus = mapStatus(loan.status);
+    if (filter === "All") return true;
+    return displayStatus === filter;
+  });
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h2 className="text-xl font-semibold mb-4">Loan Application Tracker</h2>
+    <div className="max-w-xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Loan Application Tracker</h2>
 
       {/* Filter Buttons */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-6">
         {["All", "Approved", "Pending", "Rejected"].map((status) => (
           <button
             key={status}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === status ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              filter === status ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"
             }`}
             onClick={() => setFilter(status)}
           >
@@ -62,45 +97,68 @@ const MemberLoanPage = () => {
           </button>
         ))}
       </div>
-      
 
-      <div className="divide-y divide-gray-200">
-        {filteredLoans.map((loan) => (
-          <div
-            key={loan.id}
-            className="flex justify-between items-center py-4 cursor-pointer hover:bg-gray-100 rounded-lg"
-            // onClick={() => navigate(`/member-loan-details/${loan.id}`)}
-               onClick={() => navigate(`/member-loan-details`)}
+      {/* Loading and Error States */}
+      {loading && <p className="text-center text-gray-500">Loading loans...</p>}
+      {error && <p className="text-center text-red-500">{error}</p>}
 
-          >
-            {/* Left Section: Loan Details */}
-            <div className="space-y-1">
-              <p className="text-sm text-gray-500">
-                {new Date(loan.date).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
-              <p className="font-medium">{loan.type}</p>
-              <p className="text-gray-700 font-semibold">₱{loan.amount.toLocaleString()}</p>
-            </div>
+      {/* Loans List */}
+      <div className="divide-y divide-gray-200 mb-14">
+        {filteredLoans.map((loan) => {
+          const displayStatus = mapStatus(loan.status);
+          return (
+  <div
+    key={loan.loan_application_id}
+    className="grid grid-cols-2 gap-4 py-4 cursor-pointer  transition-colors"
+    onClick={() => navigate(`/member-loan-details/${loan.loan_application_id}`)}
+  >
+    {/* Top Row: Date (left) & Voucher Number (right) */}
+    <div>
+      <p className="text-sm text-gray-500">
+        {new Date(loan.created_at).toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })}
+      </p>
+    </div>
+    <div className="flex justify-end">
+      <p className="text-xs text-gray-8 00">
+        {loan.client_voucher_number || "N/A"} 
+      </p>
+    </div>
 
-            {/* Right Section: Status & Icon */}
-            <div className="flex items-center gap-3">
-              {getStatusIcon(loan.status)}
-              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(loan.status)}`}>
-                {loan.status}
-              </span>
-              <ChevronRight size={30} className="text-gray-400 hover:text-black" />
-            </div>
-          </div>
-        ))}
+    {/* Bottom Row: Loan type & amount (left) & Status (right) */}
+    <div>
+      <p className="font-semibold text-gray-800">{loan.loan_type}</p>
+      <p className="text-gray-700 font-medium">
+        ₱{parseFloat(loan.loan_amount).toLocaleString()}
+      </p>
+      {mapStatus(loan.status) === "Rejected" && loan.remarks && (
+        <p className="text-xs text-red-600">Remarks: {loan.remarks}</p>
+      )}
+    </div>
+    <div className="flex items-center justify-end gap-3">
+      {getStatusIcon(mapStatus(loan.status))}
+      <span
+        className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(mapStatus(loan.status))}`}
+      >
+        {mapStatus(loan.status)}
+      </span>
+      <ChevronRight size={30} className="text-gray-400" />
+    </div>
+  </div>
+);
+
+
+
+        })}
       </div>
 
-      {/* Show message if no loans match the filter */}
-      {filteredLoans.length === 0 && (
-        <p className="text-gray-500 text-center mt-4">No loans found for the selected filter.</p>
+      {filteredLoans.length === 0 && !loading && (
+        <p className="mt-6 text-center text-gray-500">
+          No loans found for the selected filter.
+        </p>
       )}
     </div>
   );

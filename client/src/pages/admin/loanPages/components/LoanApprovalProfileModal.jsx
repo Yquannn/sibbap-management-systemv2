@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import pic from "./blankPicture.png"; // Fallback placeholder image
 
-const LoanEvaluationProfileModal = ({ member, onClose }) => {
+const LoanApprovalProfileModal = ({ member, onClose }) => {
   // Store the member data from props (and update only when a new member is passed)
   const [memberState, setMemberState] = useState(member);
   const [activeTab, setActiveTab] = useState("memberInfo");
@@ -83,14 +83,14 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
   };
 
   // --- Button Action Handlers using Axios PUT ---
-  const handlePass = async () => {
+  const handleApproved = async () => {
     try {
       await axios.put(
         `http://localhost:3001/api/loan-applicant/${memberState.loan_application_id}/status`,
-        { status: "Passed" }
+        { status: "Approved" }
       );
       setShowMessage(true);
-      setMessage("Loan application marked as Passed.");
+      setMessage("Loan application marked as Approved.");
       setMessageType("success");
       setShowFeedbackInput(false); // Hide feedback input if any
     } catch (error) {
@@ -101,14 +101,14 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
     }
   };
 
-  const handleFail = async () => {
+  const handleRejected= async () => {
     try {
       await axios.put(
         `http://localhost:3001/api/loan-applicant/${memberState.loan_application_id}/status`,
-        { status: "Failed" }
+        { status: "Rejected" }
       );
       setShowMessage(true);
-      setMessage("Loan application marked as Failed.");
+      setMessage("Loan application marked as Rejected.");
       setMessageType("success");
       setShowFeedbackInput(true); // Reveal the feedback textarea for remarks
     } catch (error) {
@@ -144,7 +144,7 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-7xl w-full relative">
         {/* Header */}
         <div className="flex justify-between items-center border-b pb-4 mb-6">
-          <h2 className="text-2xl font-bold">Loan Evaluation</h2>
+          <h2 className="text-2xl font-bold">Loan Approval</h2>
           <button onClick={onClose} className="text-red-500 text-3xl">&times;</button>
         </div>
 
@@ -335,16 +335,16 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
                 {/* Action Buttons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
-                    onClick={handlePass}
+                    onClick={handleApproved}
                     className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                   >
-                    Pass
+                    Approved
                   </button>
                   <button
-                    onClick={handleFail}
+                    onClick={handleRejected}
                     className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                   >
-                    Failed
+                    Rejected
                   </button>
                 </div>
                 {/* Feedback Section - only shown if member is marked as Failed */}
@@ -531,4 +531,4 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
   );
 };
 
-export default LoanEvaluationProfileModal;
+export default LoanApprovalProfileModal;
