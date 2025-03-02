@@ -40,5 +40,3 @@ if ('serviceWorker' in navigator) {
 } else {
   console.log('Service Worker is not supported in this browser.');
 }
-
-

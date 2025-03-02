@@ -201,9 +201,9 @@ const LoanApproval = () => {
               <th className="px-4 py-2 text-center">Terms</th>
               <th className="px-4 py-2 text-center">Application Date</th>
               {/* <th className="px-4 py-2 text-center">Balance</th> */}
-              <th className="px-4 py-2 text-center">Remarks</th>
-
               <th className="px-4 py-2 text-center">Status</th>
+
+              <th className="px-4 py-2 text-center">Remarks</th>
               <th className="px-4 py-2 text-center">Actions</th>
             </tr>
           </thead>
@@ -247,28 +247,23 @@ const LoanApproval = () => {
                   </td> */}
                   <td className="px-4 py-2 text-center">
                     <span
-                      className={`inline-block px-2 py-1 rounded-full font-semibold ${
-                        borrower.remarks === "Approved"
-                          ? "bg-green-500 text-white"
-                          : borrower.remarks === "Rejected"
-                          ? "bg-red-500 text-white"
-                          : "bg-yellow-500 text-white"
+                      className={`inline-block px-2 py-1 rounded-full
                       }`}
                     >
-                      {borrower.remarks}
+                      {borrower.status}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-center">
                     <span
                       className={`inline-block px-2 py-1 rounded-full font-semibold ${
-                        borrower.status === "Passed"
+                         borrower.remarks === "Updated"
                           ? "bg-green-500 text-white"
-                          : borrower.status === "Rejected"
-                          ? "bg-red-500 text-white"
-                          : "bg-yellow-500 text-white"
+                          : borrower.remarks === "Mispayment"
+                          ? "bg-blue-500 text-white"
+                          : "bg-red-500 text-white"
                       }`}
                     >
-                      {borrower.status}
+                      {borrower.remarks}
                     </span>
                   </td>
 

@@ -17,7 +17,8 @@ async function createLoanApplication(data) {
     terms,
     balance,
     details,
-    personalInfo // included from the payload
+    service_fee,
+    personalInfo 
   } = data;
   let conn;
 
@@ -29,9 +30,9 @@ async function createLoanApplication(data) {
 
     // Insert into loan_applications including memberId
     const [result] = await conn.query(
-      `INSERT INTO loan_applications (client_voucher_number, memberId, loan_type, application, loan_amount, interest, terms, balance)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [voucherNumber, memberId, loan_type, application, loan_amount, interest, terms, balance]
+      `INSERT INTO loan_applications (client_voucher_number, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [voucherNumber, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee]
     );
     const loanApplicationId = result.insertId;
 
@@ -554,12 +555,13 @@ async function getAllLoanApplicant() {
 }
 
 
+
 async function getAllLoanApprove() {
   let conn;
   try {
     conn = await db.getConnection();
     const [rows] = await conn.query(
-      `SELECT loan_application_id FROM loan_applications WHERE status = "Passed"`
+      `SELECT loan_application_id FROM loan_applications WHERE status = "Waiting for Approval"`
     );
     const applications = await Promise.all(
       rows.map((row) => getLoanApplicationById(row.loan_application_id))
@@ -614,14 +616,16 @@ async function getMemberLoansById(memberId) {
 
 
 
-async function updateLoanStatus(id, newStatus, remarks = "Evaluated") {
+async function updateLoanRemarks(id, newStatus = "Waiting for Approval", remarks) {
   let conn;
   try {
     conn = await db.getConnection();
+    console.log("Updating loan:", { id, newStatus, remarks });
     const [result] = await conn.query(
       `UPDATE loan_applications SET status = ?, remarks = ? WHERE loan_application_id = ?`,
       [newStatus, remarks, id]
     );
+    console.log("Update result:", result);
     return result.affectedRows > 0;
   } catch (error) {
     throw error;
@@ -630,14 +634,17 @@ async function updateLoanStatus(id, newStatus, remarks = "Evaluated") {
   }
 }
 
-async function updateFeedback(id, remarks) {
+
+async function updateLoanStatus(id, newStatus) {
   let conn;
   try {
     conn = await db.getConnection();
+    console.log("Updating loan:", { id, newStatus });
     const [result] = await conn.query(
-      `UPDATE loan_applications SET remarks = ? WHERE loan_application_id = ?`,
-      [remarks, id]
+      `UPDATE loan_applications SET status = ? WHERE loan_application_id = ?`,
+      [newStatus, id]
     );
+    console.log("Update result:", result);
     return result.affectedRows > 0;
   } catch (error) {
     throw error;
@@ -645,6 +652,23 @@ async function updateFeedback(id, remarks) {
     if (conn) conn.release();
   }
 }
+
+
+// async function updateFeedback(id, remarks) {
+//   let conn;
+//   try {
+//     conn = await db.getConnection();
+//     const [result] = await conn.query(
+//       `UPDATE loan_applications SET remarks = ? WHERE loan_application_id = ?`,
+//       [remarks, id]
+//     );
+//     return result.affectedRows > 0;
+//   } catch (error) {
+//     throw error;
+//   } finally {
+//     if (conn) conn.release();
+//   }
+// }
 
 
 
@@ -655,9 +679,9 @@ module.exports = {
   createLoanApplication, 
   getLoanApplicationById,
   getAllLoanApplicant,
-  updateLoanStatus,
-  updateFeedback,
+  updateLoanRemarks,  // updateFeedback,
   getAllLoanApprove,
   getAllBorrowers,
-  getMemberLoansById
+  getMemberLoansById,
+  updateLoanStatus
 };

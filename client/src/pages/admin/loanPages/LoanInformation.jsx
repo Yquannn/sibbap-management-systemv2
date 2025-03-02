@@ -421,9 +421,11 @@ const LoanInformation = ({
             />
           </div>
           <div>
-            <label className="block font-medium text-gray-700 mb-1">
+         <label className="block font-medium text-gray-700 mb-1">
               Insurance
+              
             </label>
+                {/*
             <select
               name="insurance"
               className="border p-3 rounded-lg w-full"
@@ -433,7 +435,15 @@ const LoanInformation = ({
               <option value="">Select Insurance Option</option>
               <option value="yes">Yes</option>
               <option value="no">No</option>
-            </select>
+            </select> */}
+            <input
+              type="number"
+              name="insurance"
+              className="border p-3 rounded-lg w-full"
+              placeholder="Enter insurance"
+              value={loanInfo.insurance}
+              onChange={handleLoanChange}
+            />
           </div>
           <div>
             <label className="block font-medium text-gray-700 mb-1">

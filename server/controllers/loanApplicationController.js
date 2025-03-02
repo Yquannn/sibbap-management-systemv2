@@ -50,52 +50,69 @@ async function getAllLoanApprove(req, res) {
 
 
 //// Controller to update the loan status only
+async function updateLoanRemarks(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, remarks } = req.body; // expected: { status: "Waiting for Approval", remarks: "Passdue" }
+    
+    const success = await loanApplicationModel.updateLoanRemarks(id, status, remarks);
+    if (!success) {
+      return res.status(404).json({ error: "Loan not found" });
+    }
+    
+    // Return the updated status and remarks as expected
+    res.json({ status, remarks });
+  } catch (error) {
+    console.error("Error updating loan remarks:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+}
+
+
 async function updateLoanStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status } = req.body; // Only update status here
-
-    if (!status) {
-      return res.status(400).json({ error: "Status is required" });
-    }
-
-    // Call the model function that updates the status (using default remarks)
-    const success = await loanApplicationModel.updateLoanStatus(id, status);
+    const { status, remarks } = req.body; // expected: { status: "Waiting for Approval", remarks: "Passdue" }
+    
+    const success = await loanApplicationModel.updateLoanStatus(id, status, remarks);
     if (!success) {
-      return res.status(404).json({ error: "Loan application not found" });
+      return res.status(404).json({ error: "Loan not found" });
     }
-
-    res.json({ message: "Loan status updated successfully" });
+    
+    // Return the updated status and remarks as expected
+    res.json({ status, remarks });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    console.error("Error updating loan remarks:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 }
+
+
+
 
 // Controller to update only the feedback (remarks)
-async function updateFeedback(req, res) {
-  try {
-    const { id } = req.params;
-    const { remarks } = req.body;
+// async function updateFeedback(req, res) {
+//   try {
+//     const { id } = req.params;
+//     const { remarks } = req.body;
 
-    if (!remarks) {
-      return res.status(400).json({ error: "Remarks are required" });
-    }
+//     if (!remarks) {
+//       return res.status(400).json({ error: "Remarks are required" });
+//     }
 
-    // Call a separate model function to update only the remarks (feedback)
-    const success = await loanApplicationModel.updateFeedback(id, remarks);
-    if (!success) {
-      return res.status(404).json({ error: "Loan application not found" });
-    }
+//     // Call a separate model function to update only the remarks (feedback)
+//     const success = await loanApplicationModel.updateFeedback(id, remarks);
+//     if (!success) {
+//       return res.status(404).json({ error: "Loan application not found" });
+//     }
 
-    res.json({ message: "Feedback updated successfully" });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
-  }
-}
+//     res.json({ message: "Feedback updated successfully" });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ error: "Internal Server Error", details: error.message });
+//   }
+// }
 
 async function getAllBorrowers(req, res) {
   try {
@@ -107,14 +124,16 @@ async function getAllBorrowers(req, res) {
   }
 }
 
+// Controller Function
 async function getLoanById(req, res) {
   try {
     const { id } = req.params;
-    const loan = await loanApplicationModel.getMemberLoansById(id);
-    if (!loan) {
+    // Assume getMemberLoansById returns an array of loans for a given member id.
+    const loans = await loanApplicationModel.getMemberLoansById(id);
+    if (!loans || loans.length === 0) {
       return res.status(404).json({ error: "Loan not found" });
     }
-    res.json(loan);
+    res.json(loans);
   } catch (error) {
     console.error("Error fetching loan by id:", error);
     res.status(500).json({ error: "Internal Server Error", details: error.message });
@@ -123,14 +142,13 @@ async function getLoanById(req, res) {
 
 
 
-
 module.exports = {
   createLoanApplication,
   getLoanApplication,
   getAllLoanApplicant,
-  updateLoanStatus,
-  updateFeedback,
+  updateLoanRemarks,  // updateFeedback,
   getAllLoanApprove,
   getAllBorrowers,
-  getLoanById
+  getLoanById,
+  updateLoanStatus
 };
