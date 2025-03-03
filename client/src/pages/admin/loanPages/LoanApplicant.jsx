@@ -62,40 +62,23 @@ const LoanApplicant = () => {
     });
   };
 
-  // Event handlers to mark a borrower as approved or rejected
-  const handleApprove = (id) => {
-    const updatedBorrowers = borrowers.map((borrower) =>
-      borrower.id === id ? { ...borrower, remarks: "Approved" } : borrower
-    );
-    setBorrowers(updatedBorrowers);
-  };
-
-  const handleReject = (id) => {
-    const updatedBorrowers = borrowers.map((borrower) =>
-      borrower.id === id ? { ...borrower, remarks: "Rejected" } : borrower
-    );
-    setBorrowers(updatedBorrowers);
-  };
-
   // Filtering logic: filter by loan type, search query (full name, voucher, or code number), and status.
   const filteredBorrowers = borrowers.filter(borrower => {
-    const matchesLoanType =
-      activeTab === "All" ? true : borrower.loanType === activeTab;
+    const matchesLoanType = activeTab === "All" ? true : borrower.loan_type === activeTab;
 
-    const fullName = `${borrower.FirstName} ${borrower.LastName} ${borrower.MiddleName}`.toLowerCase();
+    const fullName = `${borrower.first_name} ${borrower.last_name} ${borrower.middle_name}`.toLowerCase();
 
     const matchesSearch =
       searchQuery === "" ||
       fullName.includes(searchQuery.toLowerCase()) ||
-      (borrower.clientVoucherNumber &&
-        borrower.clientVoucherNumber.toString().includes(searchQuery)) ||
+      (borrower.client_voucher_number &&
+        borrower.client_voucher_number.toString().includes(searchQuery)) ||
       (borrower.memberCode &&
         borrower.memberCode.toString().toLowerCase().includes(searchQuery.toLowerCase()));
 
-    // Assume that if remarks is not set, the status is "Waiting for Approval"
-    const borrowerStatus = borrower.remarks || "Waiting for Approval";
-    const matchesStatus =
-      statusFilter === "All" ? true : borrowerStatus === statusFilter;
+    // Use remarks property for status filtering; if none, default to "Waiting for Approval"
+    const borrowerStatus = borrower.status || "Waiting for Approval";
+    const matchesStatus = statusFilter === "All" ? true : borrowerStatus === statusFilter;
 
     return matchesLoanType && matchesSearch && matchesStatus;
   });
@@ -165,8 +148,8 @@ const LoanApplicant = () => {
               className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="All">All Status</option>
-              <option value="Approved">Passed</option>
-              <option value="Rejected">Failed</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
               <option value="Waiting for Approval">Waiting for Approval</option>
             </select>
           </div>
@@ -200,10 +183,8 @@ const LoanApplicant = () => {
               <th className="px-4 py-2 text-center">Interest</th>
               <th className="px-4 py-2 text-center">Terms</th>
               <th className="px-4 py-2 text-center">Application Date</th>
-              {/* <th className="px-4 py-2 text-center">Balance</th> */}
               <th className="px-4 py-2 text-center">Status</th>
               <th className="px-4 py-2 text-center">Remarks</th>
-
               <th className="px-4 py-2 text-center">Actions</th>
             </tr>
           </thead>
@@ -236,27 +217,21 @@ const LoanApplicant = () => {
                     {borrower.terms || "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300">
-                      {new Date(borrower.created_at).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </td>
-                  {/* <td className="px-4 py-2 text-center text-gray-700">
-                    {borrower.balance || 0}
-                  </td> */}
+                    {new Date(borrower.created_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </td>
                   <td className="px-4 py-2 text-center">
-                    <span
-                      className={`inline-block px-2 py-1 rounded-full
-                      }`}
-                    >
+                    <span className="inline-block px-2 py-1 rounded-full">
                       {borrower.status}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-center">
                     <span
                       className={`inline-block px-2 py-1 rounded-full font-semibold ${
-                         borrower.remarks === "Updated"
+                        borrower.remarks === "Updated"
                           ? "bg-green-500 text-white"
                           : borrower.remarks === "Mispayment"
                           ? "bg-blue-500 text-white"

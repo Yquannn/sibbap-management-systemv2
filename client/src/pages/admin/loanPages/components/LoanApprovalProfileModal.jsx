@@ -21,6 +21,10 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
   const [loanApplicationLoading, setLoanApplicationLoading] = useState(false);
   const [loanApplicationError, setLoanApplicationError] = useState(null);
 
+    const [existingLoan, setExistingLoan] = useState(null);
+    const [existingLoanLoading, setExistingLoanLoading] = useState(false);
+    const [existingLoanError, setExistingLoanError] = useState(null);
+
   // Update local member state when prop changes
   useEffect(() => {
     if (!memberState || memberState.id !== member.id) {
@@ -29,6 +33,32 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
       setLoanApplicationError(null);
     }
   }, [member]);
+
+  useEffect(() => {
+    if (
+      activeTab === "existingLoan" &&
+      memberState &&
+      memberState.memberId &&
+      !existingLoan &&
+      !existingLoanLoading
+    ) {
+      setExistingLoanLoading(true);
+      axios
+        .get(`http://192.168.254.103:3001/api/member-existing-loan-application/${memberState.memberId}`)
+        .then((res) => {
+          // Expecting an array response
+          setExistingLoan(res.data);
+          console.log("Existing loans fetched:", res.data);
+        })
+        .catch((error) => {
+          console.error("Error fetching existing loan:", error);
+          setExistingLoanError("Failed to fetch existing loan.");
+        })
+        .finally(() => {
+          setExistingLoanLoading(false);
+        });
+    }
+  }, [activeTab, memberState?.memberId, existingLoan, existingLoanLoading]);
 
   // --- Fetch Loan Application Only Once for the "loanApplication" tab ---
   useEffect(() => {
@@ -378,147 +408,156 @@ const handleApproved = async () => {
           </>
         )}
          
-          {activeTab === "loanDetails" && (
-            <div className="p-4 bg-gray-100 rounded-lg shadow">
-              <h3 className="text-xl font-bold text-center mb-4">Loan Details</h3>
-              {memberState.loanDetails ? (
-                <div className="grid grid-cols-2 gap-6 mt-4 text-sm p-6 bg-white shadow-lg rounded-lg">
-                  {/* Left Column */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Monthly Interest:</span>
-                      <span className="font-semibold">₱{memberState.loanDetails.interest || 100}</span>
+        {activeTab === "existingLoan" && (
+                <div className="p-6 bg-white rounded-xl shadow-lg">
+                  {/* Sticky Header */}
+                  <h3 className="text-2xl font-bold text-center mb-4 text-gray-800 border-b pb-2">
+                    Existing Loans
+                  </h3>
+
+                  {existingLoanLoading ? (
+                    <p className="text-center text-gray-500">Loading existing loans...</p>
+                  ) : existingLoanError ? (
+                    <p className="text-center text-red-500">{existingLoanError}</p>
+                  ) : existingLoan && existingLoan.length > 0 ? (
+                    <div 
+                      className="space-y-4 overflow-y-auto"
+                      style={{ maxHeight: existingLoan.length > 2 ? "350px" : "auto" }} // Adjust height as needed
+                    >
+                      {existingLoan.map((loan) => (
+                        <div 
+                          key={loan.loan_application_id} 
+                          className="grid grid-cols-2 gap-6 p-6 bg-gray-50 shadow-md rounded-lg border border-gray-200 hover:shadow-xl transition-all duration-300"
+                        >
+                          {/* Left Column */}
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Date of Loan:</span>
+                              <span className="font-semibold text-gray-900">
+                                {loan?.created_at 
+                                  ? new Date(loan.created_at).toLocaleDateString("en-US", { 
+                                      month: "long", day: "2-digit", year: "numeric" 
+                                    }).replace(",", "").replace(/(\d{4})/, "$1".slice(-3)) 
+                                  : "N/A"}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Voucher Number:</span>
+                              <span className="font-semibold text-gray-900">
+                                {loan.client_voucher_number || "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Loan Amount:</span>
+                              <span className="font-semibold text-green-600">
+                                ₱{loan.loan_amount || 0}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Right Column */}
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Interest:</span>
+                              <span className="font-semibold text-gray-900">{loan.interest}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Terms:</span>
+                              <span className="font-semibold text-gray-900">{loan.terms || "N/A"}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Balance:</span>
+                              <span className="font-semibold text-red-600">
+                                ₱{loan.balance || "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Loan Amount:</span>
-                      <span className="font-semibold">₱{memberState.loanDetails.loanAmount || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Monthly Amortization:</span>
-                      <span className="font-semibold">₱450</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Terms:</span>
-                      <span className="font-semibold">{memberState.loanDetails.terms || "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Date Release:</span>
-                      <span className="font-semibold">N/A</span>
-                    </div>
-                  </div>
-                  {/* Right Column */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Service Fee (3%):</span>
-                      <span className="font-semibold">₱150</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Additional Savings Deposit (1%):</span>
-                      <span className="font-semibold">₱50</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Capital Buildup (1%):</span>
-                      <span className="font-semibold">₱50</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Gift Check:</span>
-                      <span className="font-semibold">₱30</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Insurance:</span>
-                      <span className="font-semibold">₱70</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Others/Receivables:</span>
-                      <span className="font-semibold">₱40</span>
-                    </div>
-                    <div className="flex justify-between border-t pt-3 font-bold text-lg">
-                      <span className="text-gray-800">Total Disbursed:</span>
-                      <span className="text-green-600">₱4,460</span>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-center text-gray-500">No existing loan details.</p>
+                  )}
                 </div>
+              )}
+
+
+          {activeTab === "loanApplication" && (
+            <div className="p-6 bg-white rounded-xl shadow-lg">
+              <h3 className="text-2xl font-bold text-center mb-4">Loan Application</h3>
+              {loanApplication && (
+                <div className="flex justify-center mb-4">
+                  <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    {loanApplication.status || "N/A"}
+                  </span>
+                </div>
+              )}
+              {loanApplicationLoading ? (
+                <div className="flex justify-center items-center py-4">
+                  <p className="text-gray-700 text-lg">Loading loan application...</p>
+                </div>
+              ) : loanApplicationError ? (
+                <div className="text-center text-red-500 py-4">
+                  <p className="mb-3">{loanApplicationError}</p>
+                  <button
+                    onClick={() => {
+                      setLoanApplication(null);
+                      setLoanApplicationError(null);
+                    }}
+                    className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : loanApplication ? (
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+                <div>
+                    <dt className="font-semibold">Application type:</dt>
+                    <dd>{loanApplication.application || "N/A"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Requested Amount:</dt>
+                    <dd>{loanApplication.loan_amount || "N/A"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Loan Type:</dt>
+                    <dd>{loanApplication.loan_type || "N/A"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Application Date:</dt>
+                    <dd>
+                      {loanApplication.created_at
+                        ? new Date(loanApplication.created_at).toLocaleDateString()
+                        : "N/A"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Interest:</dt>
+                    <dd>{loanApplication.interest || "N/A"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Term:</dt>
+                    <dd>{loanApplication.terms ? `${loanApplication.terms} months` : "N/A"}</dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="font-semibold">Statement of Purpose:</dt>
+                    <dd>{loanApplication.details.statement_of_purpose || "N/A"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Sacks:</dt>
+                    <dd>{loanApplication.details.sacks || "N/A"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Service fee:</dt>
+                    <dd>{loanApplication.details.service_fee || "N/A"}</dd>
+                  </div>
+                </dl>
               ) : (
-                <p className="text-center text-gray-700">No existing loan details.</p>
+                <p className="text-center text-gray-700 py-4">No loan application.</p>
               )}
             </div>
           )}
-
-          {activeTab === "loanApplication" && (
-  <div className="p-4 bg-gray-100 rounded-lg shadow">
-    <h3 className="text-2xl font-bold text-center mb-4">Loan Application</h3>
-    {loanApplication && (
-      <div className="flex justify-center mb-4">
-        <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-          {loanApplication.status || "N/A"}
-        </span>
-      </div>
-    )}
-    {loanApplicationLoading ? (
-      <div className="flex justify-center items-center py-4">
-        <p className="text-gray-700 text-lg">Loading loan application...</p>
-      </div>
-    ) : loanApplicationError ? (
-      <div className="text-center text-red-500 py-4">
-        <p className="mb-3">{loanApplicationError}</p>
-        <button
-          onClick={() => {
-            setLoanApplication(null);
-            setLoanApplicationError(null);
-          }}
-          className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-        >
-          Retry
-        </button>
-      </div>
-    ) : loanApplication ? (
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
-      <div>
-          <dt className="font-semibold">Application type:</dt>
-          <dd>{loanApplication.application || "N/A"}</dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Requested Amount:</dt>
-          <dd>{loanApplication.loan_amount || "N/A"}</dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Loan Type:</dt>
-          <dd>{loanApplication.loan_type || "N/A"}</dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Application Date:</dt>
-          <dd>
-            {loanApplication.created_at
-              ? new Date(loanApplication.created_at).toLocaleDateString()
-              : "N/A"}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Interest:</dt>
-          <dd>{loanApplication.interest || "N/A"}</dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Term:</dt>
-          <dd>{loanApplication.terms ? `${loanApplication.terms} months` : "N/A"}</dd>
-        </div>
-        <div className="sm:col-span-2">
-          <dt className="font-semibold">Statement of Purpose:</dt>
-          <dd>{loanApplication.details.statement_of_purpose || "N/A"}</dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Sacks:</dt>
-          <dd>{loanApplication.details.sacks || "N/A"}</dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Service fee:</dt>
-          <dd>{loanApplication.details.service_fee || "N/A"}</dd>
-        </div>
-      </dl>
-    ) : (
-      <p className="text-center text-gray-700 py-4">No loan application.</p>
-    )}
-  </div>
-)}
 
 
 

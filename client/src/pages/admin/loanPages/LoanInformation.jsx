@@ -137,6 +137,7 @@ const LoanInformation = ({
       interest: Number(loanInfo.interest),
       terms: Number(loanInfo.loanTerms),
       balance: 0,
+      service_fee: Number(loanInfo.serviceFee),
       details: {
         statement_of_purpose: loanInfo.statementOfPurpose,
         sacks: Number(loanInfo.sacks),
@@ -307,8 +308,8 @@ const LoanInformation = ({
               onChange={handleLoanChange}
             >
               <option value="">Select Application Type</option>
-              <option value="new">New</option>
-              <option value="renewal">Renewal</option>
+              <option value="New">New</option>
+              <option value="Renewal">Renewal</option>
             </select>
           </div>
           <div>

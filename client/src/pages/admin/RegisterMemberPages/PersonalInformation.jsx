@@ -25,7 +25,7 @@ const PersonalInformation = ({
           civil_status: "",
           highest_educational_attainment: "",
           occupation_source_of_income: "",
-          monthly_income: "", // changed income field
+          monthly_income: "",
           tin_number: "",
           number_of_dependents: "",
           spouse_name: "",
@@ -85,10 +85,53 @@ const PersonalInformation = ({
     }));
   };
 
+  // Validate the form before moving to the next step.
   const validateForm = () => {
-    // Add your validation logic here if needed.
-    return true;
+    let isValid = true;
+    const newErrors = {};
+
+    // Validate Age: must be provided and at least 18.
+    const ageValue = parseInt(personalInfo.age, 10);
+    if (!personalInfo.age) {
+      newErrors.age = "Age is required";
+      isValid = false;
+    } else if (isNaN(ageValue) || ageValue < 18) {
+      newErrors.age = "Member is not eligible (must be at least 18 years old)";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
+
+  // useEffect to validate age as soon as it changes.
+  useEffect(() => {
+    const ageValue = parseInt(personalInfo.age, 10);
+    if (personalInfo.age !== "" && (isNaN(ageValue) || ageValue < 18)) {
+      setErrors((prev) => ({
+        ...prev,
+        age: "Member is not eligible (must be at least 18 years old)"
+      }));
+    } else {
+      setErrors((prev) => {
+        const { age, ...others } = prev;
+        return others;
+      });
+    }
+  }, [personalInfo.age]);
+
+  // useEffect to clear the maiden name if civil status is Single.
+  useEffect(() => {
+    if (personalInfo.civil_status === "Single") {
+      setFormData((prevData) => ({
+        ...prevData,
+        personalInfo: {
+          ...prevData.personalInfo,
+          maiden_name: ""
+        }
+      }));
+    }
+  }, [personalInfo.civil_status, setFormData]);
 
   const handleNextClick = (event) => {
     event.preventDefault();
@@ -98,14 +141,22 @@ const PersonalInformation = ({
   };
 
   // Define the fields that will always be present.
+  // Note: We keep the existing setup for textInputs and dropdowns.
   const textInputs = [
     { label: "Last Name", name: "last_name", type: "text", required: true },
     { label: "Middle Name", name: "middle_name", type: "text" },
     { label: "First Name", name: "first_name", type: "text", required: true },
+    // Maiden Name will be disabled if Civil Status is Single.
     { label: "Maiden Name", name: "maiden_name", type: "text" },
+    // Extension Name has an options property – render as dropdown.
+    { label: "Extension Name", name: "extension_name", options: ["Jr", "Sr"] },
+    // Civil Status has options – render as dropdown.
+    { label: "Civil Status", name: "civil_status", options: ["Single", "Married", "Widowed", "Divorced"], required: true },
     { label: "Date of Birth", name: "date_of_birth", type: "date", required: true },
+    { label: "Age", name: "age", type: "number", required: true },
     { label: "Birthplace Province", name: "birthplace_province", type: "text" },
-    { label: "Age", name: "age", type: "number" },
+    // Sex has options – render as dropdown.
+    { label: "Sex", name: "sex", options: ["Male", "Female", "Other"], required: true },
     { label: "Religion", name: "religion", type: "text" },
     // Income field changes based on mode.
     mode === "loan"
@@ -118,9 +169,6 @@ const PersonalInformation = ({
 
   // Define dropdown fields (common to both modes).
   const dropdowns = [
-    { label: "Extension Name", name: "extension_name", options: ["Jr", "Sr"] },
-    { label: "Sex", name: "sex", options: ["Male", "Female", "Other"], required: true },
-    { label: "Civil Status", name: "civil_status", options: ["Single", "Married", "Widowed", "Divorced"], required: true },
     { label: "Highest Educational Attainment", name: "highest_educational_attainment", options: ["Elementary", "High School", "College", "Post Graduate"] },
     { label: "Occupation Source Of Income", name: "occupation_source_of_income", options: ["Employed", "Self-Employed", "Business Owner", "Freelancer"] },
     { label: "Spouse Occupation Source Of Income", name: "spouse_occupation_source_of_income", options: ["Employed", "Self-Employed", "Business Owner", "Freelancer"] }
@@ -162,18 +210,37 @@ const PersonalInformation = ({
         </div>
       )}
 
-      {/* Render text input fields */}
+      {/* Render text input fields.
+          If an input has an "options" property, render a select instead. */}
       {textInputs.map((input, index) => (
         <label key={index} className="block">
           {input.label} {input.required && <span className="text-red-500">*</span>}
-          <input
-            className={`border p-3 rounded-lg w-full ${errors[input.name] ? "border-red-500" : ""}`}
-            name={input.name}
-            type={input.type}
-            value={personalInfo[input.name] || ""}
-            onChange={handleChange}
-            placeholder={input.label}
-          />
+          {input.options ? (
+            <select
+              name={input.name}
+              value={personalInfo[input.name] || ""}
+              onChange={handleChange}
+              className={`border p-3 rounded-lg w-full ${errors[input.name] ? "border-red-500" : ""}`}
+            >
+              <option value="">Select {input.label}</option>
+              {input.options.map((option, i) => (
+                <option key={i} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className={`border p-3 rounded-lg w-full ${errors[input.name] ? "border-red-500" : ""}`}
+              name={input.name}
+              type={input.type}
+              value={personalInfo[input.name] || ""}
+              onChange={handleChange}
+              placeholder={input.label}
+              // Disable Maiden Name field if Civil Status is Single.
+              disabled={input.name === "maiden_name" && personalInfo.civil_status === "Single"}
+            />
+          )}
           {errors[input.name] && (
             <p className="text-red-500 text-sm">{errors[input.name]}</p>
           )}

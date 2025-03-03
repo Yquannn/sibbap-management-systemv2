@@ -35,7 +35,7 @@ const MemberLoanPage = () => {
   // "Waiting for evaluation" or "Passed" → "Pending"
   // "Failed" → "Rejected"
   const mapStatus = (status) => {
-    if (status === "Waiting for evaluation" || status === "Passed") {
+    if (status === "Waiting for Approval") {
       return "Pending";
     }
     if (status === "Failed") {

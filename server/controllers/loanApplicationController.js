@@ -142,6 +142,21 @@ async function getLoanById(req, res) {
 
 
 
+async function getExistingLoan(req, res) {
+  try {
+    const { id } = req.params;
+    const loan = await loanApplicationModel.getExistingLoan(id);
+    if (!loan) {
+      return res.status(404).json({ error: "Loan not found" });
+    }
+    res.json(loan);
+  } catch (error) {
+    console.error("Error fetching loan by id:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+}
+
+
 module.exports = {
   createLoanApplication,
   getLoanApplication,
@@ -150,5 +165,6 @@ module.exports = {
   getAllLoanApprove,
   getAllBorrowers,
   getLoanById,
-  updateLoanStatus
+  updateLoanStatus,
+  getExistingLoan
 };

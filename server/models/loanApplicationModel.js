@@ -593,6 +593,24 @@ async function getAllBorrowers() {
   }
 }
 
+async function getExistingLoan(memberId) {
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [rows] = await conn.query(
+      `SELECT la.*, m.first_name, m.last_name, m.middle_name
+       FROM loan_applications la
+       JOIN members m ON la.memberId = m.memberId
+       WHERE la.status = "Approved" AND m.memberId = ?`,
+      [memberId]
+    );
+    return rows;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
 
 
 async function getMemberLoansById(memberId) {  
@@ -683,5 +701,6 @@ module.exports = {
   getAllLoanApprove,
   getAllBorrowers,
   getMemberLoansById,
-  updateLoanStatus
+  updateLoanStatus,
+  getExistingLoan
 };
