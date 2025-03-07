@@ -2,20 +2,29 @@ const db = require('../config/db');
 
 exports.findByEmail = async (email) => {
   try {
-    // Check if the email exists in the `member_account` table
+    // Check if email exists in `member_account`
     const [member] = await db.query(
-      'SELECT * FROM member_account WHERE email = ? AND accountStatus = "ACTIVATED"', 
+      `SELECT memberId AS id, email, password, 'Member' AS userType 
+       FROM member_account 
+       WHERE email = ? AND accountStatus = 'ACTIVATED'`, 
       [email]
     );
-        if (member.length > 0) {
-      return { ...member[0], userType: 'Member' }; // Include userType
+
+    if (member.length > 0) {
+      return member[0]; // Return Member Data
     }
 
-    // // If not found in `member_account`, check the `users` table
-    // const [user] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    // if (user.length > 0) {
-    //   return { ...user[0], userType: user[0].role }; // Use role as userType
-    // }
+    // If not found in `member_account`, check `users`
+    const [user] = await db.query(
+      `SELECT id AS id, email, password, userType 
+       FROM users 
+       WHERE email = ?`, 
+      [email]
+    );
+
+    if (user.length > 0) {
+      return user[0]; // Return User Data
+    }
 
     return null; // User not found
   } catch (error) {
@@ -23,4 +32,3 @@ exports.findByEmail = async (email) => {
     throw new Error('Error finding user');
   }
 };
-

@@ -1,4 +1,4 @@
-const { findSavingsByMemberId, updateSavingsAmount, getEarnings, createTransaction, getAllTransactions, getTransactionById } = require('../models/savingsModel');
+const { findSavingsByMemberId, updateSavingsAmount, getEarnings, createTransaction, getAllTransactions, getTransactionById, getRegularSavingsMemberInfoById } = require('../models/savingsModel');
 const { generateTransactionNumber } = require('../utils/generateTransactionNumber')
 
 exports.withdraw = async (req, res) => {
@@ -213,5 +213,21 @@ exports.getTransactionById = async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching transaction:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getRegularSavingsMemberInfo = async (req, res) => {
+  const { memberId } = req.params;
+  try {
+
+    const memberInfo = await getRegularSavingsMemberInfoById(memberId);
+    if (!memberInfo) {
+      return res.status(404).json({ error: "Member not found" });
+    }
+    
+    res.json({ data: memberInfo });
+  } catch (error) {
+    console.error("Error in getRegularSavingsMemberInfo:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

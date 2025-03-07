@@ -172,7 +172,7 @@ const updateSavingsAmount = async (memberId, amount, transactionType) => {
 //   }
 // }
 
-// setInterval(applyInterest, 50000);
+// setInterval(applyInterest, 5000);
 
 
 
@@ -346,11 +346,32 @@ async function getTransactionById(transactionNumber) {
 }
 
 
+
+async function getRegularSavingsMemberInfoById(memberId) {
+  try {
+    const query = `
+      SELECT m.*, rs.* 
+      FROM members AS m
+      INNER JOIN regular_savings AS rs ON m.memberId = rs.memberId
+      WHERE m.memberId = ?`;
+      
+    const [rows] = await db.query(query, [memberId]);
+    return rows[0]; // Returns the first matching record (or undefined if not found)
+  } catch (error) {
+    console.error("Error fetching member info:", error);
+    throw error;
+  }
+}
+
+
+
+
 module.exports = {
   findSavingsByMemberId,
   updateSavingsAmount,
   getEarnings,
   createTransaction,
   getAllTransactions,
-  getTransactionById
+  getTransactionById,
+  getRegularSavingsMemberInfoById,
 };

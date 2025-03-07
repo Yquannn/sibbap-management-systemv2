@@ -29,6 +29,7 @@ import RegularSavingsTransactionHistory from "./pages/members/home/transaction/R
 import LoanDetails from "./pages/members/loan/LoanDetails";
 import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration"; 
 import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
+import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
 
 function App() {
   return (
@@ -54,6 +55,11 @@ function App() {
         <Route path="report" element={<Report />} />
         <Route path="users" element={<Users />} />
         <Route path="announcement" element={<Announcement />} />
+
+
+
+        {/* Regular Savings Info */}
+        <Route path="regular-savings-info/:memberId" element={<RegularSavingsInfo />} />
 
         {/* Membership Registration */}
         <Route path="register-member/*" element={<MembershipRegistration />} />

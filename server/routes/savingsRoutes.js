@@ -14,6 +14,8 @@ router.post('/transaction', savingsController.createTransaction);  // Create a t
 router.get('/transactions', savingsController.getAllTransactions); // Get all transactions
 router.get('/transactions/:transactionNumber', savingsController.getTransactionById); // Get transaction by ID
 
+router.get("/members/savings/:memberId", savingsController.getRegularSavingsMemberInfo);
+
 // Centralized error handling middleware
 router.use((err, req, res, next) => {
   console.error('Error:', err);

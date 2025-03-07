@@ -70,7 +70,7 @@ const Dashboard = () => {
         }
 
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/member/email/${email}`
+          `http://192.168.254.104:3001/api/member/email/${email}`
         );
 
         if (response.data) {
@@ -99,7 +99,7 @@ const Dashboard = () => {
           <img
             src={
               member?.id_picture
-                ? `http://192.168.254.103:3001/uploads/${member.id_picture}`
+                ? `http://192.168.254.104:3001/uploads/${member.id_picture}`
                 : defaultPicture
             }
             alt="Profile"

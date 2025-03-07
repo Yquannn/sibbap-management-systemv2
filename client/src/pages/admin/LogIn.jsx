@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logosibbap.png';
@@ -6,10 +6,16 @@ import logo from '../../assets/logosibbap.png';
 const LogIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('User');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [redirectPath, setRedirectPath] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (redirectPath) {
+      navigate(redirectPath);
+    }
+  }, [redirectPath, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,29 +30,45 @@ const LogIn = () => {
 
     try {
       const response = await axios.post(
-        'http://192.168.254.103:3001/api/auth',
-        { userType, email: email.trim(), password: password.trim() },
+        'http://192.168.254.104:3001/api/auth', // Ensure this matches your backend route
+        { email: email.trim(), password: password.trim() },
         { headers: { 'Content-Type': 'application/json' } }
       );
 
-      if (response.status === 200) {
+      console.log('Response Data:', response.data); // Debugging response
+
+      if (response.status === 200 && response.data?.user) {
+        const { user } = response.data;
+
         localStorage.setItem('userLoggedIn', 'true');
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userType', userType);
+        localStorage.setItem('userEmail', user.email);
+        localStorage.setItem('userType', user.userType);
 
         alert('Login successful!');
 
-        if (userType === 'Member') {
-          navigate('/member-dashboard');
-        } else {
-          navigate('/dashboard');
+        // Set redirect path based on userType
+        switch (user.userType) {
+          case 'Member':
+            setRedirectPath('/member-dashboard');
+            break;
+          case 'System admin':
+          case 'General manager':
+          case 'Loan officer':
+          case 'Teller':
+            setRedirectPath('/dashboard');
+            break;
+          default:
+            setRedirectPath('/');
+            break;
         }
       } else {
-        setErrorMessage(response.data.error || 'Invalid credentials');
+        setErrorMessage('Invalid response from server.');
       }
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || 'Invalid email or password');
+      console.error('Login Error:', error.response?.data || error);
+      setErrorMessage(error.response?.data?.error || 'Invalid email or password');
     }
+
     setLoading(false);
   };
 
@@ -60,24 +82,6 @@ const LogIn = () => {
         {errorMessage && <p className="text-red-500 text-sm text-center mb-4">{errorMessage}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-1">User Type</label>
-            <select
-              id="userType"
-              value={userType}
-              onChange={(e) => setUserType(e.target.value)}
-              className="w-full border rounded-md py-2 px-3 focus:ring focus:ring-green-300"
-              required
-            >
-              <option value="">Select user</option>
-              <option value="Member">Member</option>
-              <option value="System admin">System admin</option>
-              <option value="General manager">General manager</option>
-              <option value="Loan officer">Loan officer</option>
-              <option value="Teller">Teller</option>
-            </select>
-          </div>
-
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-1">Email</label>
             <input

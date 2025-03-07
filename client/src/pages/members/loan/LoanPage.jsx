@@ -17,7 +17,7 @@ const MemberLoanPage = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/member-loan-application/${memberId}`
+          `http://192.168.254.104:3001/api/member-loan-application/${memberId}`
         );
         setLoans(response.data);
       } catch (err) {
