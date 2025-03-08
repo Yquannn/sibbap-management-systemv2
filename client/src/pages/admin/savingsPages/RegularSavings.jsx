@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaSearch } from "react-icons/fa";
+import { FaEye, FaSearch } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -75,7 +75,6 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                 "Date of birth",
                 "Age",
                 "Contact Number",
-                "Address",
                 "Balance",
                 "Account Status",
                 "Actions",
@@ -89,10 +88,19 @@ const RegularSavings = ({ openModal, handleDelete }) => {
           <tbody>
             {filteredMembers.length > 0 ? (
               filteredMembers.map((member, index) => (
-                <tr key={index} className="text-center hover:bg-gray-100 cursor-pointer">
-                  <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.fullName}</td>
+                <tr
+                  key={index}
+                  className="text-center hover:bg-gray-100 cursor-pointer"
+                >
+                  <td className="py-3 px-4 border-b border-gray-300">
+                    {member.memberCode}
+                  </td>
+                  <td className="py-3 px-4 border-b border-gray-300">
+                    {member.memberCode}
+                  </td>
+                  <td className="py-3 px-4 border-b border-gray-300">
+                    {member.fullName}
+                  </td>
                   <td className="py-3 px-4 border-b border-gray-300">
                     {new Date(member.date_of_birth).toLocaleDateString("en-US", {
                       year: "numeric",
@@ -100,31 +108,31 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                       day: "numeric",
                     })}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.age}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.contact_number}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.city || "N/A"}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.savingsAmount}</td>
                   <td className="py-3 px-4 border-b border-gray-300">
-                    <span
-                      className={`px-2 py-1 rounded-full font-semibold ${
-                        (!member.savingsStatus || member.savingsStatus === "ACTIVE" || member.savingsStatus === "Active")
-                          ? "bg-green-500 text-white"
-                          : "bg-red-500 text-white"
-                      }`}
-                    >
-                      {member.savingsStatus}
+                    {member.age}
+                  </td>
+                  <td className="py-3 px-4 border-b border-gray-300">
+                    {member.contact_number}
+                  </td>
+                  
+                  <td className="py-3 px-4 border-b border-gray-300">
+                    {member.savingsAmount}
+                  </td>
+                  {/* Fixed the status cell to properly display a default value */}
+                  <td className="py-3 px-4 border-b border-gray-300 text-center">
+                    <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 mr-2">
+                      {member.savingsStatus || "Active"}
                     </span>
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300">
                     <div className="flex justify-center">
-                      {/* Pass the memberId in the URL */}
                       <button
                         onClick={() => {
                           navigate(`/regular-savings-info/${member.memberId}`);
                         }}
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center"
                       >
-                        <FaSearch className="mr-1" /> View Info
+                        <FaEye className="mr-1" /> View
                       </button>
                     </div>
                   </td>

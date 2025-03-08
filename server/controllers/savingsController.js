@@ -1,8 +1,64 @@
-const { findSavingsByMemberId, updateSavingsAmount, getEarnings, createTransaction, getAllTransactions, getTransactionById, getRegularSavingsMemberInfoById } = require('../models/savingsModel');
+const { findSavingsByMemberId, updateSavingsAmount, getEarnings, insertTransaction, getAllTransactions, getTransactionById, getRegularSavingsMemberInfoById } = require('../models/savingsModel');
 const { generateTransactionNumber } = require('../utils/generateTransactionNumber')
 
+exports.deposit = async (req, res) => {
+  const { memberId, amount, authorized, user_type } = req.body; // now also expect authorized
+
+  // Ensure the amount is valid
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: 'Amount must be greater than zero.' });
+  }
+
+  try {
+    console.log(`Processing deposit: memberId=${memberId}, amount=${amount}`);
+
+    // Fetch the current savings record
+    const savings = await findSavingsByMemberId(memberId);
+
+    if (!savings) {
+      return res.status(404).json({ error: 'Savings record not found for this member.' });
+    }
+
+    const currentBalance = parseFloat(savings.amount);
+    const depositAmount = parseFloat(amount);
+
+    if (isNaN(currentBalance)) {
+      console.error('Current balance is not a valid number:', savings.amount);
+      return res.status(500).json({ error: 'Current balance is not valid.' });
+    }
+
+    console.log(`Current balance for memberId=${memberId}: ${currentBalance}`);
+
+    const newBalance = currentBalance + depositAmount;
+    console.log(`New balance calculated for memberId=${memberId}: ${newBalance}`);
+
+    // Generate unique transaction number and set type
+    const transactionNumber = generateTransactionNumber();
+    const transactionType = 'Deposit';
+
+    // Update savings and record the transaction, passing the authorized field
+    const updated = await updateSavingsAmount(memberId, authorized, user_type, depositAmount, transactionType);
+
+    if (!updated.success) {
+      console.error(`Failed to update savings for memberId=${memberId}`);
+      return res.status(500).json({ error: 'Failed to update savings record.' });
+    }
+
+    res.status(200).json({
+      success: 'Deposit successful',
+      depositedAmount: depositAmount.toFixed(2),
+      newBalance: newBalance.toFixed(2),
+      transactionNumber,
+    });
+  } catch (error) {
+    console.error('Error during deposit:', error);
+    res.status(500).json({ error: 'An error occurred while processing the deposit.' });
+  }
+};
+
+
 exports.withdraw = async (req, res) => {
-  const { memberId, amount } = req.body;
+  const { memberId, amount, authorized, user_type } = req.body;
 
   // Input validation
   if (!memberId) {
@@ -32,14 +88,13 @@ exports.withdraw = async (req, res) => {
     const newBalance = parseFloat((savings.amount - amount).toFixed(2));
     console.log(`New balance calculated for memberId=${memberId}: ${newBalance}`);
 
-    // Step 1: Update the savings amount and record the transaction in a single call
-    const transactionNumber = generateTransactionNumber();  // Generate unique transaction number
-    const transactionType = 'Withdrawal';  // Withdrawal type
+    // Generate unique transaction number and set type
+    const transactionNumber = generateTransactionNumber();
+    const transactionType = 'Withdrawal';
 
-    // Step 2: Update savings and insert transaction history
-    const updated = await updateSavingsAmount(memberId, amount, transactionType);
+    // Update savings and insert transaction history by passing the authorized field
+    const updated = await updateSavingsAmount(memberId, authorized, user_type, amount, transactionType);
 
-    // Ensure the update function returns a success status
     if (updated.success !== true) {
       return res.status(500).json({ error: 'Failed to update savings record' });
     }
@@ -53,64 +108,6 @@ exports.withdraw = async (req, res) => {
   } catch (error) {
     console.error('Error during withdrawal:', error.message);
     res.status(500).json({ error: 'An error occurred while processing the withdrawal' });
-  }
-};
-
-exports.deposit = async (req, res) => {
-  const { memberId, amount } = req.body;
-
-  // Ensure the amount is valid
-  if (!amount || amount <= 0) {
-    return res.status(400).json({ error: 'Amount must be greater than zero.' });
-  }
-
-  try {
-    console.log(`Processing deposit: memberId=${memberId}, amount=${amount}`);
-
-    // Fetch the current savings record
-    const savings = await findSavingsByMemberId(memberId);
-
-    if (!savings) {
-      return res.status(404).json({ error: 'Savings record not found for this member.' });
-    }
-
-    // Ensure savings.amount is a valid number
-    const currentBalance = parseFloat(savings.amount);
-    const depositAmount = parseFloat(amount);
-
-    if (isNaN(currentBalance)) {
-      console.error('Current balance is not a valid number:', savings.amount);
-      return res.status(500).json({ error: 'Current balance is not valid.' });
-    }
-
-    console.log(`Current balance for memberId=${memberId}: ${currentBalance}`);
-
-    const newBalance = currentBalance + depositAmount; // Add deposit to the current balance
-    console.log(`New balance calculated for memberId=${memberId}: ${newBalance}`);
-
-    // Transaction type is Deposit
-    const transactionNumber = generateTransactionNumber();  // Generate unique transaction number
-
-    const transactionType = 'Deposit';
-
-    // Call updateSavingsAmount to update the balance and record the transaction
-    const updated = await updateSavingsAmount(memberId, depositAmount, transactionType);
-
-    if (!updated.success) {
-      console.error(`Failed to update savings for memberId=${memberId}`);
-      return res.status(500).json({ error: 'Failed to update savings record.' });
-    }
-
-    // Send success response
-    res.status(200).json({
-      success: 'Deposit successful',
-      depositedAmount: depositAmount.toFixed(2), // Format deposit amount with two decimal places
-      newBalance: newBalance.toFixed(2), // Format new balance with two decimal places
-      transactionNumber,
-    });
-  } catch (error) {
-    console.error('Error during deposit:', error); // Log the error for debugging
-    res.status(500).json({ error: 'An error occurred while processing the deposit.' });
   }
 };
 
@@ -166,29 +163,32 @@ exports.deposit = async (req, res) => {
 
 
  
-exports.createTransaction = async (req, res) => {
-  try {
-    const { regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time } = req.body;
-    
-    if (!transaction_number || !transaction_type || !amount || !transaction_date_time) {
-      return res.status(400).json({ message: 'All fields are required' });
+  exports.createTransaction = async (req, res) => {
+    try {
+      const { regular_savings_id, authorized, transaction_type, amount } = req.body;
+      
+      // Validate only the fields that the front end sends
+      if (!regular_savings_id || !authorized || !transaction_type || amount === undefined) {
+        return res.status(400).json({ message: 'All fields are required' });
+      }
+      
+      const newTransaction = { regular_savings_id, authorized, transaction_type, amount };
+      const result = await insertTransaction(newTransaction);
+      
+      res.status(201).json({ 
+        message: 'Transaction added successfully', 
+        transactionId: result.insertId,
+        transaction_number: result.transactionNumber 
+      });
+    } catch (error) {
+      console.error('❌ Error creating transaction:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
+  };
+  
+  
+  
 
-    const newTransaction = {
-      regular_savings_id,
-      transaction_number,
-      transaction_type,
-      amount,
-      transaction_date_time,
-    };
-
-    const result = await createTransaction(newTransaction);
-    res.status(201).json({ message: 'Transaction added successfully', transactionId: result.insertId });
-  } catch (error) {
-    console.error('❌ Error creating transaction:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
 
 exports.getAllTransactions = async (req, res) => {
   try {

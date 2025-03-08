@@ -1,5 +1,5 @@
 const { insertUser } = require('../models/userModel'); 
-const {updateUserById} = require('../models/userModel');
+const {updateUserById, getUserByEmail} = require('../models/userModel');
 const validator = require('validator'); 
 
 const db = require('../config/db');
@@ -113,5 +113,27 @@ exports.updateUser = async (req, res) => {
   } catch (error) {
     console.error('Error updating user:', error.message);
     res.status(500).json({ message: 'Error updating user' });
+  }
+};
+
+
+exports.getUserByEmail = async (req, res) => {
+  const email = req.params.email;
+
+  if (!email || !validator.isEmail(email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+
+  try {
+    const user = await getUserByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching user by email:', error.message);
+    res.status(500).json({ message: 'Error fetching user from the database' });
   }
 };

@@ -1,163 +1,177 @@
+import React, { useState, useEffect } from 'react';
 import { 
   FaTachometerAlt, FaUsers, FaMoneyBill, FaPiggyBank, FaFile, 
-  FaChartLine, FaWrench, FaBullhorn, FaSignOutAlt, FaCaretDown, FaCaretUp 
+  FaChartLine, FaWrench, FaBullhorn, FaSignOutAlt, FaCaretDown, FaCaretUp, FaLock 
 } from 'react-icons/fa';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import logo from '../partials/logosibbap.png';
 
 const SideBar = () => {
   const [loanDropdown, setLoanDropdown] = useState(false);
+  const [username, setUsername] = useState('');
+  // Expected userType values: "Teller", "Loan Manager", "Treasurer", "General Manager", "System Admin"
+  const [userType, setUserType] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setUsername(sessionStorage.getItem('username'));
+    setUserType(sessionStorage.getItem('usertype')); // Default to Teller if not set
+  }, []);
+
+  // Function to handle logout: clear storage then navigate to login route
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    console.log(sessionStorage.getItem("userType"));
+    navigate('/'); // Adjust route if needed
+  };
+
+  const isSystemAdmin = userType === "System Admin";
+
+  // Define allowed modules based on userType or if System Admin
+  const allowed = {
+    dashboard: true,
+    members: isSystemAdmin ? true : false,
+    savings: isSystemAdmin ? true : userType === "Teller",
+    loan: isSystemAdmin ? true : (userType === "Loan Manager" || userType === "Treasurer"),
+    fileMaintenance: isSystemAdmin ? true : false,
+    report: isSystemAdmin ? true : userType === "General Manager",
+    users: isSystemAdmin ? true : false,
+    announcement: isSystemAdmin ? true : false,
+    maintenance: isSystemAdmin ? true : false,
+    logout: true,
+  };
+
+  // For the loan dropdown, define allowed submodules:
+  const loanSubAllowed = {
+    borrower: isSystemAdmin ? true : userType === "Loan Manager",
+    "apply-for-loan": isSystemAdmin ? true : userType === "Loan Manager",
+    "loan-applicant": isSystemAdmin ? true : userType === "Loan Manager",
+    "loan-approval": isSystemAdmin ? true : userType === "Treasurer",
+  };
+
+  // Helper to render enabled link vs. disabled item with a lock icon.
+  // onClick is optional.
+  const renderItem = (allowedFlag, to, icon, label, onClick = null) => {
+    if (allowedFlag) {
+      return (
+        <Link 
+          to={to} 
+          onClick={onClick} 
+          className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200 transition-colors"
+        >
+          {icon && <span className="mr-2">{icon}</span>}
+          <span>{label}</span>
+        </Link>
+      );
+    } else {
+      return (
+        <div className="flex items-center w-full p-2 rounded-md bg-gray-200 cursor-not-allowed">
+          {icon && <span className="mr-2 text-gray-500">{icon}</span>}
+          <span className="text-gray-500">{label}</span>
+          <FaLock className="text-gray-500 ml-auto" />
+        </div>
+      );
+    }
+  };
 
   return (
-    <div className="w-64 h-screen bg-gray-100 p-4">
-      <img src={logo} alt="sibbap logo" className="w-3/4 h-auto mb-4 mx-auto" />
-
-      <ul className="mt-10">
+    <div className="w-64 h-screen bg-gray-50 p-4 shadow-lg">
+      <img 
+        src={logo} 
+        alt="sibbap logo" 
+        className="w-3/4 h-auto mb-4 mx-auto" 
+      />
+      <h2 className="text-center text-xl font-bold text-gray-800 mb-2">
+        Welcome, {username}!
+      </h2>
+      <p className='text-center'>{userType}</p>
+      <ul className="mt-10 space-y-2">
+        {/* Dashboard - Always allowed */}
         <li className="mb-2">
-          <Link
-            to="/dashboard"
-            className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaTachometerAlt className="mr-2 text-gray-700" />
-            <span>Dashboard</span>
-          </Link>
+          {renderItem(allowed.dashboard, "/dashboard", <FaTachometerAlt className="text-gray-700" />, "Dashboard")}
         </li>
 
+        {/* Members */}
         <li className="mb-2">
-          <Link
-            to="/members"
-            className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaUsers className="mr-2 text-gray-700" />
-            <span>Members</span>
-          </Link>
+          {renderItem(allowed.members, "/members", <FaUsers className="text-gray-700" />, "Members")}
         </li>
 
+        {/* Savings - Only for Teller or System Admin */}
         <li className="mb-2">
-          <Link
-            to="/savings"
-            className="flex items-center w-full text-gray-700 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaPiggyBank className="mr-2 text-gray-700" />
-            <span>Savings</span>
-          </Link>
+          {renderItem(allowed.savings, "/savings", <FaPiggyBank className="text-gray-700" />, "Savings")}
         </li>
 
-        <li
-          className="mb-2 flex items-center w-full p-2 rounded-md hover:bg-gray-200 cursor-pointer"
-          onClick={() => setLoanDropdown(!loanDropdown)}
-        >
-          <FaMoneyBill className="mr-2 text-gray-700" />
-          <span className="flex-grow text-gray-700 hover:text-blue-500">Loan</span>
-          {loanDropdown ? <FaCaretUp className="text-gray-700" /> : <FaCaretDown className="text-gray-700" />}
-        </li>
-
-        {loanDropdown && (
-          <ul className="ml-6">
-            <li className="mb-2">
-              <Link
-                to="/borrower"
-                className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-              >
-                <span>Borrowers</span>
-              </Link>
+        {/* Loan Module - Only for Loan Manager, Treasurer or System Admin */}
+        {allowed.loan ? (
+          <>
+            <li 
+              className="mb-2 flex items-center w-full p-2 rounded-md hover:bg-gray-200 cursor-pointer transition-colors"
+              onClick={() => setLoanDropdown(!loanDropdown)}
+            >
+              <FaMoneyBill className="mr-2 text-gray-700" />
+              <span className="flex-grow text-gray-700 hover:text-blue-500">Loan</span>
+              {loanDropdown ? <FaCaretUp className="text-gray-700" /> : <FaCaretDown className="text-gray-700" />}
             </li>
-            <li className="mb-2">
-              <Link
-                to="/apply-for-loan"
-                className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-              >
-                <span>Apply for Loan</span>
-              </Link>
-            </li>
-            <li className="mb-2">
-              <Link
-                to="/loan-applicant"
-                className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-              >
-                <span>Loan Applicant</span>
-              </Link>
-            </li>
-            {/* Uncomment if needed
-            <li className="mb-2">
-              <Link
-                to="/loan-evaluation"
-                className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-              >
-                <span>Loan Evaluation</span>
-              </Link>
-            </li>
-            */}
-            <li className="mb-2">
-              <Link
-                to="/loan-approval"
-                className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-              >
-                <span>Loan Approval</span>
-              </Link>
-            </li>
-          </ul>
+            {loanDropdown && (
+              <ul className="ml-6 space-y-1">
+                <li className="mb-2">
+                  {renderItem(loanSubAllowed["borrower"], "/borrower", null, "Borrowers")}
+                </li>
+                <li className="mb-2">
+                  {renderItem(loanSubAllowed["apply-for-loan"], "/apply-for-loan", null, "Apply for Loan")}
+                </li>
+                <li className="mb-2">
+                  {renderItem(loanSubAllowed["loan-applicant"], "/loan-applicant", null, "Loan Applicant")}
+                </li>
+                <li className="mb-2">
+                  {renderItem(loanSubAllowed["loan-approval"], "/loan-approval", null, "Loan Approval")}
+                </li>
+              </ul>
+            )}
+          </>
+        ) : (
+          <li className="mb-2 flex items-center w-full p-2 rounded-md bg-gray-200 cursor-not-allowed">
+            <FaMoneyBill className="mr-2 text-gray-500" />
+            <span className="text-gray-500">Loan</span>
+            <FaLock className="text-gray-500 ml-auto" />
+          </li>
         )}
 
+        {/* File Maintenance */}
         <li className="mb-2">
-          <Link
-            to="/file-maintenance"
-            className="flex items-center w-full text-gray-700 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaFile className="mr-2 text-gray-700" />
-            <span>File Maintenance</span>
-          </Link>
+          {renderItem(allowed.fileMaintenance, "/file-maintenance", <FaFile className="text-gray-700" />, "File Maintenance")}
         </li>
 
+        {/* Report Generation */}
         <li className="mb-2">
-          <Link
-            to="/report"
-            className="flex items-center w-full text-gray-700 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaChartLine className="mr-2 text-gray-700" />
-            <span>Report</span>
-          </Link>
+          {renderItem(allowed.report, "/report", <FaChartLine className="text-gray-700" />, "Report")}
         </li>
 
+        {/* Users */}
         <li className="mb-2">
-          <Link
-            to="/users"
-            className="flex items-center w-full text-gray-700 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaUsers className="mr-2 text-gray-700" />
-            <span>Users</span>
-          </Link>
+          {renderItem(allowed.users, "/users", <FaUsers className="text-gray-700" />, "Users")}
         </li>
 
+        {/* Announcement */}
         <li className="mb-2">
-          <Link
-            to="/announcement"
-            className="flex items-center w-full text-gray-700 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaBullhorn className="mr-2 text-gray-700" />
-            <span>Announcement</span>
-          </Link>
+          {renderItem(allowed.announcement, "/announcement", <FaBullhorn className="text-gray-700" />, "Announcement")}
         </li>
 
+        {/* Maintenance */}
         <li className="mb-2">
-          <Link
-            to="/maintenance"
-            className="flex items-center w-full text-gray-700 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
-          >
-            <FaWrench className="mr-2 text-gray-700" />
-            <span>Maintenance</span>
-          </Link>
+          {renderItem(allowed.maintenance, "/maintenance", <FaWrench className="text-gray-700" />, "Maintenance")}
         </li>
 
+        {/* Log out - Always allowed */}
         <li className="mb-2">
-          <Link
-            to="/logout"
-            className="flex items-center w-full text-gray-700 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200"
+          <div
+            onClick={handleLogout}
+            className="flex items-center w-full text-gray-600 hover:text-blue-500 p-2 rounded-md hover:bg-gray-200 transition-colors cursor-pointer"
           >
             <FaSignOutAlt className="mr-2 text-gray-700" />
             <span>Log out</span>
-          </Link>
+          </div>
         </li>
       </ul>
     </div>

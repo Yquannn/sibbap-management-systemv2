@@ -10,6 +10,7 @@ router.get('/users', userController.getAllUsers)
 router.delete('/user/:id', userController.deleteUser); 
 router.put('/user/:id', userController.updateUser);
 
+router.get('/user/email/:email', userController.getUserByEmail);
 
 // router.put('/user/:id', userController.updateUser); 
 

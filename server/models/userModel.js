@@ -97,4 +97,22 @@ const updateUserById = async (id, userData) => {
 };
 
 
-module.exports = { getAllUsers, insertUser, updateUserById };
+const getUserByEmail = async (email) => {
+  const query = 'SELECT * FROM users WHERE email = ?';
+
+  try {
+    const [result] = await db.execute(query, [email]);
+
+    if (result.length === 0) {
+      throw new Error('User not found');
+    }
+
+    return result[0]; // Return the user object
+  } catch (error) {
+    console.error('Error fetching user by email:', error.message);
+    throw new Error('Error fetching user by email');
+  }
+};
+
+
+module.exports = { getAllUsers, insertUser, updateUserById, getUserByEmail };

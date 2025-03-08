@@ -29,18 +29,17 @@ const findSavingsByMemberId = async (memberId) => {
  * @param {number} newAmount - The new amount to set
  * @returns {boolean} - True if the record was updated, false otherwise
  */
-
-const updateSavingsAmount = async (memberId, amount, transactionType) => {
+const updateSavingsAmount = async (memberId, authorized, user_type, amount, transactionType) => {
   let conn;
-  const transactionNumber = generateTransactionNumber(); // Generate the transaction number
+  const transactionNumber = generateTransactionNumber(); // Generate a unique transaction number
 
   try {
     // Ensure the amount is valid
-    if (amount === undefined || amount === null || isNaN(amount) || amount <= 0) {
+    if (!amount || isNaN(amount) || amount <= 0) {
       throw new Error('Invalid deposit amount');
     }
 
-    // Fetch the current savings balance to calculate the new amount
+    // Fetch the current savings balance
     const savings = await findSavingsByMemberId(memberId);
     if (!savings) {
       throw new Error('Savings record not found for the member');
@@ -48,20 +47,17 @@ const updateSavingsAmount = async (memberId, amount, transactionType) => {
 
     let newAmount;
     if (transactionType === 'Deposit') {
-      // Add deposit amount to current balance
       newAmount = parseFloat(savings.amount) + parseFloat(amount);
     } else if (transactionType === 'Withdrawal') {
-      // Ensure sufficient funds for withdrawal
       if (parseFloat(savings.amount) < amount) {
         throw new Error('Insufficient funds for withdrawal');
       }
-      // Subtract amount for withdrawal
       newAmount = parseFloat(savings.amount) - parseFloat(amount);
     } else {
       throw new Error('Invalid transaction type');
     }
 
-    // Ensure newAmount is a valid number and round to two decimal places
+    // Round to two decimal places
     newAmount = parseFloat(newAmount).toFixed(2);
     if (isNaN(newAmount)) {
       throw new Error('Invalid new amount calculated');
@@ -69,7 +65,7 @@ const updateSavingsAmount = async (memberId, amount, transactionType) => {
 
     console.log(`New amount calculated for memberId=${memberId}: ${newAmount}`);
 
-    // Start a database transaction
+    // Start a transaction
     conn = await db.getConnection();
     await conn.beginTransaction();
 
@@ -81,37 +77,36 @@ const updateSavingsAmount = async (memberId, amount, transactionType) => {
       throw new Error('Failed to update savings amount');
     }
 
-    // Step 2: Insert a new transaction history record
+    // Insert a new transaction history record
     const amountToStore = transactionType === 'Withdrawal' ? -Math.abs(amount) : Math.abs(amount);
 
     const queryInsertTransaction = `
       INSERT INTO regular_savings_transaction 
-      (regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time)
+      (regular_savings_id, transaction_number, authorized, user_type, transaction_type, amount, transaction_date_time)
       VALUES (
         (SELECT savingsId FROM regular_savings WHERE memberId = ? LIMIT 1),
-        ?, ?, ?, NOW()
+        ?, ?, ?, ?, ?, NOW()
       )
     `;
-    const values = [memberId, transactionNumber, transactionType, amountToStore];
+    const values = [memberId, transactionNumber, authorized, user_type, transactionType, amountToStore];
     const [insertResult] = await conn.execute(queryInsertTransaction, values);
 
     if (insertResult.affectedRows === 0) {
       throw new Error('Failed to record transaction');
     }
 
-    // Commit the transaction if both steps succeed
+    // Commit the transaction
     await conn.commit();
 
     return { success: true, message: 'Savings amount updated and transaction recorded' };
   } catch (error) {
-    if (conn) await conn.rollback(); // Rollback in case of error
+    if (conn) await conn.rollback(); // Rollback on error
     console.error('Error updating savings amount and transaction:', error.message);
-    throw error; // Throw error to be handled by the caller
+    throw error;
   } finally {
     if (conn) conn.release(); // Release DB connection
   }
 };
-
 
 
 
@@ -281,52 +276,50 @@ runDaily(() => console.log("Running daily task!"));
 // }, 10000); // 50 seconds
 
 
-
-
-async function createTransaction(transactionData) {
+async function insertTransaction(transactionData) {
   let conn;
 
   try {
+    // Validate only the fields sent by the front end
     if (
       !transactionData.regular_savings_id ||
       !transactionData.transaction_type ||
+      !transactionData.authorized ||
       transactionData.amount === undefined
     ) {
       throw new Error("All fields are required");
     }
 
     conn = await db.getConnection();
-    await conn.beginTransaction(); // Start transaction
+    await conn.beginTransaction();
 
     // Generate unique transaction number
     const transactionNumber = generateTransactionNumber();
 
     const query = `
       INSERT INTO regular_savings_transaction 
-      (regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time)
-      VALUES (?, ?, ?, ?, NOW())  -- Use NOW() for current timestamp
+      (regular_savings_id, transaction_number, authorized, transaction_type, amount, transaction_date_time)
+      VALUES (?, ?, ?, ?, ?, NOW())
     `;
 
     const values = [
       transactionData.regular_savings_id,
       transactionNumber,
+      transactionData.authorized,
       transactionData.transaction_type,
-      transactionData.amount
+      transactionData.amount,
     ];
 
     const [result] = await conn.query(query, values);
     
-    await conn.commit(); // Commit transaction
-
-
-
-    return { success: true, transactionNumber, insertId: result.insertId }; // Return success response
+    await conn.commit();
+    return { success: true, transactionNumber, insertId: result.insertId };
   } catch (error) {
-    if (conn) await conn.rollback(); // Rollback on error
+    if (conn) await conn.rollback();
     console.error("❌ Error inserting transaction:", error.message);
-    throw error; // Throw error so it can be handled by the caller
+    throw error;
   } finally {
-    if (conn) conn.release(); // Release DB connection
+    if (conn) conn.release();
   }
 }
 
@@ -350,9 +343,10 @@ async function getTransactionById(transactionNumber) {
 async function getRegularSavingsMemberInfoById(memberId) {
   try {
     const query = `
-      SELECT m.*, rs.* 
+      SELECT m.*, rs.*, s.email
       FROM members AS m
       INNER JOIN regular_savings AS rs ON m.memberId = rs.memberId
+      INNER JOIN member_account AS s ON m.memberId = s.memberId
       WHERE m.memberId = ?`;
       
     const [rows] = await db.query(query, [memberId]);
@@ -370,7 +364,7 @@ module.exports = {
   findSavingsByMemberId,
   updateSavingsAmount,
   getEarnings,
-  createTransaction,
+  insertTransaction,
   getAllTransactions,
   getTransactionById,
   getRegularSavingsMemberInfoById,

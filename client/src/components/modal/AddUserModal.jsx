@@ -166,9 +166,9 @@ const UserModal = ({ onClose, user, onSave }) => {
                 onChange={handleChange}
                 className="mt-1 p-2 border border-gray-300 rounded-md w-full"
               >
-                <option value="System admin">System admin</option>
-                <option value="General manager">General manager</option>
-                <option value="Loan officer">Loan officer</option>
+                <option value="System Admin">System Admin</option>
+                <option value="General Manager">General Manager</option>
+                <option value="Loan Officer">Loan Officer</option>
                 <option value="Teller">Teller</option>
                 {/* <option value="Member">Member</option> */}
 
