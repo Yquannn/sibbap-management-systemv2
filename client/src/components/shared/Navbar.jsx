@@ -15,7 +15,7 @@ const Navbar = () => {
   if (!isNavbarVisible) return null; // Hide navbar if the page is not in allowedPaths
 
   return (
-    <div className="fixed bottom-0 left-0 w-full px-4 mb-5">
+    <div className="fixed bottom-0 left-0 w-full px-4 mb-5 z-[1000]">
       <nav className="rounded-[30px] bg-gray-200 shadow-lg p-2 flex justify-around items-center border-t">
         <Link to="/member-dashboard" onClick={() => setActive("home")} className={`flex flex-col items-center ${active === "home" ? "text-green-600" : "text-gray-500"}`}>
           <HomeIcon size={24} />

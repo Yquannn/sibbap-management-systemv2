@@ -7,5 +7,6 @@ module.exports = {
   plugins: [require("daisyui")], // Adds DaisyUI plugin
   daisyui: {
     themes: ["light"], // Forces light mode only
+    darkTheme: false, // Disables dark mode
   },
 };

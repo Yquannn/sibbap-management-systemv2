@@ -8,22 +8,64 @@ import {
   ArrowRight, 
   Briefcase, 
   DollarSign, 
-  History, 
   CircleAlert 
 } from "lucide-react";
 import { motion } from "framer-motion";
 import defaultPicture from "../assets/blankPicture.png";
-import TimedepositCalculator from "./utils/TimedepositCalculator";
-import ShareCapital from "../../admin/savingsPages/SharedCapital";
 import ShareCapitalCalculator from "./utils/ShareCapitalCalculator";
 import { count } from "../notification/NotificationPage";
 
 export let memberId = "";
 
+// Skeleton component to mimic the dashboard UI
+const DashboardSkeleton = () => {
+  return (
+    <div className="min-h-screen">
+      {/* Header Skeleton */}
+      <div className="flex items-center justify-between bg-gray-200 p-2 rounded-lg animate-pulse">
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+          <div className="ml-3">
+            <div className="w-32 h-4 bg-gray-300 rounded"></div>
+            <div className="w-24 h-3 bg-gray-300 rounded mt-1"></div>
+          </div>
+        </div>
+        <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+      </div>
+      {/* Balance Cards Skeleton */}
+      <div className="mt-4 space-y-4">
+        <div className="flex space-x-4 overflow-x-auto">
+          {[...Array(1)].map((_, index) => (
+            <div key={index} className="w-[300px] h-32 bg-gray-300 rounded-lg animate-pulse"></div>
+          ))}
+        </div>
+        {/* Math Tools Skeleton */}
+        <div className="mt-4">
+          <div className="w-40 h-7 bg-gray-300 rounded mb-2"></div>
+          <div className="flex space-x-2 overflow-x-auto">
+            {[...Array(2)].map((_, index) => (
+              <div key={index} className="w-[220px] h-32 bg-gray-300 rounded-lg animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+        {/* Announcements Skeleton */}
+        <div className="mt-4">
+          <div className="w-48 h-7 bg-gray-300 rounded mb-2"></div>
+          <div className="grid grid-cols-2 gap-4">
+            {[...Array(2)].map((_, index) => (
+              <div key={index} className="h-32 bg-gray-300 rounded-lg animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const [member, setMember] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // for initial load
+  const [refreshing, setRefreshing] = useState(false); // for refresh on scroll up
   const [error, setError] = useState("");
   const [activeIndex2, setActiveIndex2] = useState(0);
   const navigate = useNavigate();
@@ -60,39 +102,78 @@ const Dashboard = () => {
     }
   };
 
-  memberId = member.memberId
-  useEffect(() => {
-    const fetchMemberData = async () => {
-      try {
-        const email = localStorage.getItem("userEmail");
-        if (!email) {
-          throw new Error("User email not found. Please log in again.");
-        }
+  memberId = member.memberId;
 
-        const response = await axios.get(
-          `http://192.168.254.100:3001/api/member/email/${email}`
-        );
-
-        if (response.data) {
-          setMember(response.data);
-        } else {
-          throw new Error("No member data found.");
-        }
-      } catch (err) {
-        setError(err.message || "Error fetching member data.");
-      } finally {
+  // Function to fetch/reload member data.
+  // When called with isRefresh=true, we simulate a slight delay so the refresh indicator shows.
+  const fetchMemberData = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+      // Simulate a delay (e.g., 1 second) so the refresh indicator remains visible.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } else {
+      setLoading(true);
+    }
+    try {
+      const email = localStorage.getItem("userEmail");
+      if (!email) {
+        throw new Error("User email not found. Please log in again.");
+      }
+      const response = await axios.get(
+        `http://192.168.254.100:3001/api/member/email/${email}`
+      );
+      if (response.data) {
+        setMember(response.data);
+      } else {
+        throw new Error("No member data found.");
+      }
+    } catch (err) {
+      setError(err.message || "Error fetching member data.");
+    } finally {
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
         setLoading(false);
       }
-    };
+    }
+  };
 
+  // Initial data fetch
+  useEffect(() => {
     fetchMemberData();
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  // Scroll listener: reload data when user scrolls upward more than 50px.
+  // When triggered, the refresh indicator will appear.
+  const lastScrollY = useRef(window.pageYOffset);
+  useEffect(() => {
+    const threshold = 50;
+    const handleWindowScroll = () => {
+      const currentScrollY = window.pageYOffset;
+      if (!loading && !refreshing && lastScrollY.current - currentScrollY > threshold) {
+        fetchMemberData(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [loading, refreshing]);
+
+  if (loading) return <DashboardSkeleton />;
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Refreshing Indicator */}
+      {refreshing && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mb-4">
+          <div className="">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+          </div>
+        </div>
+
+      )}
+
       {/* Header Section */}
       <div className="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
         <div className="flex items-center">
@@ -106,14 +187,13 @@ const Dashboard = () => {
             className="w-10 h-10 rounded-full border-2 border-green-500 cursor-pointer"
             onClick={() => navigate("/member-profile")}
           />
-         <div className="ml-3">
+          <div className="ml-3">
             <p className="text-lg font-semibold">
               {member?.first_name} {member?.last_name}
             </p>
             <p className="text-sm">
               Code No. <span className="text-gray-500 text-sm">{member.memberCode}</span>
             </p>
-
           </div>
         </div>
 
@@ -165,28 +245,6 @@ const Dashboard = () => {
               </p>
             </div>
           </motion.div>
-
-          {/* Dividend Collected */}
-          {/* <motion.div className="snap-center shrink-0 w-[300px]">
-            <div className="bg-cyan-600 text-white p-6 rounded-lg w-full">
-              <p className="text-sm text-gray-100">Dividend Collected Balance</p>
-              <p className="text-4xl font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.dividend || 0)}
-              </p>
-              <hr className="my-3 border-t border-white/30" />
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-100">Total Earnings</p>
-                <button className="text-white rounded-lg transition">
-                  <CircleAlert size={25} />
-                </button>
-              </div>
-              <p className="text-sm font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
-              </p>
-            </div>
-          </motion.div> */}
-
-          
 
           {/* Share Capital */}
           <motion.div className="snap-center shrink-0 w-[300px]">

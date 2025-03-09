@@ -15,9 +15,9 @@ const MemberProfileModal = ({ isOpen, onClose, member: initialMember }) => {
   if (!isOpen || !member) return null;
 
   // Helper to build an image URL (adjust base URL as needed)
-  const imageUrl = (filename) =>
+ const imageUrl = (filename) =>
     filename ? `http://localhost:3001/uploads/${filename}` : "";
-
+ 
   // Format date helper
   const formatDate = (dateStr) => {
     if (!dateStr) return "";

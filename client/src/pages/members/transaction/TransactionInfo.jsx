@@ -89,8 +89,17 @@ const TransactionInfo = () => {
                 {/* From Section */}
                 <div className="flex justify-between gap-2">
                     <span className="text-gray-700 text-xs">From:</span>
-                    <span className="text-gray-800 text-xs">Sibbap Coop</span>
+                    <div className="flex items-center gap-2">
+                        <img
+                        src={logo || "default-avatar.png"}
+                        alt="Receiver"
+                        className="w-6 h-6 rounded-full border"
+                        />
+                        <span className="text-gray-600 text-sm">Sibbap Coop</span>
+                    </div>
                 </div>
+                {/* <hr className="my-2 border-gray-150" /> */}
+
 
                 <div className="flex justify-between items-center mt-2">
                     <span className="text-gray-700 text-xs">To:</span>
@@ -100,9 +109,11 @@ const TransactionInfo = () => {
                         alt="Receiver"
                         className="w-8 h-8 rounded-full border"
                         />
-                        <span className="text-gray-800 text-sm font-semibold">{transaction.first_name} {transaction.last_name}</span>
+                        <span className="text-gray-800 text-sm ">{transaction.first_name} {transaction.last_name}</span>
                     </div>
                 </div>
+                {/* <hr className="my-2 border-gray-150" /> */}
+
 
 
                 {/* Authorized By Section - Properly Aligned */}
@@ -114,7 +125,7 @@ const TransactionInfo = () => {
                         alt="Receiver"
                         className="w-5 h-5 rounded-full border"
                         />
-                        <span className="text-gray-800 text-xs">{transaction.authorized || "Sibbap"}</span>
+                        <span className="text-gray-600 text-xs">{transaction.authorized || "Sibbap"}</span>
                     </div>
                 </div>
 
@@ -145,7 +156,7 @@ const TransactionInfo = () => {
                 </div>
 
                 {/* Horizontal Line for Separation */}
-                <hr className="my-2 border-gray-300" />
+                <hr className="my-2 border-gray-150" />
 
                 {/* Second Row - Transaction Date & Time */}
                 <div className="flex justify-between items-center w-full">
