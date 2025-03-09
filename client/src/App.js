@@ -30,6 +30,7 @@ import LoanDetails from "./pages/members/loan/LoanDetails";
 import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration"; 
 import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
 import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
+import TransactionInfo from "./pages/members/transaction/TransactionInfo"
 
 function App() {
   return (
@@ -84,6 +85,8 @@ function App() {
         <Route path="member-loan" element={<MemberLoanPage />} />
         <Route path="member-regular-savings-transaction" element={<RegularSavingsTransactionHistory />} />
         <Route path="member-loan-details" element={<LoanDetails />} />
+        <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />
+
       </Route>
     </Routes>
   );

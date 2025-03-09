@@ -1,23 +1,15 @@
 const { insertUser } = require('../models/userModel'); 
-const {updateUserById, getUserByEmail} = require('../models/userModel');
-const validator = require('validator'); 
-
+const { updateUserById, getUserByEmail } = require('../models/userModel'); 
 const db = require('../config/db');
-
-
 const { getAllUsers } = require('../models/userModel'); 
 
 // Get all users
 exports.getAllUsers = async (req, res) => {
   try {
-
     const users = await getAllUsers();
-
     if (users.length === 0) {
       return res.status(404).json({ message: 'No users found' });
     }
-
-    // Send success response with the list of users
     res.status(200).json(users);
   } catch (error) {
     console.error('Error fetching users:', error.message);
@@ -33,28 +25,18 @@ exports.addUser = async (req, res) => {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  // Validate email format
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ message: 'Invalid email format' });
-  }
   if (password.length < 8) {
     return res.status(400).json({ message: 'Password must be at least 8 characters long' });
   }
 
   try {
-
-    // Insert the user into the database
     const userId = await insertUser(userName, age, gender, address, contactNo, email, password, userType);
-
-    // Send success response with the new user ID
     res.status(201).json({
       message: 'User added successfully',
-      userId: userId, // Return the ID of the newly created user
+      userId: userId, 
     });
   } catch (error) {
     console.error('Error adding user:', error.message);
-    
-    // Send a more specific error message to the client
     if (error.message.includes('Database connection was refused')) {
       res.status(503).json({ message: 'Database is unavailable, please try again later.' });
     } else if (error.message.includes('User already exists')) {
@@ -64,7 +46,6 @@ exports.addUser = async (req, res) => {
     }
   }
 };
-
 
 exports.deleteUser = async (req, res) => {
   const id = req.params.id;
@@ -77,12 +58,11 @@ exports.deleteUser = async (req, res) => {
 
   try {
     await connection.beginTransaction();
-
     const accountQuery = "DELETE FROM users WHERE id = ?";
     await connection.execute(accountQuery, [id]);
     await connection.commit();
 
-    res.json({ message: 'user deleted successfully' });
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting data from MySQL:', error);
     await connection.rollback();
@@ -98,10 +78,6 @@ exports.updateUser = async (req, res) => {
 
   if (!userName || !age || !gender || !address || !contactNo || !email || !userType) {
     return res.status(400).json({ message: 'All fields are required' });
-  }
-
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ message: 'Invalid email format' });
   }
 
   try {
@@ -120,18 +96,19 @@ exports.updateUser = async (req, res) => {
 exports.getUserByEmail = async (req, res) => {
   const email = req.params.email;
 
-  if (!email || !validator.isEmail(email)) {
-    return res.status(400).json({ message: 'Invalid email format' });
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
   }
 
   try {
-    const user = await getUserByEmail(email);
+    const { user, member } = await getUserByEmail(email);
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    // Return 404 only if neither a user nor a member is found
+    if (!user && !member) {
+      return res.status(404).json({ message: 'User or member not found' });
     }
 
-    res.status(200).json(user);
+    res.status(200).json({ user, member });
   } catch (error) {
     console.error('Error fetching user by email:', error.message);
     res.status(500).json({ message: 'Error fetching user from the database' });

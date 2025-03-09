@@ -31,7 +31,7 @@ const RegularSavingsTransactionHistory = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://192.168.254.104:3001/api/member/email/${email}`
+          `http://192.168.254.100:3001/api/member/email/${email}`
         );
 
         if (response.data && response.data.transactions) {
@@ -49,32 +49,30 @@ const RegularSavingsTransactionHistory = () => {
     fetchTransactions();
   }, [email]);
 
-  const filteredTransactions = 
+  const filteredTransactions =
     filter === "All"
       ? transactions
       : transactions.filter((txn) => txn.transaction_type === filterMapping[filter]);
 
   // Sort by transaction_date_time (newest first) without mutating state
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => 
+  const sortedTransactions = [...filteredTransactions].sort((a, b) =>
     new Date(b.transaction_date_time) - new Date(a.transaction_date_time)
   );
 
-  // const totalBalance = Array.isArray(transactions)
-  //   ? transactions.reduce((acc, txn) => {
-  //       const amount = Number(txn.amount) || 0; 
-  //       return txn.transaction_type === "Withdrawal" ? acc - amount : acc + amount;
-  //     }, 0)
-  //   : 0;
-    
   return (
     <div className="max-w-lg mx-auto">
       <div className="header">
-        <button className="flex items-center text-gray-700 hover:text-black mb-6" onClick={() => navigate(-1)}>
+        <button
+          className="flex items-center text-gray-700 hover:text-black mb-6"
+          onClick={() => navigate(-1)}
+        >
           <ArrowLeft size={20} className="mr-2" /> Back
         </button>
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Regular Savings Transaction History</h2>
+          <h2 className="text-xl font-semibold">
+            Regular Savings Transaction History
+          </h2>
         </div>
 
         <div className="flex space-x-2 mb-4">
@@ -82,7 +80,9 @@ const RegularSavingsTransactionHistory = () => {
             <button
               key={category}
               className={`px-3 py-0.5 rounded-lg text-sm ${
-                filter === category ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                filter === category
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-200 text-gray-600"
               }`}
               onClick={() => setFilter(category)}
             >
@@ -100,8 +100,12 @@ const RegularSavingsTransactionHistory = () => {
         <div className="divide-y divide-gray-200">
           {sortedTransactions.length > 0 ? (
             sortedTransactions.map((txn) => (
-              <div key={txn.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
+              <div
+                key={txn.id}
+                className="flex items-center justify-between py-3 hover:bg-gray-100 p-2"
+                onClick={() => navigate(`/regular-savings-transaction-info/${txn.regular_savings_transaction_id}`)}
+              >
+                <div className="flex items-center gap-3 mb-1">
                   {txn.transaction_type === "Deposit" ? (
                     <CreditCard className="text-green-500" size={24} />
                   ) : txn.transaction_type === "Withdrawal" ? (
@@ -112,34 +116,40 @@ const RegularSavingsTransactionHistory = () => {
                   <div>
                     <p className="font-medium">{txn.transaction_type}</p>
                     <p className="text-sm text-gray-500">
-                      {moment.utc(txn.transaction_date_time)
+                      {moment
+                        .utc(txn.transaction_date_time)
                         .tz("Asia/Manila")
                         .format("MMMM D, YYYY • hh:mm")}
                     </p>
-
-                    <div className="flex items-center text-xs text-gray-400">
+                    {/* <div className="flex items-center text-xs text-gray-400">
                       <Hash size={14} className="mr-1" />
                       {txn.transaction_number}
-                    </div>
+                    </div> */}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <p className={`font-semibold ${txn.transaction_type === "Withdrawal" ? "text-red-500" : "text-green-500"}`}>
-                    {txn.transaction_type === "Withdrawal" ? "−" : "+"}₱{Math.abs(txn.amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}
+                  <p
+                    className={`font-semibold ${
+                      txn.transaction_type === "Withdrawal"
+                        ? "text-red-500"
+                        : "text-green-500"
+                    }`}
+                  >
+                    {txn.transaction_type === "Withdrawal" ? "−" : "+"}₱
+                    {Math.abs(txn.amount)
+                      .toFixed(2)
+                      .replace(/\d(?=(\d{3})+\.)/g, "$&,")}
                   </p>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-gray-500 text-center py-4">No transactions found.</p>
+            <p className="text-gray-500 text-center py-4">
+              No transactions found.
+            </p>
           )}
         </div>
       )}
-
-      {/* <div className="mt-4 p-3 bg-gray-100 rounded-lg text-center">
-        <p className="text-gray-500 text-sm">Total Balance</p>
-        <p className="text-lg font-bold">₱{totalBalance.toLocaleString()}</p>
-      </div> */}
     </div>
   );
 };

@@ -96,18 +96,19 @@ const updateUserById = async (id, userData) => {
   }
 };
 
-
 const getUserByEmail = async (email) => {
-  const query = 'SELECT * FROM users WHERE email = ?';
+  const queryUser = 'SELECT * FROM users WHERE email = ?';
+  const queryMember = 'SELECT * FROM member_account WHERE email = ?';
 
   try {
-    const [result] = await db.execute(query, [email]);
+    const [userResult] = await db.execute(queryUser, [email]);
+    const [memberResult] = await db.execute(queryMember, [email]);
 
-    if (result.length === 0) {
-      throw new Error('User not found');
-    }
+    const user = userResult.length > 0 ? userResult[0] : null;
+    const member = memberResult.length > 0 ? memberResult[0] : null;
 
-    return result[0]; // Return the user object
+    // No need to throw an error here; let the controller handle the 404 case.
+    return { user, member };
   } catch (error) {
     console.error('Error fetching user by email:', error.message);
     throw new Error('Error fetching user by email');

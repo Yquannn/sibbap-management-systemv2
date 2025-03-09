@@ -333,10 +333,18 @@ async function getAllTransactions() {
 
 // Get a transaction by ID
 async function getTransactionById(transactionNumber) {
-  const query = `SELECT * FROM regular_savings_transaction  WHERE transaction_number = ?`;
+  const query = `
+    SELECT rst.*, m.last_name, m.first_name, m.id_picture
+    FROM regular_savings_transaction rst
+    JOIN regular_savings rs ON rst.regular_savings_id = rs.savingsId
+    JOIN members m ON rs.memberId = m.memberId
+    WHERE rst.regular_savings_transaction_id = ?`;
+  
   const [rows] = await db.query(query, [transactionNumber]);
   return rows[0];
 }
+
+
 
 
 

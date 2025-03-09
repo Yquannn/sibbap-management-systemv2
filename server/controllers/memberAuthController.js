@@ -6,7 +6,7 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Call the findByEmail function and pass both email and password
+        // Call the findByEmail function
         const member = await findByEmail.findByEmail(email, password);
         
         if (!member) {
@@ -16,7 +16,7 @@ exports.login = async (req, res) => {
         // Create JWT payload
         const payload = {
             member: {
-                id: member.id, // Use the member ID from the database
+                id: member.MemberId, // Use MemberId from the database
             },
         };
 

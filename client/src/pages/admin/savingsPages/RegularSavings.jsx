@@ -38,14 +38,13 @@ const RegularSavings = ({ openModal, handleDelete }) => {
   }
 
   return (
-    <div className="p-0">
-      {/* Header with Total Members */}
-      <div className="p-4 bg-white shadow-lg rounded-lg mb-6">
+    <div className="">
+      {/* Header with Total Members & Search Input */}
+      <div className="card bg-base-200 rounded-lg mb-6 p-4">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <h4 className="text-xl font-bold">
             Regular Savings Members - {members.length}
           </h4>
-          {/* Search Input */}
           <div className="w-full md:w-1/3">
             <div className="relative">
               <input
@@ -53,7 +52,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                 placeholder="Search by name, code..."
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                className="input input-bordered w-full pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
               />
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <FaSearch className="text-gray-400" />
@@ -63,11 +62,13 @@ const RegularSavings = ({ openModal, handleDelete }) => {
         </div>
       </div>
 
-      {/* Savings Table */}
-      <div className="overflow-x-auto" style={{ maxHeight: "60vh" }}>
-        <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
-          <thead className="sticky top-0 bg-green-200 z-20 text-center">
+      {/* Savings Table with vertical scrolling */}
+      <div className="overflow-y-auto max-h-[60vh]">
+        <table className="table w-full">
+          <thead className="text-center">
             <tr>
+              <th>
+              </th>
               {[
                 "Code Number",
                 "Account No.",
@@ -77,7 +78,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                 "Contact Number",
                 "Balance",
                 "Account Status",
-                "Actions",
+                "Actions"
               ].map((heading) => (
                 <th key={heading} className="py-3 px-4 border-b border-gray-300">
                   {heading}
@@ -92,6 +93,11 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                   key={index}
                   className="text-center hover:bg-gray-100 cursor-pointer"
                 >
+                  <th>
+                    <label>
+                      <input type="checkbox" className="checkbox" />
+                    </label>
+                  </th>
                   <td className="py-3 px-4 border-b border-gray-300">
                     {member.memberCode}
                   </td>
@@ -105,7 +111,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                     {new Date(member.date_of_birth).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
-                      day: "numeric",
+                      day: "numeric"
                     })}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300">
@@ -114,23 +120,21 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                   <td className="py-3 px-4 border-b border-gray-300">
                     {member.contact_number}
                   </td>
-                  
                   <td className="py-3 px-4 border-b border-gray-300">
                     {member.savingsAmount}
                   </td>
-                  {/* Fixed the status cell to properly display a default value */}
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
-                    <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 mr-2">
+                    <span className="badge badge-sm bg-green-100 text-green-700">
                       {member.savingsStatus || "Active"}
                     </span>
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300">
                     <div className="flex justify-center">
                       <button
-                        onClick={() => {
-                          navigate(`/regular-savings-info/${member.memberId}`);
-                        }}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center"
+                        onClick={() =>
+                          navigate(`/regular-savings-info/${member.memberId}`)
+                        }
+                        className="btn btn-success btn-sm flex items-center"
                       >
                         <FaEye className="mr-1" /> View
                       </button>
@@ -140,12 +144,26 @@ const RegularSavings = ({ openModal, handleDelete }) => {
               ))
             ) : (
               <tr>
-                <td colSpan={10} className="py-4 text-center">
+                <td colSpan={9} className="py-4 text-center">
                   No savings data found.
                 </td>
               </tr>
             )}
           </tbody>
+          {/* <tfoot className="">
+            <tr>
+              <th></th>
+              <th>Code Number</th>
+              <th>Account No.</th>
+              <th>Full Name</th>
+              <th>Date of birth</th>
+              <th>Age</th>
+              <th>Contact Number</th>
+              <th>Balance</th>
+              <th>Account Status</th>
+              <th>Actions</th>
+            </tr>
+          </tfoot> */}
         </table>
       </div>
     </div>

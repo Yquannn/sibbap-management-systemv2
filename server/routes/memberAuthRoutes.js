@@ -11,3 +11,4 @@ router.post('/auth/login', memberAuthController.login);
 // router.post('/auth/logout', memberAuthController.logout);
 
 module.exports = router;
+

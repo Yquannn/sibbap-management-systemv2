@@ -20,70 +20,101 @@ const LogIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!email.trim() || !password.trim()) {
       setErrorMessage('Email and password are required.');
       return;
     }
-
     setErrorMessage('');
     setLoading(true);
 
     try {
-      // Step 1: Authenticate the user using email and password
+      // Authenticate the user
       const authResponse = await axios.post(
-        'http://192.168.254.104:3001/api/auth',
+        'http://192.168.254.100:3001/api/auth',
         { email: email.trim(), password: password.trim() },
         { headers: { 'Content-Type': 'application/json' } }
       );
-
       console.log('Auth Response:', authResponse.data);
 
       if (authResponse.status === 200 && authResponse.data?.user) {
         const { user } = authResponse.data;
-
-        // Store basic user details in session storage
         sessionStorage.setItem('userLoggedIn', 'true');
         sessionStorage.setItem('userEmail', user.email);
 
-        // Step 2: Fetch additional user data using the provided endpoint
-        const userEndpoint = `http://localhost:3001/api/user/email/${user.email}`;
-        const userResponse = await axios.get(userEndpoint);
+        // Call both endpoints concurrently
+        const endpoints = [
+          `http://192.168.254.100:3001/api/member/email/${user.email}`,
+          `http://192.168.254.100:3001/api/user/email/${user.email}`
+        ];
+        const requests = endpoints.map(url => axios.get(url));
+        const results = await Promise.allSettled(requests);
+        
+        // Filter for successful responses with data
+        const validResults = results.filter(
+          result =>
+            result.status === 'fulfilled' &&
+            result.value.status === 200 &&
+            result.value.data
+        );
 
-        console.log('User Data Response:', userResponse.data);
+        if (validResults.length > 0) {
+          // If both endpoints return data, try to prioritize one that is not "Member"
+          let chosenResponse = null;
+          for (let res of validResults) {
+            const data = res.value.data;
+            // Try to get the candidate user object from different keys or directly
+            const candidate = data.user || data.member || data;
+            if (candidate && candidate.userType && candidate.userType !== 'Member') {
+              chosenResponse = res.value;
+              break;
+            }
+          }
+          if (!chosenResponse) {
+            chosenResponse = validResults[0].value;
+          }
 
-        if (userResponse.status === 200 && userResponse.data) {
-          // Assuming your API returns an object with userName, userType, and password
-          sessionStorage.setItem('username', userResponse.data.userName || 'Unknown User');
-          sessionStorage.setItem('usertype', userResponse.data.userType);
-          sessionStorage.setItem('password', userResponse.data.password);
-        }
+          // Retrieve the found user from the response data
+          const data = chosenResponse.data;
+          const foundUser = data.user || data.member || data;
 
-        alert('Login successful!');
+          if (!foundUser) {
+            setErrorMessage('User data not found.');
+          } else {
+            localStorage.setItem('userEmail', user.email)
+            sessionStorage.setItem('usertype', foundUser.userType || '');
+            sessionStorage.setItem('password', foundUser.password || '');
+            sessionStorage.setItem('username', foundUser.userName || '');
 
-        // Redirect based on userType
-        switch (user.userType) {
-          case 'Member':
-            setRedirectPath('/member-dashboard');
-            break;
-          case 'System Admin':
-            setRedirectPath('/dashboard');
-            break;
-          case 'Treasurer':
-            setRedirectPath('/loan-approval');
-            break;
-          case 'Loan Manager':
-            setRedirectPath('/apply-for-loan');
-            break;
-          case 'Teller':
-            setRedirectPath('/dashboard');
-            break;
-          default:
-            setRedirectPath('/');
-            break;
+            alert('Login successful!');
+            console.log('User Type:', foundUser.userType);
+
+            // Redirect based on the user type
+            switch (foundUser.userType) {
+              case 'Member':
+                setRedirectPath('/member-dashboard')
+                break
+              case 'System Admin':
+                setRedirectPath('/dashboard');
+                break;
+              case 'Treasurer':
+                setRedirectPath('/loan-approval');
+                break;
+              case 'Loan Manager':
+                setRedirectPath('/apply-for-loan');
+                break;
+              case 'Teller':
+                setRedirectPath('/dashboard');
+                break;
+              default:
+                setRedirectPath('/');
+                break;
+            }
+          }
+        } else {
+          setErrorMessage('Invalid response from server.');
         }
       } else {
-        setErrorMessage('Invalid response from server.');
+        setErrorMessage('Invalid email or password.');
       }
     } catch (error) {
       console.error('Login Error:', error.response?.data || error);
@@ -91,7 +122,6 @@ const LogIn = () => {
         error.response?.data?.error || 'Invalid email or password'
       );
     }
-
     setLoading(false);
   };
 

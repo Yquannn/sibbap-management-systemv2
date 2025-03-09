@@ -204,7 +204,6 @@ exports.getTransactionById = async (req, res) => {
   try {
     const { transactionNumber } = req.params;
     const transaction = await getTransactionById(transactionNumber);
-
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
