@@ -612,15 +612,20 @@ async function getExistingLoan(memberId) {
   }
 }
 
-
 async function getMemberLoansById(memberId) {  
   let conn;
   try {
     conn = await db.getConnection();
     const [rows] = await conn.query(
-      `SELECT la.*, m.first_name, m.last_name, m.middle_name
+      `SELECT 
+          la.*, 
+          frd.*, 
+          m.first_name, 
+          m.last_name, 
+          m.middle_name
        FROM loan_applications la
        JOIN members m ON la.memberId = m.memberId
+       LEFT JOIN feeds_rice_details frd ON la.loan_application_id = frd.loan_application_id
        WHERE m.memberId = ?`,
       [memberId]
     );
@@ -632,6 +637,32 @@ async function getMemberLoansById(memberId) {
   }
 }
 
+
+async function getLoanByLaId(loan_application_id) {  
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [rows] = await conn.query(
+      `SELECT 
+          la.*, 
+          frd.*, 
+          m.first_name, 
+          m.last_name, 
+          m.middle_name
+       FROM loan_applications la
+       JOIN members m ON la.memberId = m.memberId
+       LEFT JOIN feeds_rice_details frd ON la.loan_application_id = frd.loan_application_id
+       WHERE la.loan_application_id = ? 
+         AND la.status = 'Approved'`,
+      [loan_application_id]
+    );
+    return rows;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
 
 
 async function updateLoanRemarks(id, newStatus = "Waiting for Approval", remarks) {
@@ -702,5 +733,6 @@ module.exports = {
   getAllBorrowers,
   getMemberLoansById,
   updateLoanStatus,
-  getExistingLoan
+  getExistingLoan,
+  getLoanByLaId
 };

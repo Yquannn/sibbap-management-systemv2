@@ -124,6 +124,14 @@ const LoanInformation = ({
 
   // Transform formData to match the expected payload.
   const transformFormData = () => {
+    const baseLoanAmount = Number(loanInfo.loanAmount) || 0;
+    const sacks = Number(loanInfo.sacks) || 1; // default to 1 if sacks is zero or not provided
+    // Multiply loan amount by sacks if loan type is feeds or rice.
+    const finalLoanAmount =
+      (loanInfo.loanType === "feeds" || loanInfo.loanType === "rice")
+        ? baseLoanAmount * sacks
+        : baseLoanAmount;
+
     return {
       memberId: String(memberInfo.memberId),
       loan_type:
@@ -133,7 +141,7 @@ const LoanInformation = ({
           ? "Rice Loan"
           : loanInfo.loanType,
       application: loanInfo.applicationType,
-      loan_amount: Number(loanInfo.loanAmount),
+      loan_amount: finalLoanAmount,
       interest: Number(loanInfo.interest),
       terms: Number(loanInfo.loanTerms),
       balance: 0,
@@ -271,6 +279,8 @@ const LoanInformation = ({
       alert("Error submitting application. Please try again later.");
     }
   };
+
+  // Modal state to show success message.
 
   // Function to handle closing the modal.
   const closeModal = () => {
@@ -422,21 +432,9 @@ const LoanInformation = ({
             />
           </div>
           <div>
-         <label className="block font-medium text-gray-700 mb-1">
+            <label className="block font-medium text-gray-700 mb-1">
               Insurance
-              
             </label>
-                {/*
-            <select
-              name="insurance"
-              className="border p-3 rounded-lg w-full"
-              value={loanInfo.insurance}
-              onChange={handleLoanChange}
-            >
-              <option value="">Select Insurance Option</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select> */}
             <input
               type="number"
               name="insurance"

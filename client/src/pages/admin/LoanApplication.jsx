@@ -67,7 +67,7 @@ const Loan = () => {
         setIsLoanModalOpen 
       }}
     >
-      <div className="p-6">
+      <div className="">
         <h2 className="text-3xl font-bold mb-6">Apply for Loan</h2>
 
         {/* Filter Section */}

@@ -8,21 +8,27 @@ import logo from '../partials/logosibbap.png';
 
 const SideBar = () => {
   const [loanDropdown, setLoanDropdown] = useState(false);
-  const [username, setUsername] = useState('');
-  // Expected userType values: "Teller", "Loan Manager", "Treasurer", "General Manager", "System Admin"
   const [userType, setUserType] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    setUsername(sessionStorage.getItem('username'));
-    setUserType(sessionStorage.getItem('usertype')); // Default to Teller if not set
-  }, []);
+    // Retrieve userType from session storage
+    const storedUserType = sessionStorage.getItem('usertype');
+    // Allowed admin roles
+    const allowedAdminRoles = ["Teller", "Loan Manager", "Treasurer", "General Manager", "System Admin"];
+    
+    if (!storedUserType || !allowedAdminRoles.includes(storedUserType)) {
+      // Redirect to member dashboard if user is not authorized to access the admin panel.
+      navigate("/member-dashboard");
+    } else {
+      setUserType(storedUserType);
+    }
+  }, [navigate]);
 
   // Function to handle logout: clear storage then navigate to login route
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
-    console.log(sessionStorage.getItem("userType"));
     navigate('/'); // Adjust route if needed
   };
 
@@ -51,7 +57,6 @@ const SideBar = () => {
   };
 
   // Helper to render enabled link vs. disabled item with a lock icon.
-  // onClick is optional.
   const renderItem = (allowedFlag, to, icon, label, onClick = null) => {
     if (allowedFlag) {
       return (
@@ -76,16 +81,13 @@ const SideBar = () => {
   };
 
   return (
-    <div className="w-64 h-screen bg-gray-50 p-4 shadow-lg">
+    <div className="w-56 h-screen p-4 z-[10]">
       <img 
         src={logo} 
         alt="sibbap logo" 
         className="w-3/4 h-auto mb-4 mx-auto" 
       />
-      <h2 className="text-center text-xl font-bold text-gray-800 mb-2">
-        Welcome, {username}!
-      </h2>
-      <p className='text-center'>{userType}</p>
+
       <ul className="mt-10 space-y-2">
         {/* Dashboard - Always allowed */}
         <li className="mb-2">

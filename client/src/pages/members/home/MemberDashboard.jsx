@@ -120,7 +120,7 @@ const Dashboard = () => {
         throw new Error("User email not found. Please log in again.");
       }
       const response = await axios.get(
-        `http://192.168.254.100:3001/api/member/email/${email}`
+        `http://192.168.254.103:3001/api/member/email/${email}`
       );
       if (response.data) {
         setMember(response.data);
@@ -180,7 +180,7 @@ const Dashboard = () => {
           <img
             src={
               member?.id_picture
-                ? `http://192.168.254.100:3001/uploads/${member.id_picture}`
+                ? `http://192.168.254.103:3001/uploads/${member.id_picture}`
                 : defaultPicture
             }
             alt="Profile"
@@ -294,7 +294,7 @@ const Dashboard = () => {
         </div>
 
         {/* Indicator Dots */}
-        <div className="flex justify-center mt-[-3px] space-x-2">
+        <div className="flex justify-center mt-1 space-x-2">
           {[0, 1, 2].map((index) => (
             <span
               key={index}
@@ -308,11 +308,14 @@ const Dashboard = () => {
 
       {/* Math Tools Section */}
       <div className="mt-4">
-        <h2 className="text-lg font-semibold text-gray-700">Let’s Do Some Math!</h2>
+      <div className="mb-2">
+          <div className="text-sm font-medium text-gray-700 font-semibold">Let’s Do Some Math!</div>
+        </div>
+        {/* <h2 className="text-lg font-semibold text-gray-700">Let’s Do Some Math!</h2> */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto space-x-2 mt-4 pb-2 scrollbar-hide"
+          className="flex overflow-x-auto space-x-2 mt-2 pb-2 scrollbar-hide"
         >
           {/* Savings Card */}
           <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200 text-center min-w-[220px]">
@@ -380,8 +383,11 @@ const Dashboard = () => {
       {/* Announcements & Badge Section */}
       <div className="mb-3">
         <div className="mt-3">
-          <h2 className="text-lg font-semibold text-gray-700">Important Announcement!</h2>
-          <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="mb-2">
+          <div className="text-sm font-medium text-gray-700 font-semibold">Important Announcement!</div>
+        </div>
+          {/* <h2 className="text-lg font-semibold text-gray-700">Important Announcement!</h2> */}
+          <div className="grid grid-cols-2 gap-4 mt-2">
             {(member?.announcements?.length ? member.announcements : dummyMember.announcements).map(
               (announcement, index) => (
                 <div key={index} className="bg-gray-100 p-4 rounded-lg shadow-md">

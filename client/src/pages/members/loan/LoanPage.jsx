@@ -1,167 +1,205 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { CheckCircle, Clock, XCircle, ChevronRight } from "lucide-react";
+import { Activity, Clock, Receipt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import axios from "axios";
 import { memberId } from "../home/MemberDashboard";
 
-const MemberLoanPage = () => {
+const LoanPage = () => {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState("All");
-  const [loans, setLoans] = useState([]);
-  const [loading, setLoading] = useState(false);
+
+  // State variables for loan data, loading, and error.
+  const [loanData, setLoanData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch loans from backend for the given memberId
+  // Fetch loan data from backend API on component mount.
   useEffect(() => {
-    const fetchLoans = async () => {
-      setLoading(true);
+    const fetchLoanData = async () => {
+
+      // Ensure memberId exists before making the request.
+      if (!memberId) {
+        setError("Member ID not found.");
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await axios.get(
-          `http://192.168.254.100:3001/api/member-loan-application/${memberId}`
+          `http://192.168.254.103:3001/api/member-loan-application/${memberId}`
         );
-        setLoans(response.data);
+        
+        // Check if response.data is an array. If so, pick the first element.
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          setLoanData(response.data[0]);
+        } else if (response.data) {
+          setLoanData(response.data);
+        } else {
+          setError("No loan data found.");
+        }
       } catch (err) {
-        console.error("Error fetching loans:", err);
-        setError("Failed to fetch loans.");
+        console.error("Error fetching loan data:", err);
+        setError("Failed to load loan data.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLoans();
+    fetchLoanData();
   }, []);
 
-  // Map backend status to display status:
-  // "Waiting for evaluation" or "Passed" → "Pending"
-  // "Failed" → "Rejected"
-  const mapStatus = (status) => {
-    if (status === "Waiting for Approval") {
-      return "Pending";
-    }
-    if (status === "Failed") {
-      return "Rejected";
-    }
-    return status;
-  };
+  // Log loanData when it updates (for debugging).
+  useEffect(() => {
+    console.log("Loan Data updated:", loanData);
+  }, [loanData]);
 
-  // Return appropriate color classes based on display status
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Approved":
-        return "text-green-600 bg-green-100";
-      case "Pending":
-        return "text-yellow-600 bg-yellow-100";
-      case "Rejected":
-        return "text-red-600 bg-red-100";
-      default:
-        return "text-gray-600 bg-gray-200";
-    }
-  };
+  // Show a loading indicator while data is being fetched.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
-  // Return the icon based on display status
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Approved":
-        return <CheckCircle className="text-green-600" size={20} />;
-      case "Pending":
-        return <Clock className="text-yellow-600" size={20} />;
-      case "Rejected":
-        return <XCircle className="text-red-600" size={20} />;
-      default:
-        return null;
-    }
-  };
+  // Show an error message if there was an error.
+  if (error) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
 
-  // Filter loans based on selected filter using mapped status
-  const filteredLoans = loans.filter((loan) => {
-    const displayStatus = mapStatus(loan.status);
-    if (filter === "All") return true;
-    return displayStatus === filter;
-  });
+  // Destructure the fetched data with default values.
+  // Adjust these keys to match your API response.
+  const {
+    loan_amount = "0.00",
+    balance = "0.00",
+    loan_type = "N/A",
+    interest = "0.00",
+    terms = 1,
+    created_at = new Date().toISOString(),
+    status = "Pending",
+    client_voucher_number = "",
+    first_name = "",
+    last_name = "",
+    middle_name = "",
+    // For transactions, if not provided we default to an empty array.
+    transactions = [],
+  } = loanData || {};
+
+  // Compute upcoming repayment amount.
+  const principal = parseFloat(loan_amount);
+  const interestValue = parseFloat(interest);
+  const upcomingRepaymentAmount =
+    terms > 0 ? principal + (principal * interestValue) / 100 : principal;
+
+  // Compute a due date (30 days after loan creation).
+  const createdDate = new Date(created_at);
+  const dueDate = new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   return (
-    <div className="max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Loan Application Tracker</h2>
+    <div className="min-h-screen">
+      {/* Page Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Loan</h2>
+      </div>
 
-      {/* Filter Buttons */}
-      <div className="flex gap-2 mb-6">
-        {["All", "Approved", "Pending", "Rejected"].map((status) => (
+      <div className="max-w-md mx-auto">
+        {/* Top Card: Loan Amount / Balance */}
+        <motion.div className="snap-center shrink-0 w-[300px] mx-auto mb-6">
+          <div className="bg-green-600 text-white p-6 rounded-lg w-full shadow">
+            <p className="text-sm text-gray-100">Loan Amount</p>
+            <p className="text-4xl font-bold">
+              ₱{principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </p>
+            <hr className="my-3 border-t border-white/30" />
+            <div className="flex items-center justify-between">
+              <button
+                className="text-white text-sm font-semibold"
+                onClick={() => navigate("/member-regular-savings-transaction")}
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Row of Action Buttons */}
+        <div className="grid grid-cols-3 gap-4 mb-4">
           <button
-            key={status}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              filter === status ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"
-            }`}
-            onClick={() => setFilter(status)}
+            className="flex flex-col items-center justify-center bg-white p-2 rounded-lg shadow"
+            onClick={() => navigate("/member-loan-tracker")}
           >
-            {status}
+            <Activity className="w-6 h-6 text-green-600 mb-1" />
+            <span className="text-sm font-medium">Tracker</span>
           </button>
-        ))}
+
+          <button
+            className="flex flex-col items-center justify-center bg-white p-2 rounded-lg shadow"
+            onClick={() => navigate("/loan-history")}
+          >
+            <Clock className="w-6 h-6 text-green-600 mb-1" />
+            <span className="text-sm font-medium">History</span>
+          </button>
+
+          <button
+            className="flex flex-col items-center justify-center bg-white p-2 rounded-lg shadow"
+            onClick={() => navigate("/member-bills")}
+          >
+            <Receipt className="w-6 h-6 text-green-600 mb-1" />
+            <span className="text-sm font-medium">Bills</span>
+          </button>
+        </div>
+
+        {/* Upcoming Repayment */}
+        <div className="bg-white rounded-lg p-4 mb-4 shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-gray-600">Upcoming repayment</div>
+              <div className="font-semibold text-lg text-gray-900">
+                ₱{upcomingRepaymentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+              <div className="text-xs text-gray-400">
+                due by {dueDate.toLocaleDateString()}
+              </div>
+            </div>
+            <button className="bg-black text-white px-4 py-2 rounded-md">
+              Repay
+            </button>
+          </div>
+        </div>
+
+        {/* Recent Transactions */}
+        <div className="mb-2">
+          <div className="text-sm font-medium text-gray-700">Recent transactions</div>
+        </div>
+        {transactions.length > 0 ? (
+          transactions.map((txn) => (
+            <div key={txn.id} className="bg-white rounded-lg p-4 mb-4 shadow">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {txn.description}
+                  </div>
+                  <div className="text-xs text-gray-400">{txn.date}</div>
+                </div>
+                <div className={`font-semibold ${txn.amount < 0 ? "text-red-500" : "text-green-500"}`}>
+                  {txn.amount < 0 ? "-" : ""}₱{Math.abs(txn.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div className="flex items-center text-xs text-gray-500">
+                {txn.masked}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-sm text-gray-500">No transactions found.</p>
+        )}
       </div>
-
-      {/* Loading and Error States */}
-      {loading && <p className="text-center text-gray-500">Loading loans...</p>}
-      {error && <p className="text-center text-red-500">{error}</p>}
-
-      {/* Loans List */}
-      <div className="divide-y divide-gray-200 mb-14">
-        {filteredLoans.map((loan) => {
-          const displayStatus = mapStatus(loan.status);
-          return (
-  <div
-    key={loan.loan_application_id}
-    className="grid grid-cols-2 gap-4 py-4 cursor-pointer  transition-colors"
-    onClick={() => navigate(`/member-loan-details/${loan.loan_application_id}`)}
-  >
-    {/* Top Row: Date (left) & Voucher Number (right) */}
-    <div>
-      <p className="text-sm text-gray-500">
-        {new Date(loan.created_at).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })}
-      </p>
-    </div>
-    <div className="flex justify-end">
-      <p className="text-xs text-gray-8 00">
-        {loan.client_voucher_number || "N/A"} 
-      </p>
-    </div>
-
-    {/* Bottom Row: Loan type & amount (left) & Status (right) */}
-    <div>
-      <p className="font-semibold text-gray-800">{loan.loan_type}</p>
-      <p className="text-gray-700 font-medium">
-        ₱{parseFloat(loan.loan_amount).toLocaleString()}
-      </p>
-      {mapStatus(loan.status) === "Rejected" && loan.remarks && (
-        <p className="text-xs text-red-600">Remarks: {loan.remarks}</p>
-      )}
-    </div>
-    <div className="flex items-center justify-end gap-3">
-      {getStatusIcon(mapStatus(loan.status))}
-      <span
-        className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(mapStatus(loan.status))}`}
-      >
-        {mapStatus(loan.status)}
-      </span>
-      <ChevronRight size={30} className="text-gray-400" />
-    </div>
-  </div>
-);
-
-
-
-        })}
-      </div>
-
-      {filteredLoans.length === 0 && !loading && (
-        <p className="mt-6 text-center text-gray-500">
-          No loans found for the selected filter.
-        </p>
-      )}
     </div>
   );
 };
 
-export default MemberLoanPage;
+export default LoanPage;

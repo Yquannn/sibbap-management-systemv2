@@ -24,13 +24,14 @@ import MemberProfile from "./pages/members/profile/MemberProfile";
 import TimedepositCalculatorPage from "./pages/members/home/TimedepositCalculatorPage";
 import RegularSavingsCalculator from "./pages/members/home/utils/RegularSavingsCalculator";
 import ShareCapitalCalculator from "./pages/members/home/utils/ShareCapitalCalculator";
-import MemberLoanPage from "./pages/members/loan/LoanPage"
+import MemberLoanTracker from "./pages/members/loan/MemberLoanTracker"
 import RegularSavingsTransactionHistory from "./pages/members/home/transaction/RegularSavingsTransaction";
 import LoanDetails from "./pages/members/loan/LoanDetails";
 import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration"; 
 import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
 import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
 import TransactionInfo from "./pages/members/transaction/TransactionInfo"
+import LoanPage from "./pages/members/loan/LoanPage";
 
 function App() {
   return (
@@ -82,7 +83,8 @@ function App() {
         <Route path="timedeposit-calculator" element={<TimedepositCalculatorPage />} />
         <Route path="regular-savings-calculator" element={<RegularSavingsCalculator />} />
         <Route path="share-capital-calculator" element={<ShareCapitalCalculator />} />
-        <Route path="member-loan" element={<MemberLoanPage />} />
+        <Route path="member-loan" element={<LoanPage />} />
+        <Route path="member-loan-tracker" element={<MemberLoanTracker />} />
         <Route path="member-regular-savings-transaction" element={<RegularSavingsTransactionHistory />} />
         <Route path="member-loan-details" element={<LoanDetails />} />
         <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />

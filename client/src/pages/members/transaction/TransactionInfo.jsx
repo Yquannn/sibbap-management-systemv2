@@ -15,13 +15,13 @@ const TransactionInfo = () => {
   const navigate = useNavigate();
 
   const imageUrl = (filename) =>
-    filename ? `http://192.168.254.100:3001/uploads/${filename}` : "";
+    filename ? `http://192.168.254.103:3001/uploads/${filename}` : "";
 
   useEffect(() => {
     const fetchTransaction = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.254.100:3001/api/transactions/${transactionNumber}`
+          `http://192.168.254.103:3001/api/transactions/${transactionNumber}`
         );
         setTransaction(response.data);
       } catch (err) {
@@ -101,7 +101,7 @@ const TransactionInfo = () => {
                 {/* <hr className="my-2 border-gray-150" /> */}
 
 
-                <div className="flex justify-between items-center mt-2">
+                <div className="flex justify-between items-center mt-6  ">
                     <span className="text-gray-700 text-xs">To:</span>
                     <div className="flex items-center gap-2">
                         <img
@@ -116,7 +116,7 @@ const TransactionInfo = () => {
 
 
 
-                {/* Authorized By Section - Properly Aligned */}
+                {/* Authorized By Section - Properly Aligned
                 <div className="flex justify-between items-center mt-1">
                     <span className="text-gray-700 text-xs">Authorized by:</span>
                     <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ const TransactionInfo = () => {
                         />
                         <span className="text-gray-600 text-xs">{transaction.authorized || "Sibbap"}</span>
                     </div>
-                </div>
+                </div> */}
 
             </div>
             

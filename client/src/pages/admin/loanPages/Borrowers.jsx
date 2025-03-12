@@ -74,7 +74,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
   };
   
   return (
-    <div className="p-6">
+    <div className="">
       <h2 className="text-3xl font-bold mb-6">Borrowers</h2>
 
       {/* Filter Section */}

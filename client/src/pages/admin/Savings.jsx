@@ -7,7 +7,7 @@ const Savings = () => {
   const [activeTab, setActiveTab] = useState("RegularSavings"); // State to track the active tab
 
   return (
-    <div className="p-6">
+    <div className="">
       <h2 className="text-3xl font-bold mb-4">Savings</h2>
       <div className="p-4 bg-white shadow-lg rounded-lg mb-6">
         <button
