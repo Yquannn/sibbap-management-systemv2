@@ -1,41 +1,39 @@
 import React from 'react';
 import blank from './blankPicture.png';
-import { FaCog, FaSignOutAlt, FaQuestionCircle } from 'react-icons/fa';
+import { FaCog, FaQuestionCircle } from 'react-icons/fa';
 
-const UserHeader = ({ name, userType, notifications, logout }) => {
+const UserHeader = ({ name, userType, notifications }) => {
   return (
-    <div className="p-5 shadow-md flex justify-between items-center bg-white">
+    <div className="p-4 mb-4 flex justify-between items-center bg-white rounded shadow">
       {/* Left Section */}
       <div className="flex items-center space-x-4">
-        <div className="avatar">
-          <div className="w-12 h-12 rounded-full border-2 border-gray-300 overflow-hidden">
-            <img 
-              src={blank} 
-              alt={`${name} avatar`} 
-              className="w-full h-full object-cover" 
-            />
-          </div>
+        <div className="w-12 h-12 rounded-full border border-gray-300 overflow-hidden">
+          <img 
+            src={blank} 
+            alt={`${name} avatar`} 
+            className="w-full h-full object-cover" 
+          />
         </div>
         <div>
-          <div className="font-bold text-lg">Welcome, {name}!</div>
-          <div className="text-sm text-gray-500 flex items-center">
+          <h2 className="font-bold text-lg text-gray-800">Welcome, {name}!</h2>         
+          <p className="text-sm text-gray-500 flex items-center">
             {userType}
-            <span className="ml-2 flex items-center text-green-500 text-xs">
+            <span className="ml-2 flex items-center text-green-500">
               <svg className="w-2 h-2 fill-current mr-1" viewBox="0 0 8 8">
                 <circle cx="4" cy="4" r="3" />
               </svg>
               Online
             </span>
-          </div>
+          </p>
         </div>
       </div>
       
       {/* Right Section */}
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-4">
         {/* Notifications */}
-        <button className="relative">
+        <button className="relative text-gray-600 hover:text-gray-800">
           <svg 
-            className="w-6 h-6 text-gray-600 hover:text-gray-800" 
+            className="w-6 h-6" 
             fill="none" 
             stroke="currentColor" 
             strokeWidth="2" 
@@ -64,8 +62,6 @@ const UserHeader = ({ name, userType, notifications, logout }) => {
           <FaQuestionCircle className="w-6 h-6" />
           <span className="hidden md:inline text-sm">Help</span>
         </button>
-        {/* Logout */}
-        
       </div>
     </div>
   );

@@ -93,8 +93,7 @@ const AddAnnouncement = () => {
   }, []);
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-semibold text-gray-900 mb-6">System Announcements</h1>
+    <div className="">
       
       <div className="flex flex-wrap md:flex-nowrap space-x-8">
         {/* Form Section */}

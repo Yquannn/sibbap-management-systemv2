@@ -120,11 +120,8 @@ const Members = () => {
 
   return (
     <div className="">
-      <h2 className="text-3xl font-bold mb-4">Member List</h2>
-      
 
-
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
   <div className="card bg-gradient-to-r from-green-400 to-green-600 shadow-xl text-white">
     <div className="card-body flex items-center">
       <MdPeople className="text-5xl mr-4" />

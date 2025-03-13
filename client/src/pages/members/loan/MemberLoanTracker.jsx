@@ -20,6 +20,7 @@ const MemberLoanTracker = () => {
           `http://192.168.254.103:3001/api/member-loan-application/${memberId}`
         );
         setLoans(response.data);
+        console.log(loans.created_at)
       } catch (err) {
         console.error("Error fetching loans:", err);
         setError("Failed to fetch loans.");
@@ -32,10 +33,10 @@ const MemberLoanTracker = () => {
   }, []);
 
   // Map backend status to display status:
-  // "Waiting for evaluation" or "Passed" → "Pending"
+  // "Waiting for Approval" → "Pending"
   // "Failed" → "Rejected"
   const mapStatus = (status) => {
-    if (status === "Waiting for Approval") {
+    if (status === "Waiting for Approval" || status === "Waiting for evaluation") {
       return "Pending";
     }
     if (status === "Failed") {
@@ -81,11 +82,11 @@ const MemberLoanTracker = () => {
 
   return (
     <div className="max-w-xl mx-auto">
-    <button
+      <button
         className="flex items-center text-gray-700 hover:text-black mb-4"
-            onClick={() => navigate(-1)} // Go back to the previous page
-        >
-          <ArrowLeft size={20} className="mr-2" /> Back
+        onClick={() => navigate(-1)} // Go back to the previous page
+      >
+        <ArrowLeft size={20} className="mr-2" /> Back
       </button>
       <h2 className="text-2xl font-bold mb-6">Loan Application Tracker</h2>
 
@@ -113,51 +114,48 @@ const MemberLoanTracker = () => {
         {filteredLoans.map((loan) => {
           const displayStatus = mapStatus(loan.status);
           return (
-  <div
-    key={loan.loan_application_id}
-    className="grid grid-cols-2 gap-4 py-4 cursor-pointer  transition-colors"
-    onClick={() => navigate(`/member-loan-details/${loan.loan_application_id}`)}
-  >
-    {/* Top Row: Date (left) & Voucher Number (right) */}
-    <div>
-      <p className="text-sm text-gray-500">
-        {new Date(loan.created_at).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })}
-      </p>
-    </div>
-    <div className="flex justify-end">
-      <p className="text-xs text-gray-8 00">
-        {loan.client_voucher_number || "N/A"} 
-      </p>
-    </div>
+            <div
+              key={loan.loan_application_id}
+              className="grid grid-cols-2 gap-4 py-4 cursor-pointer transition-colors"
+              onClick={() => navigate(`/member-loan-details/${loan.loan_application_id}`)}
+            >
+              {/* Top Row: Date (left) & Voucher Number (right) */}
+              <div>
+                <p className="text-sm text-gray-500">
+                  {new Date(loan.created_at).toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    day: '2-digit', 
+                    year: 'numeric' 
+                  })}
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <p className="text-xs text-gray-800">
+                  {loan.client_voucher_number || "N/A"}
+                </p>
+              </div>
 
-    {/* Bottom Row: Loan type & amount (left) & Status (right) */}
-    <div>
-      <p className="font-semibold text-gray-800">{loan.loan_type}</p>
-      <p className="text-gray-700 font-medium">
-        ₱{parseFloat(loan.loan_amount).toLocaleString()}
-      </p>
-      {mapStatus(loan.status) === "Rejected" && loan.remarks && (
-        <p className="text-xs text-red-600">Remarks: {loan.remarks}</p>
-      )}
-    </div>
-    <div className="flex items-center justify-end gap-3">
-      {getStatusIcon(mapStatus(loan.status))}
-      <span
-        className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(mapStatus(loan.status))}`}
-      >
-        {mapStatus(loan.status)}
-      </span>
-      <ChevronRight size={30} className="text-gray-400" />
-    </div>
-  </div>
-);
-
-
-
+              {/* Bottom Row: Loan type & amount (left) & Status (right) */}
+              <div>
+                <p className="font-semibold text-gray-800">{loan.loan_type}</p>
+                <p className="text-gray-700 font-medium">
+                  ₱{parseFloat(loan.loan_amount).toLocaleString()}
+                </p>
+                {displayStatus === "Rejected" && loan.remarks && (
+                  <p className="text-xs text-red-600">Remarks: {loan.remarks}</p>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-3">
+                {getStatusIcon(displayStatus)}
+                <span
+                  className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(displayStatus)}`}
+                >
+                  {displayStatus}
+                </span>
+                <ChevronRight size={30} className="text-gray-400" />
+              </div>
+            </div>
+          );
         })}
       </div>
 

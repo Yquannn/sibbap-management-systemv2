@@ -22,9 +22,7 @@ const Dashboard = () => {
 
   return (
     <div className="">
-      <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 p-6 bg-white shadow-lg rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-green-600 shadow-md rounded-lg p-6 flex items-center">
           <FaUsers className="text-white text-4xl mr-4" /> 
           <div>

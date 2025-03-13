@@ -32,6 +32,7 @@ import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
 import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
 import TransactionInfo from "./pages/members/transaction/TransactionInfo"
 import LoanPage from "./pages/members/loan/LoanPage";
+import LoanInformation from './pages/members/loan/LoanInformation';
 
 function App() {
   return (
@@ -83,11 +84,12 @@ function App() {
         <Route path="timedeposit-calculator" element={<TimedepositCalculatorPage />} />
         <Route path="regular-savings-calculator" element={<RegularSavingsCalculator />} />
         <Route path="share-capital-calculator" element={<ShareCapitalCalculator />} />
-        <Route path="member-loan" element={<LoanPage />} />
+        <Route path="member-loan/:memberId" element={<LoanPage />} />
         <Route path="member-loan-tracker" element={<MemberLoanTracker />} />
         <Route path="member-regular-savings-transaction" element={<RegularSavingsTransactionHistory />} />
         <Route path="member-loan-details" element={<LoanDetails />} />
         <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />
+        <Route path="loan-information" element={<LoanInformation />} />
 
       </Route>
     </Routes>

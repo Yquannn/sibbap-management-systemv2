@@ -58,8 +58,7 @@ const FileMaintenance = () => {
   ];
 
   return (
-    <div className="min-h-96 p-6">
-      <h2 className="text-3xl font-bold">File Maintenance</h2>
+    <div className="min-h-96">
       <form onSubmit={handleSubmit}>
         <div className="flex flex-wrap gap-4 mb-6 p-6 bg-white shadow-lg rounded-lg">
           {/* Month Selector */}

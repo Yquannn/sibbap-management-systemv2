@@ -28,7 +28,7 @@ const AdminLayout = () => {
   const imageUrl = sessionStorage.getItem("imageUrl") || "https://via.placeholder.com/150";
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen  bg-gray-100 ">
       <SideBar />
       <div className="flex-1 flex flex-col">
         <Header 
@@ -36,7 +36,7 @@ const AdminLayout = () => {
           userType={userType} 
           imageUrl={imageUrl} 
         />
-        <main className="flex-1 p-6 overflow-auto bg-gray-50">
+        <main className="flex-1 p-6 overflow-auto ">
           <Outlet />
         </main>
       </div>

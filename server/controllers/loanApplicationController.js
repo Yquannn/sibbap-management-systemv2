@@ -142,6 +142,27 @@ async function getLoanById(req, res) {
 
 
 
+async function getLoanByInformationId(req, res) {
+  try {
+    // Extract "id" from URL parameters (which represents the memberId)
+    const { id } = req.params;
+    // Fetch all approved loans for the given member id.
+    const loans = await loanApplicationModel.getLoanByInformationId(id);
+    if (!loans || loans.length === 0) {
+      return res.status(404).json({ error: "Loan not found" });
+    }
+    console.log("Request member id:", id);
+    res.json(loans);
+  } catch (error) {
+    console.error("Error fetching loan by member id:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+}
+
+
+
+
+
 async function getExistingLoan(req, res) {
   try {
     const { id } = req.params;
@@ -166,5 +187,6 @@ module.exports = {
   getAllBorrowers,
   getLoanById,
   updateLoanStatus,
-  getExistingLoan
+  getExistingLoan,
+  getLoanByInformationId
 };

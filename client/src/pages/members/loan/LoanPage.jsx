@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Clock, Receipt } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Activity, Clock, Receipt, Megaphone } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { memberId } from "../home/MemberDashboard";
 
 const LoanPage = () => {
   const navigate = useNavigate();
+  const { id } = useParams(); // 'id' represents the memberId from the URL
+  // Fallback: If id is null, try to get it from sessionStorage.
+  const memberId = id || sessionStorage.getItem("memberId");
 
   // State variables for loan data, loading, and error.
   const [loanData, setLoanData] = useState(null);
@@ -16,8 +18,7 @@ const LoanPage = () => {
   // Fetch loan data from backend API on component mount.
   useEffect(() => {
     const fetchLoanData = async () => {
-
-      // Ensure memberId exists before making the request.
+      // Ensure member id exists before making the request.
       if (!memberId) {
         setError("Member ID not found.");
         setLoading(false);
@@ -28,8 +29,8 @@ const LoanPage = () => {
         const response = await axios.get(
           `http://192.168.254.103:3001/api/member-loan-application/${memberId}`
         );
-        
-        // Check if response.data is an array. If so, pick the first element.
+
+        // If the API returns an array, pick the first element.
         if (Array.isArray(response.data) && response.data.length > 0) {
           setLoanData(response.data[0]);
         } else if (response.data) {
@@ -39,18 +40,17 @@ const LoanPage = () => {
         }
       } catch (err) {
         console.error("Error fetching loan data:", err);
-        setError("Failed to load loan data.");
+        // setError("Failed to load loan data.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchLoanData();
-  }, []);
+  }, [memberId]);
 
-  // Log loanData when it updates (for debugging).
+  // Log loanData for debugging.
   useEffect(() => {
-    console.log("Loan Data updated:", loanData);
   }, [loanData]);
 
   // Show a loading indicator while data is being fetched.
@@ -71,8 +71,16 @@ const LoanPage = () => {
     );
   }
 
+  // If no loan data is available, show a "No loan found" message.
+  if (!loanData) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <p className="text-gray-500">No loan found.</p>
+      </div>
+    );
+  }
+
   // Destructure the fetched data with default values.
-  // Adjust these keys to match your API response.
   const {
     loan_amount = "0.00",
     balance = "0.00",
@@ -85,7 +93,6 @@ const LoanPage = () => {
     first_name = "",
     last_name = "",
     middle_name = "",
-    // For transactions, if not provided we default to an empty array.
     transactions = [],
   } = loanData || {};
 
@@ -110,7 +117,7 @@ const LoanPage = () => {
         {/* Top Card: Loan Amount / Balance */}
         <motion.div className="snap-center shrink-0 w-[300px] mx-auto mb-6">
           <div className="bg-green-600 text-white p-6 rounded-lg w-full shadow">
-            <p className="text-sm text-gray-100">Loan Amount</p>
+            <p className="text-sm text-gray-100">Total Loan Amount</p>
             <p className="text-4xl font-bold">
               ₱{principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
@@ -154,19 +161,24 @@ const LoanPage = () => {
         </div>
 
         {/* Upcoming Repayment */}
-        <div className="bg-white rounded-lg p-4 mb-4 shadow">
+        <div className="bg-red-50 border-2 border-red-400 rounded-lg p-2 mb-4 shadow">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-600">Upcoming repayment</div>
-              <div className="font-semibold text-lg text-gray-900">
-                ₱{upcomingRepaymentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </div>
-              <div className="text-xs text-gray-400">
-                due by {dueDate.toLocaleDateString()}
+            <div className="flex items-center">
+              <Megaphone className="text-red-600 text-2xl mr-3" />
+              <div>
+                <div className="text-sm">Upcoming Repayment</div>
+                <div className="font-semibold text-lg">
+                  ₱{upcomingRepaymentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+                <div className="text-sm text-red-700 font-medium">
+                  Due by: {dueDate.toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}
+                </div>
               </div>
             </div>
-            <button className="bg-black text-white px-4 py-2 rounded-md">
-              Repay
+            <button className="bg-black text-white px-4 py-2 rounded-md"
+              onClick={() => navigate('/loan-information')}
+            >
+              View loan
             </button>
           </div>
         </div>
@@ -183,7 +195,9 @@ const LoanPage = () => {
                   <div className="text-sm font-medium text-gray-900">
                     {txn.description}
                   </div>
-                  <div className="text-xs text-gray-400">{txn.date}</div>
+                  <div className="text-xs text-gray-400">
+                    {new Date(txn.date).toLocaleDateString("en-US", { month: "long", day: "2-digit", year: "numeric" })}
+                  </div>
                 </div>
                 <div className={`font-semibold ${txn.amount < 0 ? "text-red-500" : "text-green-500"}`}>
                   {txn.amount < 0 ? "-" : ""}₱{Math.abs(txn.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}

@@ -19,6 +19,8 @@ router.get("/member-loan-application/:id", loanApplicationController.getLoanById
 
 router.get("/member-existing-loan-application/:id", loanApplicationController.getExistingLoan);
 
+router.get("/member-loan/:id", loanApplicationController.getLoanByInformationId);
+
 
 router.put("/loan-applicant/:id/remarks", loanApplicationController.updateLoanRemarks);
 

@@ -1,5 +1,6 @@
 const db = require('../config/db');
 
+
 function generateVoucherNumber() {
   const timestamp = Date.now();
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -637,32 +638,52 @@ async function getMemberLoansById(memberId) {
   }
 }
 
-
-async function getLoanByLaId(loan_application_id) {  
+async function getLoanByInformationId(memberId) {  
   let conn;
   try {
     conn = await db.getConnection();
-    const [rows] = await conn.query(
-      `SELECT 
-          la.*, 
-          frd.*, 
-          m.first_name, 
-          m.last_name, 
-          m.middle_name
-       FROM loan_applications la
-       JOIN members m ON la.memberId = m.memberId
-       LEFT JOIN feeds_rice_details frd ON la.loan_application_id = frd.loan_application_id
-       WHERE la.loan_application_id = ? 
-         AND la.status = 'Approved'`,
-      [loan_application_id]
+    
+    // Fetch loan applications
+    const [loanApplications] = await conn.query(
+      `SELECT * FROM loan_applications 
+       WHERE memberId = ? 
+       AND status = 'Approved'`,
+      [memberId]
     );
-    return rows;
+
+    // Fetch feeds_rice_details
+    const [feedsRiceDetails] = await conn.query(
+      `SELECT * FROM feeds_rice_details 
+       WHERE loan_application_id IN 
+       (SELECT loan_application_id FROM loan_applications 
+        WHERE memberId = ? AND status = 'Approved')`,
+      [memberId]
+    );
+
+    // Fetch loan_personal_information
+    const [loanPersonalInformation] = await conn.query(
+      `SELECT * FROM loan_personal_information 
+       WHERE loan_application_id IN 
+       (SELECT loan_application_id FROM loan_applications 
+        WHERE memberId = ? AND status = 'Approved')`,
+      [memberId]
+    );
+
+    return {
+      loanApplications,
+      feedsRiceDetails,
+      loanPersonalInformation,
+    };
   } catch (error) {
     throw error;
   } finally {
     if (conn) conn.release();
   }
 }
+
+
+
+
 
 
 async function updateLoanRemarks(id, newStatus = "Waiting for Approval", remarks) {
@@ -734,5 +755,6 @@ module.exports = {
   getMemberLoansById,
   updateLoanStatus,
   getExistingLoan,
-  getLoanByLaId
+  getLoanByInformationId
+
 };

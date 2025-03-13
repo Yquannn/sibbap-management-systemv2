@@ -34,7 +34,6 @@ const LogIn = () => {
         { email: email.trim(), password: password.trim() },
         { headers: { 'Content-Type': 'application/json' } }
       );
-      console.log('Auth Response:', authResponse.data);
 
       if (authResponse.status === 200 && authResponse.data?.user) {
         const { user } = authResponse.data;
@@ -48,7 +47,7 @@ const LogIn = () => {
         ];
         const requests = endpoints.map(url => axios.get(url));
         const results = await Promise.allSettled(requests);
-        
+
         // Filter for successful responses with data
         const validResults = results.filter(
           result =>
@@ -84,9 +83,11 @@ const LogIn = () => {
             sessionStorage.setItem('usertype', foundUser.userType || '');
             sessionStorage.setItem('password', foundUser.password || '');
             sessionStorage.setItem('username', foundUser.userName || '');
+            sessionStorage.setItem('memberId', foundUser.memberId || '');
+
+            
 
             alert('Login successful!');
-            console.log('User Type:', foundUser.userType);
 
             // Redirect based on the user type
             switch (foundUser.userType) {

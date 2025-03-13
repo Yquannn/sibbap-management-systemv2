@@ -102,8 +102,7 @@ const Users = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-3xl font-bold mb-4">User List</h2>
+    <div className="">
       <div className="mb-4 flex justify-between">
         <div className="relative w-80">
           <input
