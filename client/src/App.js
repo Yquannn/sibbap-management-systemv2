@@ -33,6 +33,7 @@ import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
 import TransactionInfo from "./pages/members/transaction/TransactionInfo"
 import LoanPage from "./pages/members/loan/LoanPage";
 import LoanInformation from './pages/members/loan/LoanInformation';
+import Bills from "./pages/members/loan/Bills";
 
 function App() {
   return (
@@ -90,6 +91,8 @@ function App() {
         <Route path="member-loan-details" element={<LoanDetails />} />
         <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />
         <Route path="loan-information" element={<LoanInformation />} />
+
+        <Route path="member-bills" element={<Bills />} />
 
       </Route>
     </Routes>

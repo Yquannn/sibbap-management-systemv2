@@ -64,10 +64,15 @@ const LoanApplicant = () => {
 
   // Filtering logic: filter by loan type, search query (full name, voucher, or code number), and status.
   const filteredBorrowers = borrowers.filter(borrower => {
+    if (!borrower) return false; // Skip null values
+  
     const matchesLoanType = activeTab === "All" ? true : borrower.loan_type === activeTab;
-
-    const fullName = `${borrower.first_name} ${borrower.last_name} ${borrower.middle_name}`.toLowerCase();
-
+  
+    const firstName = borrower.first_name || "";
+    const lastName = borrower.last_name || "";
+    const middleName = borrower.middle_name || "";
+    const fullName = `${firstName} ${lastName} ${middleName}`.toLowerCase();
+  
     const matchesSearch =
       searchQuery === "" ||
       fullName.includes(searchQuery.toLowerCase()) ||
@@ -75,13 +80,15 @@ const LoanApplicant = () => {
         borrower.client_voucher_number.toString().includes(searchQuery)) ||
       (borrower.memberCode &&
         borrower.memberCode.toString().toLowerCase().includes(searchQuery.toLowerCase()));
-
-    // Use remarks property for status filtering; if none, default to "Waiting for Approval"
+  
+    // Use the status property for filtering; if not provided, default to "Waiting for Approval"
     const borrowerStatus = borrower.status || "Waiting for Approval";
     const matchesStatus = statusFilter === "All" ? true : borrowerStatus === statusFilter;
-
+  
     return matchesLoanType && matchesSearch && matchesStatus;
   });
+  
+
 
   return (
     <div className="">

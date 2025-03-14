@@ -68,7 +68,6 @@ const Loan = () => {
       }}
     >
       <div className="">
-        <h2 className="text-3xl font-bold mb-6">Apply for Loan</h2>
 
         {/* Filter Section */}
         <div className="mb-6 p-6 bg-white shadow-lg rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">

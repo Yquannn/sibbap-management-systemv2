@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import logo from '../../../assets/logosibbap.png';
-import blankPicture from './blankPicture.png'
+import logo from "../../../assets/logosibbap.png";
+import blankPicture from "./blankPicture.png";
 import { ArrowLeft } from "lucide-react";
 
 const TransactionInfo = () => {
@@ -36,11 +36,16 @@ const TransactionInfo = () => {
   }, [transactionNumber]);
 
   const formatDate = (dateString) => {
-    const options = { 
-      year: 'numeric', month: 'long', day: 'numeric', 
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
     };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    return new Date(dateString).toLocaleDateString("en-US", options);
   };
 
   if (loading) {
@@ -50,7 +55,7 @@ const TransactionInfo = () => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="flex justify-center items-center h-screen text-red-500">
@@ -58,7 +63,7 @@ const TransactionInfo = () => {
       </div>
     );
   }
-  
+
   if (!transaction) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -66,6 +71,33 @@ const TransactionInfo = () => {
       </div>
     );
   }
+
+  // Determine transaction type and set sender and receiver accordingly.
+  // For a deposit: FROM = Member, TO = Sibbap Coop.
+  // For a withdrawal: FROM = Sibbap Coop, TO = Member.
+  const transactionType = transaction.transaction_type.toLowerCase();
+  const isDeposit = transactionType === "deposit";
+  const isWithdrawal = transactionType === "withdrawal";
+
+  const fromUser = isDeposit
+    ? {
+        image: imageUrl(transaction.id_picture) || blankPicture,
+        name: `${transaction.first_name} ${transaction.last_name}`,
+      }
+    : {
+        image: logo,
+        name: "Sibbap Coop",
+      };
+
+  const toUser = isDeposit
+    ? {
+        image: logo,
+        name: "Sibbap Coop",
+      }
+    : {
+        image: imageUrl(transaction.id_picture) || blankPicture,
+        name: `${transaction.first_name} ${transaction.last_name}`,
+      };
 
   return (
     <div className="">
@@ -77,94 +109,88 @@ const TransactionInfo = () => {
           >
             <ArrowLeft size={20} className="mr-2" /> Back
           </button>
-          <h2 className="text-lg font-semibold text-gray-700 text-center">Transaction Details</h2>
+          <h2 className="text-lg font-semibold text-gray-700 text-center">
+            Transaction Details
+          </h2>
           <p className="text-3xl font-bold text-gray-900 mt-2 text-center">
-  PHP {Number(transaction.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-</p>
+            PHP{" "}
+            {Number(transaction.amount).toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </p>
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow-md">
-            <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                
-                {/* From Section */}
-                <div className="flex justify-between gap-2">
-                    <span className="text-gray-700 text-xs">From:</span>
-                    <div className="flex items-center gap-2">
-                        <img
-                        src={logo || "default-avatar.png"}
-                        alt="Receiver"
-                        className="w-6 h-6 rounded-full border"
-                        />
-                        <span className="text-gray-600 text-sm">Sibbap Coop</span>
-                    </div>
-                </div>
-                {/* <hr className="my-2 border-gray-150" /> */}
-
-
-                <div className="flex justify-between items-center mt-6  ">
-                    <span className="text-gray-700 text-xs">To:</span>
-                    <div className="flex items-center gap-2">
-                        <img
-                        src={imageUrl(transaction.id_picture) || "default-avatar.png"}
-                        alt="Receiver"
-                        className="w-8 h-8 rounded-full border"
-                        />
-                        <span className="text-gray-800 text-sm ">{transaction.first_name} {transaction.last_name}</span>
-                    </div>
-                </div>
-                {/* <hr className="my-2 border-gray-150" /> */}
-
-
-
-                {/* Authorized By Section - Properly Aligned
-                <div className="flex justify-between items-center mt-1">
-                    <span className="text-gray-700 text-xs">Authorized by:</span>
-                    <div className="flex items-center gap-2">
-                        <img
-                        src={logo || "default-avatar.png"}
-                        alt="Receiver"
-                        className="w-5 h-5 rounded-full border"
-                        />
-                        <span className="text-gray-600 text-xs">{transaction.authorized || "Sibbap"}</span>
-                    </div>
-                </div> */}
-
+          <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+            {/* From Section */}
+            <div className="flex justify-between gap-2">
+              <span className="text-gray-700 text-xs">From:</span>
+              <div className="flex items-center gap-2">
+                <img
+                  src={fromUser.image}
+                  alt="Sender"
+                  className="w-6 h-6 rounded-full border"
+                />
+                <span className="text-gray-600 text-sm">{fromUser.name}</span>
+              </div>
             </div>
-            
+            <hr className="my-2 border-gray-150" />
+
+            {/* To Section */}
+            <div className="flex justify-between items-center mt-6">
+              <span className="text-gray-700 text-xs">To:</span>
+              <div className="flex items-center gap-2">
+                <img
+                  src={toUser.image}
+                  alt="Receiver"
+                  className="w-8 h-8 rounded-full border"
+                />
+                <span className="text-gray-800 text-sm">{toUser.name}</span>
+              </div>
+            </div>
+          </div>
+
           {transaction.transaction_type === "Savings Interest" && (
             <div className="mt-2 bg-gray-50 p-4 rounded-lg">
               <div className="mt-2">
                 <p className="text-gray-600 flex justify-between">
-                  <span className="text-gray-700 text-xs">Interest Amount:</span>
-                  <span className="text-gray-800 text-sm font-semibold">PHP {transaction.amount}</span>
+                  <span className="text-gray-700 text-xs">
+                    Interest Amount:
+                  </span>
+                  <span className="text-gray-800 text-sm font-semibold">
+                    PHP {transaction.amount}
+                  </span>
                 </p>
-                {/* <p className="text-gray-600 flex justify-between">
-                  <span>Withholding Tax</span>
-                  <span className="text-red-500">- PHP {transaction.taxAmount}</span>
-                </p> */}
               </div>
             </div>
           )}
 
           <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+            <div className="mt-1">
+              {/* First Row - Transaction No. */}
+              <div className="flex justify-between items-center w-full">
+                <span className="text-gray-700 text-xs">
+                  Transaction No:
+                </span>
+                <span className="text-gray-800 text-xs">
+                  {transaction.transaction_number}
+                </span>
+              </div>
 
-          <div className="mt-1">
-  {/* First Row - Transaction No. */}
-                <div className="flex justify-between items-center w-full">
-                    <span className="text-gray-700 text-xs">Transaction No:</span>
-                    <span className="text-gray-800 text-xs">{transaction.transaction_number}</span>
-                </div>
+              <hr className="my-2 border-gray-150" />
 
-                {/* Horizontal Line for Separation */}
-                <hr className="my-2 border-gray-150" />
-
-                {/* Second Row - Transaction Date & Time */}
-                <div className="flex justify-between items-center w-full">
-                    <span className="text-gray-700 text-xs">Transaction Date/Time:</span>
-                    <span className="text-gray-800 text-xs">{formatDate(transaction.transaction_date_time)}</span>
-                </div>
-                </div>
-        </div>
+              {/* Second Row - Transaction Date & Time */}
+              <div className="flex justify-between items-center w-full">
+                <span className="text-gray-700 text-xs">
+                  Transaction Date/Time:
+                </span>
+                <span className="text-gray-800 text-xs">
+                  {formatDate(transaction.transaction_date_time)}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
