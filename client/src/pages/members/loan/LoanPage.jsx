@@ -152,11 +152,12 @@ const LoanPage = () => {
           <div className="bg-green-600 text-white p-6 rounded-lg w-full shadow">
             <p className="text-sm text-gray-100">Total Loan Amount</p>
             <p className="text-4xl font-bold">
-              ₱{parseFloat(balance).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </p>
+  ₱{parseFloat(balance || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}
+</p>
+
             <hr className="my-3 border-t border-white/30" />
             <div className="flex items-center justify-between">
               <button

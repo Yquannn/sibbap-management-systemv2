@@ -121,7 +121,7 @@ const TransactionInfo = () => {
           </p>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-md">
+        <div className="bg-white">
           <div className="mt-2 p-4 bg-gray-50 rounded-lg">
             {/* From Section */}
             <div className="flex justify-between gap-2">

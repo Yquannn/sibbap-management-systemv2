@@ -3,19 +3,26 @@ const pool = require("../config/db");
 // const { v4: uuidv4 } = require("uuid");
 
 
-// Get installments with the sum of repayments for a given loan application
-exports.getInstallmentsWithRepayments = async (loan_application_id) => {
+exports.getInstallmentsWithRepayments = async (installment_id) => {
   const query = `
     SELECT 
-      i.*,
-      IFNULL(SUM(r.amount_paid), 0) AS amount_repaid
+      i.installment_id,
+      i.loan_application_id,
+      i.installment_number,
+      i.amount,
+      i.status AS installment_status,
+      r.repayment_id,
+      r.amount_paid,
+      r.transaction_number,
+      r.payment_date,
+      r.method
     FROM installments i
-    LEFT JOIN repayments r ON i.installment_id = r.installment_id
-    WHERE i.loan_application_id = ?
-    GROUP BY i.installment_id
-    ORDER BY i.installment_number
+    LEFT JOIN repayments r 
+      ON i.installment_id = r.installment_id
+    WHERE i.installment_id = ?
+    ORDER BY i.installment_number, r.payment_date
   `;
-  const [rows] = await pool.execute(query, [loan_application_id]);
+  const [rows] = await pool.execute(query, [installment_id]);
   return rows;
 };
 
@@ -25,7 +32,6 @@ function generateTransactionNumber() {
     return `TXN-${timestamp}-${randomNum}`;
   }
   
-
 exports.addRepayment = async (installment_id, amount_paid, method, status = "Paid") => {
   try {
     // Generate a unique transaction number using uuid.
@@ -63,7 +69,8 @@ exports.addRepayment = async (installment_id, amount_paid, method, status = "Pai
           loan_status = IF(@newBalance <= 0, 'Paid Off', loan_status)
         WHERE loan_application_id = ?
       `;
-      await pool.execute(updateLoanQuery, [amount_paid, amount_paid, loan_application_id]);
+      // Pass only two parameters: one for the subtraction and one for the loan_application_id.
+      await pool.execute(updateLoanQuery, [amount_paid, loan_application_id]);
     }
 
     return { repaymentId, status, transactionNumber };

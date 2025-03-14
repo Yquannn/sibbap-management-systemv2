@@ -708,8 +708,8 @@ async function createLoanApplication(data) {
         throw new Error('Invalid loan type provided.');
     }
   
-
-    
+    // Commit the transaction after successful queries.
+    await conn.commit();
   
     return { loanApplicationId };
   } catch (error) {
@@ -955,13 +955,28 @@ async function getLoanByInformationId(memberId) {
         WHERE memberId = ? AND status = 'Approved')`,
       [memberId]
     );
-    
+    console.log("Installments:", installments);
+
+    // Fetch repayments for installments of the approved loan applications.
+    const [repayments] = await conn.query(
+      `SELECT * FROM repayments
+       WHERE installment_id IN (
+         SELECT installment_id FROM installments 
+         WHERE loan_application_id IN (
+           SELECT loan_application_id FROM loan_applications 
+           WHERE memberId = ? AND status = 'Approved'
+         )
+       )`,
+       [memberId]
+    );
+    console.log("Repayments:", repayments);
 
     return {
       loanApplications,
       feedsRiceDetails,
       loanPersonalInformation,
-      installments
+      installments,
+      repayments
     };
   } catch (error) {
     throw error;

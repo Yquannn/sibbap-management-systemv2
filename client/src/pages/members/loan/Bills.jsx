@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Bills = () => {
@@ -10,22 +10,22 @@ const Bills = () => {
   const [error, setError] = useState(null);
 
   const navigate = useNavigate();
-  const { id } = useParams(); // dynamic member ID from URL
-  const memberId = id || sessionStorage.getItem("memberId");
+  const memberId = sessionStorage.getItem("memberId");
 
   useEffect(() => {
     const fetchBills = async () => {
       try {
-        // Build endpoint dynamically using the memberId.
-        const response = await axios.get(`http://192.168.254.103:3001/api/member-loan/${memberId}`);
-        // The response is expected to be an object with installments array.
+        const response = await axios.get(
+          `http://192.168.254.103:3001/api/member-loan/${memberId}`
+        );
+        // Expecting an object with an installments array.
         const installments = response.data.installments || [];
-        
+
         // Sort installments by due_date ascending.
         const sortedInstallments = installments.sort(
           (a, b) => new Date(a.due_date) - new Date(b.due_date)
         );
-        
+
         // Mark the earliest unpaid installment as upcoming.
         let upcomingMarked = false;
         const billsData = sortedInstallments.map((inst) => {
@@ -49,7 +49,7 @@ const Bills = () => {
             upcoming: isUpcoming,
           };
         });
-        
+
         setBills(billsData);
         console.log("Fetched bills:", billsData);
       } catch (err) {
@@ -74,7 +74,7 @@ const Bills = () => {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto text-center mt-8">
+      <div className="max-w-md mx-auto text-center mt-8 font-sans">
         <p>Loading bills...</p>
       </div>
     );
@@ -82,14 +82,19 @@ const Bills = () => {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto text-center mt-8">
+      <div className="max-w-md mx-auto text-center mt-8 font-sans">
         <p className="text-red-500">{error}</p>
       </div>
     );
   }
 
+  // Helper to navigate to bill details.
+  const handleBillClick = (billId) => {
+    navigate(`/bill-details/${billId}`);
+  };
+
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md mx-auto font-sans">
       <button
         className="flex items-center text-gray-700 hover:text-black mb-4"
         onClick={() => navigate(-1)}
@@ -128,24 +133,35 @@ const Bills = () => {
         <div>
           {unpaidBills.map((bill) => (
             <div key={bill.id} className="mb-4">
-              {/* Upcoming label if the bill is marked as upcoming */}
               {bill.upcoming && (
-                <div className="text-sm text-gray-500 mb-1">Upcoming Bill</div>
+                <div className="text-sm text-gray-500 mb-1">
+                  Upcoming Bill
+                </div>
               )}
-              <div className="bg-white rounded shadow p-4 flex items-center justify-between">
+              {/* Clickable card */}
+              <div
+                className="bg-white rounded shadow p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                onClick={() => handleBillClick(bill.id)}
+              >
                 <div>
                   <div className="font-semibold text-lg">{bill.month}</div>
                   <div className="text-sm text-red-500">{bill.status}</div>
-                  <div className="text-sm text-gray-400">Due Date {bill.dueDate}</div>
+                  <div className="text-sm text-gray-400">
+                    Due Date {bill.dueDate}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xl font-semibold">₱{bill.amount.toFixed(2)}</div>
+                  <div className="text-xl font-semibold">
+                    ₱{bill.amount.toFixed(2)}
+                  </div>
                 </div>
               </div>
             </div>
           ))}
           {unpaidBills.length === 0 && (
-            <div className="text-center text-gray-500 mt-8">No unpaid bills found.</div>
+            <div className="text-center text-gray-500 mt-8">
+              No unpaid bills found.
+            </div>
           )}
         </div>
       )}
@@ -156,20 +172,30 @@ const Bills = () => {
           {paidBills.length > 0 ? (
             paidBills.map((bill) => (
               <div key={bill.id} className="mb-4">
-                <div className="bg-white rounded shadow p-4 flex items-center justify-between">
+                {/* Clickable card */}
+                <div
+                  className="bg-white rounded shadow p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleBillClick(bill.id)}
+                >
                   <div>
                     <div className="font-semibold text-lg">{bill.month}</div>
                     <div className="text-sm text-green-500">{bill.status}</div>
-                    <div className="text-sm text-gray-400">Due Date {bill.dueDate}</div>
+                    <div className="text-sm text-gray-400">
+                      Due Date {bill.dueDate}
+                    </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-semibold">₱{bill.amount.toFixed(2)}</div>
+                    <div className="text-xl font-semibold">
+                      ₱{bill.amount.toFixed(2)}
+                    </div>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="text-center text-gray-500 mt-8">No paid bills yet.</div>
+            <div className="text-center text-gray-500 mt-8">
+              No paid bills yet.
+            </div>
           )}
         </div>
       )}

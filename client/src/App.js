@@ -34,6 +34,7 @@ import TransactionInfo from "./pages/members/transaction/TransactionInfo"
 import LoanPage from "./pages/members/loan/LoanPage";
 import LoanInformation from './pages/members/loan/LoanInformation';
 import Bills from "./pages/members/loan/Bills";
+import TransactionDetails from "./pages/members/loan/TransactionDetails";
 
 function App() {
   return (
@@ -92,7 +93,9 @@ function App() {
         <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />
         <Route path="loan-information" element={<LoanInformation />} />
 
-        <Route path="member-bills" element={<Bills />} />
+        <Route path="member-bills/" element={<Bills />} />
+        <Route path="bill-details/:billId" element={<TransactionDetails />} />
+
 
       </Route>
     </Routes>
