@@ -912,60 +912,59 @@ async function getMemberLoansById(memberId) {
     if (conn) conn.release();
   }
 }
-
 async function getLoanByInformationId(memberId) {  
   let conn;
   try {
     conn = await db.getConnection();
     
-    // Fetch approved loan applications for the given member.
+    // Fetch approved and active loan applications for the given member.
     const [loanApplications] = await conn.query(
       `SELECT * FROM loan_applications 
        WHERE memberId = ? 
-       AND status = 'Approved'`,
+         AND status = 'Approved'
+         AND loan_status = 'Active'`,
       [memberId]
     );
     console.log("Loan Applications:", loanApplications);
 
-    // Fetch feeds_rice_details for the approved loan applications.
+    // Use the filtered loan_application_ids in subqueries.
+    const loanAppIdsQuery = `
+      SELECT loan_application_id FROM loan_applications 
+      WHERE memberId = ? 
+        AND status = 'Approved'
+        AND loan_status = 'Active'
+    `;
+    
+    // Fetch feeds_rice_details for the approved and active loan applications.
     const [feedsRiceDetails] = await conn.query(
       `SELECT * FROM feeds_rice_details 
-       WHERE loan_application_id IN 
-       (SELECT loan_application_id FROM loan_applications 
-        WHERE memberId = ?)`,
+       WHERE loan_application_id IN (${loanAppIdsQuery})`,
       [memberId]
     );
     console.log("Feeds Rice Details:", feedsRiceDetails);
 
-    // Fetch loan_personal_information for the approved loan applications.
+    // Fetch loan_personal_information for the approved and active loan applications.
     const [loanPersonalInformation] = await conn.query(
       `SELECT * FROM loan_personal_information 
-       WHERE loan_application_id IN 
-       (SELECT loan_application_id FROM loan_applications 
-        WHERE memberId = ?)`,
+       WHERE loan_application_id IN (${loanAppIdsQuery})`,
       [memberId]
     );
     console.log("Loan Personal Information:", loanPersonalInformation);
     
-    // Fetch installments for the approved loan applications.
+    // Fetch installments for the approved and active loan applications.
     const [installments] = await conn.query(
       `SELECT * FROM installments 
-       WHERE loan_application_id IN 
-       (SELECT loan_application_id FROM loan_applications 
-        WHERE memberId = ? AND status = 'Approved')`,
+       WHERE loan_application_id IN (${loanAppIdsQuery})`,
       [memberId]
     );
     console.log("Installments:", installments);
 
-    // Fetch repayments for installments of the approved loan applications.
+    // Fetch repayments for installments of the approved and active loan applications.
     const [repayments] = await conn.query(
       `SELECT * FROM repayments
        WHERE installment_id IN (
          SELECT installment_id FROM installments 
-         WHERE loan_application_id IN (
-           SELECT loan_application_id FROM loan_applications 
-           WHERE memberId = ? AND status = 'Approved'
-         )
+         WHERE loan_application_id IN (${loanAppIdsQuery})
        )`,
        [memberId]
     );
@@ -984,6 +983,7 @@ async function getLoanByInformationId(memberId) {
     if (conn) conn.release();
   }
 }
+
 
 
 

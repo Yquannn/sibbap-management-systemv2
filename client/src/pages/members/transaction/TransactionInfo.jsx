@@ -101,7 +101,7 @@ const TransactionInfo = () => {
 
   return (
     <div className="">
-      <div className="w-full max-w-md">
+      <div className="fixed top-0 left-0 right-0 bg-white p-3 z-50">
         <div className="mb-8">
           <button
             className="flex items-center text-gray-700 hover:text-black mb-24"

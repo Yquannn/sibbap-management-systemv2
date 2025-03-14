@@ -73,17 +73,19 @@ function TransactionDetails() {
 
   return (
     <div className="min-h-screen font-sans">
-      <button
-        className="flex items-center text-gray-700 hover:text-black mb-4"
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft size={20} className="mr-2" /> Back
-      </button>
-      <div className="flex flex-col items-center justify-center">
-        {/* Header */}
-        <h1 className="text-2xl text-center font-bold mb-4">
-          Transaction Details
-        </h1>
+        <div className="fixed top-0 left-0 right-0 bg-white  p-4 z-50">
+          <button
+            className="flex items-center text-gray-700 hover:text-black mb-4"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={20} className="mr-2" /> Back
+          </button>
+          <div className="flex flex-col items-center justify-center">
+            {/* Header */}
+            <h1 className="text-2xl text-center font-bold mb-4">
+              Transaction Details
+            </h1>
+        </div>
         {/* Transaction Summary Card */}
         <div className="bg-white w-full max-w-sm">
           <div className="text-center mb-6">
@@ -92,10 +94,10 @@ function TransactionDetails() {
             </p>
             <p className="text-sm text-gray-500">Amount Paid</p>
           </div>
-          <div className="flex justify-between items-center mb-4">
+          {/* <div className="flex justify-between items-center mb-4">
             <span className="text-gray-600">Loan Amount</span>
             <span className="font-medium">₱{loanAmount.toFixed(2)}</span>
-          </div>
+          </div> */}
           <hr className="border-gray-200" />
           <div className="flex justify-between items-center mb-4">
             <span className="text-gray-600">Repaid Time</span>

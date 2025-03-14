@@ -114,19 +114,24 @@ const LoanInformation = () => {
 
   return (
     <div className="max-w-md mx-auto">
-      {/* Header */}
-      <button
-        className="flex items-center text-gray-700 hover:text-black mb-4"
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft size={20} className="mr-2" /> Back
-      </button>
-      <h1 className="text-xl font-bold mb-4 text-center">Loan Details</h1>
-
+      <div className="fixed top-0 left-0 right-0 bg-white  p-4 z-50">
+               <button
+                 className="flex items-center text-gray-700 hover:text-black mb-4"
+                 onClick={() => navigate(-1)}
+               >
+                 <ArrowLeft size={20} className="mr-2" /> Back
+               </button>
+               <div className="flex flex-col items-center justify-center">
+                 {/* Header */}
+                 <h1 className="text-2xl text-center font-bold mb-4">
+                   Loan Details
+                 </h1>
+             </div>
+      </div>
       {/* Loan Summary (if available) */}
       {loanApp && (
         <>
-          <div className="text-3xl font-bold text-gray-800 mb-1">
+          <div className="text-3xl font-bold text-gray-800 mb-1 mt-28">
             ₱{principalAmount.toLocaleString("en-US", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,

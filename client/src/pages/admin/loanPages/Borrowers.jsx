@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaDollarSign, FaFilter, FaSearch } from 'react-icons/fa';
-import RepaymentModal from './modal/RepaymentModal';
+import { useNavigate } from 'react-router-dom';
 
 const Borrowers = () => {
-  const apiBaseURL = 'http://localhost:3001/api/borrowers'; // test api to get all applicant in loan 
+  const apiBaseURL = 'http://localhost:3001/api/borrowers'; // test API to get all applicants in loan
+  const navigate = useNavigate();
 
   const [borrowers, setBorrowers] = useState([]);
   const [activeTab, setActiveTab] = useState("All"); // Default to "All" loans
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [error, setError] = useState(""); // State for handling error messages
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedBorrower, setSelectedBorrower] = useState(null);
-  const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
-const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
-
 
   // List of loan types available for filtering
   const loanTypes = [
@@ -35,6 +31,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
     try {
       const response = await axios.get(apiBaseURL);
       setBorrowers(response.data);
+      console.log("Fetched Borrowers:", response.data);
     } catch (error) {
       setError('Failed to fetch borrowers. Please try again later.');
       console.error('Error fetching borrowers:', error);
@@ -62,20 +59,8 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
     return matchesLoanType && matchesSearch && matchesStatus;
   });
 
-  const openLoanDetailsModal = (borrower) => {
-    setSelectedLoanBorrower(borrower);
-    setIsLoanModalOpen(true);
-  };
-
-  const openRepaymentModal = (borrower) => {
-    console.log("Opening modal for borrower:", borrower); // Debugging
-    setSelectedBorrower(borrower);
-    setIsModalOpen(true);
-  };
-  
   return (
     <div className="">
-
       {/* Filter Section */}
       <div className="mb-6 p-6 bg-white shadow-lg rounded-lg">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -123,7 +108,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
             </div>
           </div>
 
-          {/* Status Filter */}
+          {/* Status Filter (optional) */}
         </div>
       </div>
 
@@ -164,7 +149,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
                     {borrower.client_voucher_number || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.memberCode|| "N/A"}
+                    {borrower.memberCode || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
                     {borrower.last_name}, {borrower.first_name} {borrower.middle_name}
@@ -173,7 +158,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
                     {borrower.loan_type || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
-                    {borrower.application|| "N/A"}
+                    {borrower.application || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
                     {borrower.loan_amount || "N/A"}
@@ -185,12 +170,12 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
                     {borrower.terms || "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300">
-                      {new Date(borrower.created_at).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </td>
+                    {new Date(borrower.created_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
                     {borrower.balance || 0}
                   </td>
@@ -207,16 +192,15 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
                   </td>
                   <td className="px-4 py-2 text-center text-sm text-gray-700">
                     <div className="flex justify-center space-x-3">
-                    <button
+                      <button
                         className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2"
-                        onClick={() => openLoanDetailsModal(borrower)}
+                        onClick={() => navigate(`/borrower-loan-information/${borrower.memberId}`)}
                       >
                         View Loan
                       </button>
-
                       <button
                         className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
-                        onClick={() => openRepaymentModal(borrower)}
+                        onClick={() => navigate(`/repayment/${borrower.id}`)}
                       >
                         <FaDollarSign className="mr-1" /> Repayment
                       </button>
@@ -226,7 +210,7 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
               ))
             ) : (
               <tr>
-                <td colSpan="11" className="text-center py-4 text-gray-600">
+                <td colSpan="12" className="text-center py-4 text-gray-600">
                   No borrowers available.
                 </td>
               </tr>
@@ -234,14 +218,6 @@ const [selectedLoanBorrower, setSelectedLoanBorrower] = useState(null);
           </tbody>
         </table>
       </div>
-      {isLoanModalOpen && selectedLoanBorrower && (
-        <RepaymentModal
-          isOpen={isLoanModalOpen}
-          onClose={() => setIsLoanModalOpen(false)}
-          borrower={selectedLoanBorrower}
-        />
-      )}
-
     </div>
   );
 };

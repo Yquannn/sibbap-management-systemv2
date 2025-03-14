@@ -24,17 +24,20 @@ import MemberProfile from "./pages/members/profile/MemberProfile";
 import TimedepositCalculatorPage from "./pages/members/home/TimedepositCalculatorPage";
 import RegularSavingsCalculator from "./pages/members/home/utils/RegularSavingsCalculator";
 import ShareCapitalCalculator from "./pages/members/home/utils/ShareCapitalCalculator";
-import MemberLoanTracker from "./pages/members/loan/MemberLoanTracker"
+import MemberLoanTracker from "./pages/members/loan/MemberLoanTracker";
 import RegularSavingsTransactionHistory from "./pages/members/home/transaction/RegularSavingsTransaction";
 import LoanDetails from "./pages/members/loan/LoanDetails";
 import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration"; 
 import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
 import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
-import TransactionInfo from "./pages/members/transaction/TransactionInfo"
+import TransactionInfo from "./pages/members/transaction/TransactionInfo";
 import LoanPage from "./pages/members/loan/LoanPage";
 import LoanInformation from './pages/members/loan/LoanInformation';
 import Bills from "./pages/members/loan/Bills";
 import TransactionDetails from "./pages/members/loan/TransactionDetails";
+import LoanTransactionHistory from "./pages/members/loan/LoanTransactionHistory";
+import LoanDetailsPage from "./pages/admin/loanPages/LoanDetailsPage";
+import InstallmentRepayment from "./pages/admin/loanPages/components/InstallmentRepayment";
 
 function App() {
   return (
@@ -52,7 +55,7 @@ function App() {
         <Route path="file-maintenance" element={<FileMaintenance />} />
         <Route path="maintenance" element={<Maintenance />} />
         <Route path="savings" element={<Savings />} />
-        <Route path="apply-for-loan" element={<LoanApplication/>} />
+        <Route path="apply-for-loan" element={<LoanApplication />} />
         <Route path="borrower" element={<Borrowers />} />
         <Route path="loan-applicant" element={<LoanApplicant />} />
         <Route path="loan-evaluation" element={<LoanEvaluation />} />
@@ -61,17 +64,16 @@ function App() {
         <Route path="users" element={<Users />} />
         <Route path="announcement" element={<Announcement />} />
 
-
-
         {/* Regular Savings Info */}
         <Route path="regular-savings-info/:memberId" element={<RegularSavingsInfo />} />
 
         {/* Membership Registration */}
         <Route path="register-member/*" element={<MembershipRegistration />} />
         <Route path="apply-loan/*" element={<ApplyForLoan />} />
+        <Route path="borrower-loan-information/:id" element={<LoanDetailsPage />} />
 
-
-        
+        {/* Updated Loan Repayment Route */}
+        <Route path="loan-repayment/:id" element={<InstallmentRepayment />} />
 
         {/* Admin-Specific 404 */}
         <Route path="*" element={<NotFoundPage />} />
@@ -92,11 +94,9 @@ function App() {
         <Route path="member-loan-details" element={<LoanDetails />} />
         <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />
         <Route path="loan-information" element={<LoanInformation />} />
-
         <Route path="member-bills/" element={<Bills />} />
         <Route path="bill-details/:billId" element={<TransactionDetails />} />
-
-
+        <Route path="loan-transaction-history" element={<LoanTransactionHistory />} />
       </Route>
     </Routes>
   );
