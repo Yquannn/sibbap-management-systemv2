@@ -38,6 +38,7 @@ import TransactionDetails from "./pages/members/loan/TransactionDetails";
 import LoanTransactionHistory from "./pages/members/loan/LoanTransactionHistory";
 import LoanDetailsPage from "./pages/admin/loanPages/LoanDetailsPage";
 import InstallmentRepayment from "./pages/admin/loanPages/components/InstallmentRepayment";
+import LoanEvaluationProfilePage from "./pages/admin/loanPages/LoanEvaluationProfilePage";
 
 function App() {
   return (
@@ -63,6 +64,8 @@ function App() {
         <Route path="report" element={<Report />} />
         <Route path="users" element={<Users />} />
         <Route path="announcement" element={<Announcement />} />
+        <Route path="loan-evaluation" element={<LoanEvaluationProfilePage />} />
+
 
         {/* Regular Savings Info */}
         <Route path="regular-savings-info/:memberId" element={<RegularSavingsInfo />} />

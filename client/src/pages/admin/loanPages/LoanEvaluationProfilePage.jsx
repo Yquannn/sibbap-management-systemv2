@@ -3,7 +3,7 @@ import axios from 'axios';
 import pic from "./blankPicture.png"; // Fallback placeholder image
 import { CheckCircle, Clock, XCircle } from "lucide-react";
 
-const LoanEvaluationProfileModal = ({ member, onClose }) => {
+const LoanEvaluationProfilePage = ({ member, onClose }) => {
   const [memberState, setMemberState] = useState(member);
   const [activeTab, setActiveTab] = useState("loanApplication");
 
@@ -225,8 +225,8 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
     ["approved", "rejected"].includes(loanApplication.status.toLowerCase());
 
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50 overflow-y-auto">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-7xl w-full relative">
+    <div className="flex justify-center items-center">
+      <div className="bg-white shadow-lg max-w-7xl w-full relative">
         {/* Header */}
         <div className="flex justify-between items-center border-b pb-4 mb-6">
           <h2 className="text-2xl font-bold">Loan Evaluation</h2>
@@ -578,4 +578,4 @@ const LoanEvaluationProfileModal = ({ member, onClose }) => {
   );
 };
 
-export default LoanEvaluationProfileModal;
+export default LoanEvaluationProfilePage;

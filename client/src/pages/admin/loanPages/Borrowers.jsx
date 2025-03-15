@@ -108,7 +108,7 @@ const Borrowers = () => {
             </div>
           </div>
 
-          {/* Status Filter (optional) */}
+          {/* (Optional) Status Filter can be added here */}
         </div>
       </div>
 
@@ -123,50 +123,56 @@ const Borrowers = () => {
       <h3 className="text-2xl font-semibold mb-4">
         Borrower List for {activeTab === "All" ? "All Loans" : activeTab}
       </h3>
-      <div className="overflow-x-auto" style={{ maxHeight: "65vh" }}>
-        <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
-          <thead className="sticky top-0 bg-green-200 z-20 text-center">
+      <div className="overflow-x-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
+        <table className="table w-full">
+          <thead className="text-center">
             <tr>
-              <th className="px-4 py-2 text-left text-sm">Client Voucher Number</th>
-              <th className="px-4 py-2 text-left text-sm">Code Number</th>
-              <th className="px-4 py-2 text-left text-sm">Full Name</th>
-              <th className="px-4 py-2 text-left text-sm">Loan Type</th>
-              <th className="px-4 py-2 text-left text-sm">Application</th>
-              <th className="px-4 py-2 text-center text-sm">Loan Amount</th>
-              <th className="px-4 py-2 text-center text-sm">Interest</th>
-              <th className="px-4 py-2 text-center text-sm">Terms</th>
-              <th className="px-4 py-2 text-center text-sm">Application Date</th>
-              <th className="px-4 py-2 text-center text-sm">Balance</th>
-              <th className="px-4 py-2 text-center text-sm">Status</th>
-              <th className="px-4 py-2 text-center text-sm">Actions</th>
+              {[
+                "Client Voucher Number",
+                "Code Number",
+                "Full Name",
+                "Loan Type",
+                "Application",
+                "Loan Amount",
+                "Interest",
+                "Terms",
+                "Application Date",
+                "Balance",
+                "Status",
+                "Actions"
+              ].map((heading) => (
+                <th key={heading} className="py-3 px-4 border-b border-gray-300">
+                  {heading}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {filteredBorrowers.length > 0 ? (
               filteredBorrowers.map((borrower) => (
-                <tr key={borrower.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                <tr key={borrower.id} className="text-center hover:bg-gray-100 cursor-pointer">
+                  <td className="py-3 px-4 border-b border-gray-300">
                     {borrower.client_voucher_number || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300">
                     {borrower.memberCode || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300">
                     {borrower.last_name}, {borrower.first_name} {borrower.middle_name}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300">
                     {borrower.loan_type || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300">
                     {borrower.application || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300 text-center">
                     {borrower.loan_amount || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300 text-center">
                     {borrower.interest || "N/A"}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300 text-center">
                     {borrower.terms || "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300">
@@ -176,10 +182,10 @@ const Borrowers = () => {
                       day: "numeric",
                     })}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300 text-center">
                     {borrower.balance || 0}
                   </td>
-                  <td className="px-4 py-2 text-center text-sm">
+                  <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <span
                       className={`px-2 py-1 rounded-full font-semibold ${
                         (!borrower.status || borrower.status === "Approved")
@@ -190,7 +196,7 @@ const Borrowers = () => {
                       {borrower.status || "Approved"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center text-sm text-gray-700">
+                  <td className="py-3 px-4 border-b border-gray-300">
                     <div className="flex justify-center space-x-3">
                       <button
                         className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2"
@@ -198,19 +204,22 @@ const Borrowers = () => {
                       >
                         View Loan
                       </button>
+                      {/* Uncomment below for repayment action if needed */}
+                      {/*
                       <button
                         className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
                         onClick={() => navigate(`/repayment/${borrower.id}`)}
                       >
                         <FaDollarSign className="mr-1" /> Repayment
                       </button>
+                      */}
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="12" className="text-center py-4 text-gray-600">
+                <td colSpan="12" className="py-4 text-center text-gray-600">
                   No borrowers available.
                 </td>
               </tr>

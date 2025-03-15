@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, createContext } from 'react';
-import axios from 'axios';
-import { FaEdit, FaSearch } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, createContext } from "react";
+import axios from "axios";
+import { FaEdit, FaSearch } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export const LoanContext = createContext();
 
-const apiBaseURL = 'http://localhost:3001/api/members';
+const apiBaseURL = "http://localhost:3001/api/members";
 
 const Loan = () => {
   const [members, setMembers] = useState([]);
@@ -22,7 +22,7 @@ const Loan = () => {
       const response = await axios.get(apiBaseURL, { params });
       setMembers(response.data);
     } catch (err) {
-      console.error('Error fetching members:', err.message);
+      console.error("Error fetching members:", err.message);
     }
   }, [searchTerm]);
 
@@ -31,17 +31,22 @@ const Loan = () => {
   }, [fetchMembers]);
 
   // Compute unique Barangay options from fetched members.
-  const barangayOptions = ["All", ...Array.from(new Set(members.map(member => member.barangay)))];
+  const barangayOptions = [
+    "All",
+    ...Array.from(new Set(members.map((member) => member.barangay))),
+  ];
 
   // Client-side filtering.
-  const filteredMembers = members.filter(member => {
+  const filteredMembers = members.filter((member) => {
     const fullName = `${member.FirstName} ${member.LastName} ${member.MiddleName}`.toLowerCase();
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
       searchTerm === "" ||
       fullName.includes(searchLower) ||
-      (member.memberCode && member.memberCode.toLowerCase().includes(searchLower));
-    const matchesBarangay = barangayFilter === "All" || member.barangay === barangayFilter;
+      (member.memberCode &&
+        member.memberCode.toLowerCase().includes(searchLower));
+    const matchesBarangay =
+      barangayFilter === "All" || member.barangay === barangayFilter;
     return matchesSearch && matchesBarangay;
   });
 
@@ -59,16 +64,15 @@ const Loan = () => {
 
   return (
     <LoanContext.Provider
-      value={{ 
+      value={{
         members, // fetched data available to children if needed
-        selectedMember, 
-        setSelectedMember, 
-        isLoanModalOpen, 
-        setIsLoanModalOpen 
+        selectedMember,
+        setSelectedMember,
+        isLoanModalOpen,
+        setIsLoanModalOpen,
       }}
     >
       <div className="">
-
         {/* Filter Section */}
         <div className="mb-6 p-6 bg-white shadow-lg rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Search Input */}
@@ -91,7 +95,7 @@ const Loan = () => {
               onChange={(e) => setBarangayFilter(e.target.value)}
               className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition"
             >
-              {barangayOptions.map(option => (
+              {barangayOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -101,50 +105,66 @@ const Loan = () => {
         </div>
 
         {/* Members Table Section */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="bg-white shadow-md overflow-hidden md:w-2/3 flex-1 max-h-[70vh] overflow-y-auto">
-            <table className="min-w-full table-auto bg-white border border-gray-300 text-sm">
-              <thead className="bg-green-200 sticky top-0 z-20">
-                <tr className="text-center">
-                  {["Code Number", "Full Name", "Contact Number", "Address", "Share Capital", "Actions"].map((heading) => (
-                    <th key={heading} className="py-3 px-4 border-b border-gray-300">
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMembers.length > 0 ? (
-                  filteredMembers.map((member, index) => (
-                    <tr key={member.id || index} className="text-center hover:bg-gray-100">
-                      <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">
-                        {member.first_name} {member.last_name} {member.middle_name}
-                      </td>
-                      <td className="py-3 px-4 border-b border-gray-300">{member.contact_number}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">{member.barangay}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">{member.share_capital}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">
-                        <button
-                          onClick={() => openLoanModal(member)}
-                          className="flex items-center justify-center space-x-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition duration-200"
-                        >
-                          <FaEdit />
-                          <span>Apply for Loan</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="py-4 text-center text-gray-500">
-                      No members found.
+        <div className="overflow-y-auto max-h-[70vh] card bg-white shadow-md rounded-lg p-4">
+          <table className="table w-full">
+            <thead className="">
+              <tr className="text-center">
+                {[
+                  "Code Number",
+                  "Full Name",
+                  "Contact Number",
+                  "Address",
+                  "Share Capital",
+                  "Actions",
+                ].map((heading) => (
+                  <th
+                    key={heading}
+                    className="py-3 px-4 border-b border-gray-300"
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredMembers.length > 0 ? (
+                filteredMembers.map((member, index) => (
+                  <tr key={member.id || index} className="text-center hover:bg-gray-100">
+                    <td className="py-3 px-4 border-b border-gray-300">
+                      {member.memberCode}
+                    </td>
+                    <td className="py-3 px-4 border-b border-gray-300">
+                      {member.first_name} {member.last_name} {member.middle_name}
+                    </td>
+                    <td className="py-3 px-4 border-b border-gray-300">
+                      {member.contact_number}
+                    </td>
+                    <td className="py-3 px-4 border-b border-gray-300">
+                      {member.barangay}
+                    </td>
+                    <td className="py-3 px-4 border-b border-gray-300">
+                      {member.share_capital}
+                    </td>
+                  <td className="py-3 px-4 border-b border-gray-300">
+                      <button
+                        onClick={() => openLoanModal(member)}
+                        className="flex items-center justify-center mx-auto space-x-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200"
+                      >
+                        <FaEdit />
+                        <span>Apply for Loan</span>
+                      </button>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="py-4 text-center text-gray-500">
+                    No members found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </LoanContext.Provider>

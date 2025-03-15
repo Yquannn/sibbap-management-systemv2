@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { CreditCard, CheckCircle } from "lucide-react";
 import { useParams } from "react-router-dom";
+import SuccessComponent from "./SuccessModal";
+import TransactionAuthenticate from "../../savingsPages/utils/TranscationAuthenticate";
 
 const InstallmentRepayment = () => {
   const { id } = useParams(); // installmentId from URL
@@ -10,9 +12,9 @@ const InstallmentRepayment = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingAmount, setFetchingAmount] = useState(true);
   const [message, setMessage] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   // Fetch the "amount to pay" for the given installment.
-  // Here we assume the API returns an array with one object.
   useEffect(() => {
     const fetchAmountToPay = async () => {
       try {
@@ -20,7 +22,6 @@ const InstallmentRepayment = () => {
           `http://192.168.254.103:3001/api/installment/${id}`
         );
         if (Array.isArray(response.data) && response.data.length > 0) {
-          // We assume the full installment "amount" is the amount to pay.
           setAmountToPay(response.data[0].amount);
         } else {
           setAmountToPay(0);
@@ -36,7 +37,6 @@ const InstallmentRepayment = () => {
   }, [id]);
 
   const handleRepay = async () => {
-   
     setLoading(true);
     setMessage("");
     try {
@@ -45,6 +45,7 @@ const InstallmentRepayment = () => {
         { amount_paid: parseFloat(amountToPay), method }
       );
       setMessage("Repayment successful!");
+      setShowModal(true); // Show success modal
       setMethod("Cash");
     } catch (error) {
       console.error("Error making repayment:", error);
@@ -97,24 +98,18 @@ const InstallmentRepayment = () => {
         disabled={loading}
         className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition"
       >
-        {loading ? (
-          "Processing..."
-        ) : (
-          <>
-            <CheckCircle size={18} />
-            Submit Payment
-          </>
-        )}
+        {loading ? "Processing..." : <>
+          <CheckCircle size={18} />
+          Submit Payment
+        </>}
       </button>
 
-      {message && (
-        <div
-          className={`mt-3 text-sm ${
-            message.includes("Failed") ? "text-red-500" : "text-green-500"
-          }`}
-        >
-          {message}
-        </div>
+      {/* Success Modal */}
+      {showModal && (
+        <SuccessComponent
+          message="Repayment successful!"
+          onClose={() => setShowModal(false)}
+        />
       )}
     </div>
   );

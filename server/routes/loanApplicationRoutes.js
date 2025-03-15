@@ -21,6 +21,9 @@ router.get("/member-existing-loan-application/:id", loanApplicationController.ge
 
 router.get("/member-loan/:id", loanApplicationController.getLoanByInformationId);
 
+router.get("/member-loan-admin-view/:id", loanApplicationController.getLoanByInformationIdForAdmin);
+
+
 
 router.put("/loan-applicant/:id/remarks", loanApplicationController.updateLoanRemarks);
 

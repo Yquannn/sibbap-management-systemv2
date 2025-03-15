@@ -144,7 +144,7 @@ const LoanInformation = ({
       loan_amount: finalLoanAmount,
       interest: Number(loanInfo.interest),
       terms: Number(loanInfo.loanTerms),
-      balance:  finalLoanAmount +  Number(loanInfo.serviceFee),
+      balance:  finalLoanAmount,
       service_fee: Number(loanInfo.serviceFee),
       details: {
         statement_of_purpose: loanInfo.statementOfPurpose,

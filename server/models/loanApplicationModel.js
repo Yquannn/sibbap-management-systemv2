@@ -859,7 +859,7 @@ async function getAllBorrowers() {
       SELECT la.*, m.memberCode, m.first_name, m.last_name, m.middle_name
       FROM loan_applications la
       JOIN members m ON la.memberId = m.memberId
-      WHERE la.status = "Approved"
+      WHERE la.status = "Approved" AND la.loan_status = "Active"
     `);
     return rows;
   } catch (error) {
@@ -912,6 +912,8 @@ async function getMemberLoansById(memberId) {
     if (conn) conn.release();
   }
 }
+
+
 async function getLoanByInformationId(memberId) {  
   let conn;
   try {
@@ -968,6 +970,87 @@ async function getLoanByInformationId(memberId) {
        )`,
        [memberId]
     );
+    console.log("Repayments:", repayments);
+
+    return {
+      loanApplications,
+      feedsRiceDetails,
+      loanPersonalInformation,
+      installments,
+      repayments
+    };
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+
+async function getLoanByInformationIdForAdmin(memberId) {
+  let conn;
+  try {
+    conn = await db.getConnection();
+
+    // 1. Get all loan applications for the given member
+    const [loanApplications] = await conn.query(
+      `SELECT * FROM loan_applications 
+       WHERE memberId = ?`,
+      [memberId]
+    );
+    console.log("Loan Applications:", loanApplications);
+
+    // Extract loan_application_ids from the result
+    const loanApplicationIds = loanApplications.map(row => row.loan_application_id);
+
+    // If no loan applications exist, return empty data
+    if (loanApplicationIds.length === 0) {
+      return {
+        loanApplications: [],
+        feedsRiceDetails: [],
+        loanPersonalInformation: [],
+        installments: [],
+        repayments: []
+      };
+    }
+
+    // 2. Get feeds_rice_details for all loan applications
+    const [feedsRiceDetails] = await conn.query(
+      `SELECT * FROM feeds_rice_details 
+       WHERE loan_application_id IN (?)`,
+      [loanApplicationIds]
+    );
+    console.log("Feeds Rice Details:", feedsRiceDetails);
+
+    // 3. Get loan personal information for all loan applications
+    const [loanPersonalInformation] = await conn.query(
+      `SELECT * FROM loan_personal_information 
+       WHERE loan_application_id IN (?)`,
+      [loanApplicationIds]
+    );
+    console.log("Loan Personal Information:", loanPersonalInformation);
+
+    // 4. Get installments for all loan applications
+    const [installments] = await conn.query(
+      `SELECT * FROM installments 
+       WHERE loan_application_id IN (?)`,
+      [loanApplicationIds]
+    );
+    console.log("Installments:", installments);
+
+    // Extract installment IDs for repayments
+    const installmentIds = installments.map(row => row.installment_id);
+
+    // 5. Get repayments for all installments
+    let repayments = [];
+    if (installmentIds.length > 0) {
+      const [repaymentsResult] = await conn.query(
+        `SELECT * FROM repayments
+         WHERE installment_id IN (?)`,
+        [installmentIds]
+      );
+      repayments = repaymentsResult;
+    }
     console.log("Repayments:", repayments);
 
     return {
@@ -1058,5 +1141,8 @@ module.exports = {
   getMemberLoansById,
   updateLoanStatus,
   getExistingLoan,
-  getLoanByInformationId
+  getLoanByInformationId,
+  getLoanByInformationIdForAdmin
+
+  
 };

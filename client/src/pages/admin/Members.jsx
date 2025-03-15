@@ -120,49 +120,47 @@ const Members = () => {
 
   return (
     <div className="">
-
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-  <div className="card bg-gradient-to-r from-green-400 to-green-600 shadow-xl text-white">
-    <div className="card-body flex items-center">
-      <MdPeople className="text-5xl mr-4" />
-      <div>
-        <h2 className="card-title text-sm">Total Members</h2>
-        <p className="text-xl font-bold">{totalMember.toLocaleString()}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card bg-gradient-to-r from-green-400 to-green-600 shadow-xl text-white">
+          <div className="card-body flex items-center">
+            <MdPeople className="text-5xl mr-4" />
+            <div>
+              <h2 className="card-title text-sm">Total Members</h2>
+              <p className="text-xl font-bold">{totalMember.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card bg-gradient-to-r from-blue-400 to-blue-600 shadow-xl text-white">
+          <div className="card-body flex items-center">
+            <MdCheckCircle className="text-5xl mr-4" />
+            <div>
+              <h2 className="card-title text-sm">Active Members</h2>
+              <p className="text-xl font-bold">25,000</p>
+            </div>
+          </div>
+        </div>
+        <div className="card bg-gradient-to-r from-red-400 to-red-600 shadow-xl text-white">
+          <div className="card-body flex items-center">
+            <MdRemoveCircleOutline className="text-5xl mr-4" />
+            <div>
+              <h2 className="card-title text-sm">Inactive Members</h2>
+              <p className="text-xl font-bold">15,000</p>
+            </div>
+          </div>
+        </div>
+        <div className="card bg-gradient-to-r from-purple-400 to-purple-600 shadow-xl text-white">
+          <div className="card-body flex items-center">
+            <MdAttachMoney className="text-5xl mr-4" />
+            <div>
+              <h2 className="card-title text-sm">Membership Fee</h2>
+              <p className="text-xl font-bold">Php350</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-  <div className="card bg-gradient-to-r from-blue-400 to-blue-600 shadow-xl text-white">
-    <div className="card-body flex items-center">
-      <MdCheckCircle className="text-5xl mr-4" />
-      <div>
-        <h2 className="card-title text-sm">Active Members</h2>
-        <p className="text-xl font-bold">25,000</p>
-      </div>
-    </div>
-  </div>
-  <div className="card bg-gradient-to-r from-red-400 to-red-600 shadow-xl text-white">
-    <div className="card-body flex items-center">
-      <MdRemoveCircleOutline className="text-5xl mr-4" />
-      <div>
-        <h2 className="card-title text-sm">Inactive Members</h2>
-        <p className="text-xl font-bold">15,000</p>
-      </div>
-    </div>
-  </div>
-  <div className="card bg-gradient-to-r from-purple-400 to-purple-600 shadow-xl text-white">
-    <div className="card-body flex items-center">
-      <MdAttachMoney className="text-5xl mr-4" />
-      <div>
-        <h2 className="card-title text-sm">Membership Fee</h2>
-        <p className="text-xl font-bold">Php350</p>
-      </div>
-    </div>
-  </div>
-</div>
-
 
       {/* Search & Filter Bar with Add Member Button */}
-      <div className="flex flex-col sm:flex-row justify-end items-center bg-base-200 p-4 rounded-lg mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row justify-end items-center bg-white p-4 rounded-lg mb-6 gap-4 mt-4">
         {message.text && (
           <div className={`font-medium mr-auto ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
             {message.text}
@@ -207,12 +205,12 @@ const Members = () => {
       </div>
 
       {/* Members Table with vertical scrolling */}
-      <div className="overflow-y-auto max-h-[60vh]">
+      <div className="overflow-y-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
         <table className="table w-full">
           <thead>
             <tr>
-              <th>
-              
+              <th className="w-12">
+                <input type="checkbox" className="checkbox" />
               </th>
               <th>Code Number</th>
               <th>Name</th>
