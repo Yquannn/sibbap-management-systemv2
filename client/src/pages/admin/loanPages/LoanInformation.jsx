@@ -296,7 +296,7 @@ const LoanInformation = ({
       mobilePortal: {},
     });
     // Navigate to the Loan Applicant page (adjust the path as needed).
-    navigate("/apply-for-loan");
+    navigate("/loan-application");
   };
 
   return (

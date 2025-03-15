@@ -8,7 +8,7 @@ import Maintenance from "./pages/admin/Maintenance";
 import Members from "./pages/admin/Members";
 import Report from "./pages/admin/Report";
 import Users from "./pages/admin/Users";
-import NotFoundPage from "./pages/admin/NotFound";
+import NotFoundPage from "./pages/NotFound";
 import Announcement from "./pages/admin/Announcement";
 import LogIn from "./pages/admin/LogIn";
 import Borrowers from "./pages/admin/loanPages/Borrowers";
@@ -27,7 +27,7 @@ import ShareCapitalCalculator from "./pages/members/home/utils/ShareCapitalCalcu
 import MemberLoanTracker from "./pages/members/loan/MemberLoanTracker";
 import RegularSavingsTransactionHistory from "./pages/members/home/transaction/RegularSavingsTransaction";
 import LoanDetails from "./pages/members/loan/LoanDetails";
-import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration"; 
+import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration";
 import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
 import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
 import TransactionInfo from "./pages/members/transaction/TransactionInfo";
@@ -39,69 +39,81 @@ import LoanTransactionHistory from "./pages/members/loan/LoanTransactionHistory"
 import LoanDetailsPage from "./pages/admin/loanPages/LoanDetailsPage";
 import InstallmentRepayment from "./pages/admin/loanPages/components/InstallmentRepayment";
 import LoanEvaluationProfilePage from "./pages/admin/loanPages/LoanEvaluationProfilePage";
+import Authorize from "./pages/Unauthorize"; // Ensure filename matches
+import BareLayout from "./layouts/BareLayout";
 
 function App() {
   return (
     <Routes>
-      {/* Public Route */}
-      <Route index element={<LogIn />} />
-
-      {/* Layout Selection */}
-      <Route path="/" element={<RootLayout />} />
-
-      {/* Admin Routes */}
-      <Route element={<AdminLayout />}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="members" element={<Members />} />
-        <Route path="file-maintenance" element={<FileMaintenance />} />
-        <Route path="maintenance" element={<Maintenance />} />
-        <Route path="savings" element={<Savings />} />
-        <Route path="apply-for-loan" element={<LoanApplication />} />
-        <Route path="borrower" element={<Borrowers />} />
-        <Route path="loan-applicant" element={<LoanApplicant />} />
-        <Route path="loan-evaluation" element={<LoanEvaluation />} />
-        <Route path="loan-approval" element={<LoanApproval />} />
-        <Route path="report" element={<Report />} />
-        <Route path="users" element={<Users />} />
-        <Route path="announcement" element={<Announcement />} />
-        <Route path="loan-evaluation" element={<LoanEvaluationProfilePage />} />
+  {/* Public Route */}
+  <Route index element={<LogIn />} />
+  <Route path="*" index element={<NotFoundPage />} />
 
 
-        {/* Regular Savings Info */}
-        <Route path="regular-savings-info/:memberId" element={<RegularSavingsInfo />} />
+  {/* Layout Selection */}
+  <Route path="/" element={<RootLayout />} />
 
-        {/* Membership Registration */}
-        <Route path="register-member/*" element={<MembershipRegistration />} />
-        <Route path="apply-loan/*" element={<ApplyForLoan />} />
-        <Route path="borrower-loan-information/:id" element={<LoanDetailsPage />} />
+  {/* Admin Routes (with Navbar & Sidebar) */}
+  <Route element={<AdminLayout />}>
+    <Route path="dashboard" element={<Dashboard />} />
+    <Route path="members" element={<Members />} />
+    <Route path="file-maintenance" element={<FileMaintenance />} />
+    <Route path="maintenance" element={<Maintenance />} />
+    <Route path="savings" element={<Savings />} />
+    <Route path="loan-application" element={<LoanApplication />} />
+    <Route path="borrower" element={<Borrowers />} />
+    <Route path="loan-applicant" element={<LoanApplicant />} />
+    <Route path="loan-evaluation" element={<LoanEvaluation />} />
+    <Route path="loan-approval" element={<LoanApproval />} />
+    <Route path="report" element={<Report />} />
+    <Route path="users" element={<Users />} />
+    <Route path="announcement" element={<Announcement />} />
+    <Route path="loan-application/:loan_application_id" element={<LoanEvaluationProfilePage />} />
 
-        {/* Updated Loan Repayment Route */}
-        <Route path="loan-repayment/:id" element={<InstallmentRepayment />} />
+    {/* Regular Savings Info */}
+    <Route path="regular-savings-info/:memberId" element={<RegularSavingsInfo />} />
 
-        {/* Admin-Specific 404 */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
+    {/* Membership Registration */}
+    <Route path="register-member/*" element={<MembershipRegistration />} />
+    <Route path="apply-loan/*" element={<ApplyForLoan />} />
+    <Route path="borrower-loan-information/:id" element={<LoanDetailsPage />} />
 
-      {/* Member Routes */}
-      <Route element={<MemberLayout />}>
-        <Route path="member-dashboard" element={<MemberDashboard />} />
-        <Route path="member-transactions" element={<Transaction />} />
-        <Route path="member-notification" element={<Notification />} />
-        <Route path="member-profile" element={<MemberProfile />} />
-        <Route path="timedeposit-calculator" element={<TimedepositCalculatorPage />} />
-        <Route path="regular-savings-calculator" element={<RegularSavingsCalculator />} />
-        <Route path="share-capital-calculator" element={<ShareCapitalCalculator />} />
-        <Route path="member-loan/:memberId" element={<LoanPage />} />
-        <Route path="member-loan-tracker" element={<MemberLoanTracker />} />
-        <Route path="member-regular-savings-transaction" element={<RegularSavingsTransactionHistory />} />
-        <Route path="member-loan-details" element={<LoanDetails />} />
-        <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />
-        <Route path="loan-information" element={<LoanInformation />} />
-        <Route path="member-bills/" element={<Bills />} />
-        <Route path="bill-details/:billId" element={<TransactionDetails />} />
-        <Route path="loan-transaction-history" element={<LoanTransactionHistory />} />
-      </Route>
-    </Routes>
+    {/* Loan Repayment */}
+    <Route path="loan-repayment/:id" element={<InstallmentRepayment />} />
+
+    {/* Admin-Specific 404 (Navbar & Sidebar Still Visible) */}
+  </Route>
+
+  {/* Member Routes (with Navbar & Sidebar) */}
+  <Route element={<MemberLayout />}>
+    <Route path="member-dashboard" element={<MemberDashboard />} />
+    <Route path="member-transactions" element={<Transaction />} />
+    <Route path="member-notification" element={<Notification />} />
+    <Route path="member-profile" element={<MemberProfile />} />
+    <Route path="timedeposit-calculator" element={<TimedepositCalculatorPage />} />
+    <Route path="regular-savings-calculator" element={<RegularSavingsCalculator />} />
+    <Route path="share-capital-calculator" element={<ShareCapitalCalculator />} />
+    <Route path="member-loan/:memberId" element={<LoanPage />} />
+    <Route path="member-loan-tracker" element={<MemberLoanTracker />} />
+    <Route path="member-regular-savings-transaction" element={<RegularSavingsTransactionHistory />} />
+    <Route path="member-loan-details" element={<LoanDetails />} />
+    <Route path="regular-savings-transaction-info/:transactionNumber" element={<TransactionInfo />} />
+    <Route path="loan-information" element={<LoanInformation />} />
+    <Route path="member-bills" element={<Bills />} />
+    <Route path="bill-details/:billId" element={<TransactionDetails />} />
+    <Route path="loan-transaction-history" element={<LoanTransactionHistory />} />
+
+    {/* Member-Specific 404 (Navbar & Sidebar Still Visible) */}
+    <Route path="*" element={<NotFoundPage />} />
+  </Route>
+
+  {/* Bare Layout Routes (NO Navbar & Sidebar) */}
+  <Route element={<BareLayout />}>
+    <Route index path="authorize" element={<Authorize />} />
+    <Route index  path="*" element={<NotFoundPage />} /> {/* Only for pages under BareLayout */}
+  </Route>
+</Routes>
+
   );
 }
 

@@ -2,18 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaDollarSign, FaSearch, FaFilter } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-// import LoanEvaluationProfileModal from './components/LoanEvaluationProfileModal';
 
 const LoanApplicant = () => {
   const apiBaseURL = 'http://localhost:3001/api/loan-application/all';
   const navigate = useNavigate();
 
-  const [modalState, setModalState] = useState({
-    addOpen: false,
-    editOpen: false,
-    viewOpen: false,
-    selectedMember: null,
-  });
   const [activeTab, setActiveTab] = useState("All");
   const [borrowers, setBorrowers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,25 +36,6 @@ const LoanApplicant = () => {
   useEffect(() => {
     fetchBorrowers();
   }, []);
-
-  // Modal handlers
-  const openModal = (type, borrower = null) => {
-    setModalState({
-      addOpen: type === 'addOpen',
-      editOpen: type === 'editOpen',
-      viewOpen: type === 'viewOpen',
-      selectedMember: borrower,
-    });
-  };
-
-  const closeModal = () => {
-    setModalState({
-      addOpen: false,
-      editOpen: false,
-      viewOpen: false,
-      selectedMember: null,
-    });
-  };
 
   // Filtering logic: filter by loan type, search query, and status.
   const filteredBorrowers = borrowers.filter(borrower => {
@@ -173,65 +147,65 @@ const LoanApplicant = () => {
           ? "All Loans"
           : activeTab.replace(/([A-Z])/g, ' $1').trim()}
       </h3>
-      <div className="overflow-x-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
-        <table className="table w-full">
-          <thead className="text-center">
+      <div className="overflow-x-auto" style={{ maxHeight: "65vh" }}>
+        <table className="min-w-full table-auto bg-white border border-gray-300 text-sm divide-y divide-gray-200">
+          <thead className="sticky top-0 bg-green-200 z-20">
             <tr>
-              <th className="py-3 px-4 border-b border-gray-300">Client Voucher Number</th>
-              <th className="py-3 px-4 border-b border-gray-300">Code Number</th>
-              <th className="py-3 px-4 border-b border-gray-300">Full Name</th>
-              <th className="py-3 px-4 border-b border-gray-300">Loan Type</th>
-              <th className="py-3 px-4 border-b border-gray-300">Application</th>
-              <th className="py-3 px-4 border-b border-gray-300">Loan Amount</th>
-              <th className="py-3 px-4 border-b border-gray-300">Interest</th>
-              <th className="py-3 px-4 border-b border-gray-300">Terms</th>
-              <th className="py-3 px-4 border-b border-gray-300">Application Date</th>
-              <th className="py-3 px-4 border-b border-gray-300">Status</th>
-              <th className="py-3 px-4 border-b border-gray-300">Remarks</th>
-              <th className="py-3 px-4 border-b border-gray-300">Actions</th>
+              <th className="px-4 py-2 text-center">Client Voucher Number</th>
+              <th className="px-4 py-2 text-center">Code Number</th>
+              <th className="px-4 py-2 text-center">Full Name</th>
+              <th className="px-4 py-2 text-center">Loan Type</th>
+              <th className="px-4 py-2 text-center">Application</th>
+              <th className="px-4 py-2 text-center">Loan Amount</th>
+              <th className="px-4 py-2 text-center">Interest</th>
+              <th className="px-4 py-2 text-center">Terms</th>
+              <th className="px-4 py-2 text-center">Application Date</th>
+              <th className="px-4 py-2 text-center">Status</th>
+              <th className="px-4 py-2 text-center">Remarks</th>
+              <th className="px-4 py-2 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredBorrowers.length > 0 ? (
               filteredBorrowers.map((borrower) => (
                 <tr key={borrower.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.client_voucher_number || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.memberCode || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.last_name}, {borrower.first_name} {borrower.middle_name}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.loan_type || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.application || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.loan_amount || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.interest || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.terms || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center">
+                  <td className="px-4 py-2 text-center">
                     {new Date(borrower.created_at).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
                     })}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center">
+                  <td className="px-4 py-2 text-center">
                     <span className="inline-block px-2 py-1 rounded-full">
                       {borrower.status}
                     </span>
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center">
+                  <td className="px-4 py-2 text-center">
                     <span
                       className={`inline-block px-2 py-1 rounded-full font-semibold ${
                         borrower.remarks === "Updated"
@@ -244,15 +218,13 @@ const LoanApplicant = () => {
                       {borrower.remarks}
                     </span>
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center">
-                    <div className="flex justify-center space-x-3">
-                      <button
-                        onClick={() => navigate('/loan-evaluation')}
-                        className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
-                      >
-                        View Evaluation
-                      </button>
-                    </div>
+                  <td className="px-4 py-2 text-center">
+                    <button
+                      onClick={() => navigate(`/loan-application/${borrower.loan_application_id}`)}
+                      className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
+                    >
+                      View Evaluation
+                    </button>
                   </td>
                 </tr>
               ))

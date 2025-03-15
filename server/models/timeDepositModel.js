@@ -44,8 +44,7 @@ const TimeDeposit = {
         barangay
       FROM 
         members
-      WHERE 
-        is_time_depositor = 0;
+      ;
     `;
     const [rows] = await db.execute(sql);
     return rows;
@@ -53,7 +52,7 @@ const TimeDeposit = {
   updateIsTimeDepositor: async (memberId) => {
     const sql = `
       UPDATE members
-      SET is_time_depositor = 1
+      SET is_borrower = 1
       WHERE memberId = ?
     `;
     const [result] = await db.execute(sql, [memberId]); // Pass the memberId as a parameter

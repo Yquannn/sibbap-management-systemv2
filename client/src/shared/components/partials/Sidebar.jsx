@@ -29,7 +29,7 @@ const SideBar = () => {
     const allowedAdminRoles = ["Teller", "Loan Manager", "Treasurer", "General Manager", "System Admin"];
     
     if (!storedUserType || !allowedAdminRoles.includes(storedUserType)) {
-      navigate("/member-dashboard");
+      navigate("/authorize");
     } else {
       setUserType(storedUserType);
     }
@@ -59,7 +59,7 @@ const SideBar = () => {
 
   const loanSubAllowed = {
     borrower: isSystemAdmin || userType === "Loan Manager",
-    "apply-for-loan": isSystemAdmin || userType === "Loan Manager",
+    "loan-application": isSystemAdmin || userType === "Loan Manager",
     "loan-applicant": isSystemAdmin || userType === "Loan Manager",
     "loan-approval": isSystemAdmin || userType === "Treasurer",
   };
@@ -136,7 +136,7 @@ const SideBar = () => {
               {loanDropdown && (
                 <ul className="ml-6 space-y-1">
                   <li>{renderItem(loanSubAllowed["borrower"], "/borrower", null, "Borrowers")}</li>
-                  <li>{renderItem(loanSubAllowed["apply-for-loan"], "/apply-for-loan", null, "Apply for Loan")}</li>
+                  <li>{renderItem(loanSubAllowed["loan-application"], "/loan-application", null, "Loan application")}</li>
                   <li>{renderItem(loanSubAllowed["loan-applicant"], "/loan-applicant", null, "Loan Applicant")}</li>
                   <li>{renderItem(loanSubAllowed["loan-approval"], "/loan-approval", null, "Loan Approval")}</li>
                 </ul>

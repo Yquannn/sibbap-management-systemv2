@@ -12,7 +12,8 @@ const TransactionAuthenticate = ({ onAuthenticate, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
-    const storedPass = sessionStorage.getItem("password") || "";
+    // If no password is set in session storage, default to "1234" for testing.
+    const storedPass = sessionStorage.getItem("password") || "1234";
     setCurrentPass(storedPass);
 
     const savedAttempts = parseInt(localStorage.getItem("authAttempts")) || 0;

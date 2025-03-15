@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import SuccessComponent from "./SuccessModal";
 import TransactionAuthenticate from "../../savingsPages/utils/TranscationAuthenticate";
 
+
 const InstallmentRepayment = () => {
   const { id } = useParams(); // installmentId from URL
   const [amountToPay, setAmountToPay] = useState(null);
@@ -13,6 +14,7 @@ const InstallmentRepayment = () => {
   const [fetchingAmount, setFetchingAmount] = useState(true);
   const [message, setMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   // Fetch the "amount to pay" for the given installment.
   useEffect(() => {
@@ -36,7 +38,8 @@ const InstallmentRepayment = () => {
     fetchAmountToPay();
   }, [id]);
 
-  const handleRepay = async () => {
+  // Function that processes repayment after successful authentication
+  const processRepayment = async () => {
     setLoading(true);
     setMessage("");
     try {
@@ -53,6 +56,17 @@ const InstallmentRepayment = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Called when the user clicks the "Submit Payment" button.
+  // Instead of processing payment directly, we show the auth modal.
+  const handleRepayClick = () => {
+    setShowAuth(true);
+  };
+
+  // Callback when authentication succeeds.
+  const handleAuthentication = (password) => {
+    processRepayment();
   };
 
   return (
@@ -94,14 +108,16 @@ const InstallmentRepayment = () => {
       </div>
 
       <button
-        onClick={handleRepay}
+        onClick={handleRepayClick}
         disabled={loading}
         className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition"
       >
-        {loading ? "Processing..." : <>
-          <CheckCircle size={18} />
-          Submit Payment
-        </>}
+        {loading ? "Processing..." : (
+          <>
+            <CheckCircle size={18} />
+            Submit Payment
+          </>
+        )}
       </button>
 
       {/* Success Modal */}
@@ -109,6 +125,14 @@ const InstallmentRepayment = () => {
         <SuccessComponent
           message="Repayment successful!"
           onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {/* Transaction Authentication Modal */}
+      {showAuth && (
+        <TransactionAuthenticate
+          onAuthenticate={handleAuthentication}
+          onClose={() => setShowAuth(false)}
         />
       )}
     </div>

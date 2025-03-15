@@ -5,7 +5,209 @@ function generateVoucherNumber() {
   const timestamp = Date.now();
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   return `CVN-${timestamp}-${randomNum}`;
+
+
 }
+
+
+async function createLoanApplication(data) {
+  const {
+    client_voucher_number,
+    memberId, // Must be valid and exist in the members table
+    loan_type,
+    application,
+    loan_amount,
+    interest,
+    terms,
+    balance,
+    status, // expecting status e.g. "Approved", "Pending", etc.
+    details,
+    service_fee,
+    personalInfo
+  } = data;
+  let conn;
+  
+  // Generate a voucher number if not provided.
+  const voucherNumber = client_voucher_number || generateVoucherNumber();
+  
+  try {
+    conn = await db.getConnection();
+
+    // Check if the member exists and is not already borrowing.
+    const [memberResult] = await conn.query(
+      "SELECT is_borrower FROM members WHERE memberId = ?",
+      [memberId]
+    );
+    if (!memberResult.length) {
+      throw new Error("Member not found.");
+    }
+    // If is_borrower is 1, the member is already borrowing and cannot borrow again.
+    if (Number(memberResult[0].is_borrower) === 1) {
+      throw new Error("Member is already a borrower and cannot borrow again.");
+    }
+    
+    await conn.beginTransaction();
+  
+    // Insert into loan_applications.
+    const [result] = await conn.query(
+      `INSERT INTO loan_applications 
+       (client_voucher_number, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [voucherNumber, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee]
+    );
+    
+    const loanApplicationId = result.insertId;
+    console.log("Loan Application created with ID:", loanApplicationId);
+  
+    // Insert personal information if provided.
+    if (personalInfo) {
+      const personalQuery = `
+        INSERT INTO loan_personal_information (
+          loan_application_id,
+          memberCode,
+          last_name,
+          first_name,
+          middle_name,
+          date_of_birth,
+          birthplace_province,
+          age,
+          civil_status,
+          sex,
+          number_of_dependents,
+          spouse_name,
+          spouse_occupation_source_of_income,
+          occupation_source_of_income,
+          monthly_income,
+          employer_address,
+          employer_address2
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          memberCode = VALUES(memberCode),
+          last_name = VALUES(last_name),
+          first_name = VALUES(first_name),
+          middle_name = VALUES(middle_name),
+          date_of_birth = VALUES(date_of_birth),
+          birthplace_province = VALUES(birthplace_province),
+          age = VALUES(age),
+          civil_status = VALUES(civil_status),
+          sex = VALUES(sex),
+          number_of_dependents = VALUES(number_of_dependents),
+          spouse_name = VALUES(spouse_name),
+          spouse_occupation_source_of_income = VALUES(spouse_occupation_source_of_income),
+          occupation_source_of_income = VALUES(occupation_source_of_income),
+          monthly_income = VALUES(monthly_income),
+          employer_address = VALUES(employer_address),
+          employer_address2 = VALUES(employer_address2)
+      `;
+      const personalValues = [
+        loanApplicationId,
+        personalInfo.memberCode,
+        personalInfo.last_name,
+        personalInfo.first_name,
+        personalInfo.middle_name,
+        personalInfo.date_of_birth,
+        personalInfo.birthplace_province,
+        personalInfo.age,
+        personalInfo.civil_status,
+        personalInfo.sex,
+        personalInfo.number_of_dependents,
+        personalInfo.spouse_name,
+        personalInfo.spouse_occupation_source_of_income,
+        personalInfo.occupation_source_of_income,
+        personalInfo.monthly_income ? personalInfo.monthly_income * 12 : personalInfo.monthly_income,
+        personalInfo.employer_address,
+        personalInfo.employer_address2,
+      ];
+      await conn.query(personalQuery, personalValues);
+      console.log("Personal information inserted for loan ID:", loanApplicationId);
+    }
+  
+    // Insert into the appropriate detail table based on loan_type.
+    switch (loan_type) {
+      case 'Feeds Loan':
+      case 'Rice Loan':
+        await conn.query(
+          `INSERT INTO feeds_rice_details 
+           (loan_application_id, statement_of_purpose, sacks, max_sacks, proof_of_business)
+           VALUES (?, ?, ?, ?, ?)`,
+          [
+            loanApplicationId,
+            details.statement_of_purpose,
+            details.sacks,
+            details.max_sacks,
+            details.proof_of_business,
+          ]
+        );
+        console.log("Feeds/Rice details inserted for loan ID:", loanApplicationId);
+        break;
+  
+      case 'Marketing Loan':
+        await conn.query(
+          `INSERT INTO marketing_details 
+           (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id)
+           VALUES (?, ?, ?, ?)`,
+          [
+            loanApplicationId,
+            details.statement_of_purpose,
+            details.comaker_name,
+            details.comaker_member_id,
+          ]
+        );
+        console.log("Marketing details inserted for loan ID:", loanApplicationId);
+        break;
+  
+      case 'BackToBack Loan':
+        await conn.query(
+          `INSERT INTO backtoback_details 
+           (loan_application_id, statement_of_purpose, coborrower_member_id, coborrower_relationship, coborrower_name, coborrower_contact, coborrower_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            loanApplicationId,
+            details.statement_of_purpose,
+            details.coborrower_member_id,
+            details.coborrower_relationship,
+            details.coborrower_name,
+            details.coborrower_contact,
+            details.coborrower_address,
+          ]
+        );
+        console.log("BackToBack details inserted for loan ID:", loanApplicationId);
+        break;
+  
+      case 'Regular Loan':
+        await conn.query(
+          `INSERT INTO regular_details 
+           (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id)
+           VALUES (?, ?, ?, ?)`,
+          [
+            loanApplicationId,
+            details.statement_of_purpose,
+            details.comaker_name,
+            details.comaker_member_id,
+          ]
+        );
+        console.log("Regular details inserted for loan ID:", loanApplicationId);
+        break;
+  
+      default:
+        throw new Error('Invalid loan type provided.');
+    }
+  
+    // Commit the transaction after successful queries.
+    await conn.commit();
+  
+    return { loanApplicationId };
+  } catch (error) {
+    if (conn) await conn.rollback();
+    console.error("Error in createLoanApplication:", error);
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+
 
 // async function createLoanApplication(data) {
 //   const {
@@ -538,188 +740,7 @@ WHERE
   }
 }
 
-async function createLoanApplication(data) {
-  const {
-    client_voucher_number,
-    memberId, // Must be valid and exist in the members table
-    loan_type,
-    application,
-    loan_amount,
-    interest,
-    terms,
-    balance,
-    status, // expecting status e.g. "Approved", "Pending", etc.
-    details,
-    service_fee,
-    personalInfo
-  } = data;
-  let conn;
-  
-  // Generate a voucher number if not provided.
-  const voucherNumber = client_voucher_number || generateVoucherNumber();
-  
-  try {
-    conn = await db.getConnection();
-    await conn.beginTransaction();
-  
-    // Insert into loan_applications.
-    const [result] = await conn.query(
-      `INSERT INTO loan_applications 
-       (client_voucher_number, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [voucherNumber, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee]
-    );
-    
-    const loanApplicationId = result.insertId;
-    console.log("Loan Application created with ID:", loanApplicationId);
-  
-    // Insert personal information if provided.
-    if (personalInfo) {
-      const personalQuery = `
-        INSERT INTO loan_personal_information (
-          loan_application_id,
-          memberCode,
-          last_name,
-          first_name,
-          middle_name,
-          date_of_birth,
-          birthplace_province,
-          age,
-          civil_status,
-          sex,
-          number_of_dependents,
-          spouse_name,
-          spouse_occupation_source_of_income,
-          occupation_source_of_income,
-          monthly_income,
-          employer_address,
-          employer_address2
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          memberCode = VALUES(memberCode),
-          last_name = VALUES(last_name),
-          first_name = VALUES(first_name),
-          middle_name = VALUES(middle_name),
-          date_of_birth = VALUES(date_of_birth),
-          birthplace_province = VALUES(birthplace_province),
-          age = VALUES(age),
-          civil_status = VALUES(civil_status),
-          sex = VALUES(sex),
-          number_of_dependents = VALUES(number_of_dependents),
-          spouse_name = VALUES(spouse_name),
-          spouse_occupation_source_of_income = VALUES(spouse_occupation_source_of_income),
-          occupation_source_of_income = VALUES(occupation_source_of_income),
-          monthly_income = VALUES(monthly_income),
-          employer_address = VALUES(employer_address),
-          employer_address2 = VALUES(employer_address2)
-      `;
-      const personalValues = [
-        loanApplicationId,
-        personalInfo.memberCode,
-        personalInfo.last_name,
-        personalInfo.first_name,
-        personalInfo.middle_name,
-        personalInfo.date_of_birth,
-        personalInfo.birthplace_province,
-        personalInfo.age,
-        personalInfo.civil_status,
-        personalInfo.sex,
-        personalInfo.number_of_dependents,
-        personalInfo.spouse_name,
-        personalInfo.spouse_occupation_source_of_income,
-        personalInfo.occupation_source_of_income,
-        personalInfo.monthly_income ? personalInfo.monthly_income * 12 : personalInfo.monthly_income,
-        personalInfo.employer_address,
-        personalInfo.employer_address2,
-      ];
-      await conn.query(personalQuery, personalValues);
-      console.log("Personal information inserted for loan ID:", loanApplicationId);
-    }
-  
-    // Insert into the appropriate detail table based on loan_type.
-    switch (loan_type) {
-      case 'Feeds Loan':
-      case 'Rice Loan':
-        await conn.query(
-          `INSERT INTO feeds_rice_details 
-           (loan_application_id, statement_of_purpose, sacks, max_sacks, proof_of_business)
-           VALUES (?, ?, ?, ?, ?)`,
-          [
-            loanApplicationId,
-            details.statement_of_purpose,
-            details.sacks,
-            details.max_sacks,
-            details.proof_of_business,
-          ]
-        );
-        console.log("Feeds/Rice details inserted for loan ID:", loanApplicationId);
-        break;
-  
-      case 'Marketing Loan':
-        await conn.query(
-          `INSERT INTO marketing_details 
-           (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id)
-           VALUES (?, ?, ?, ?)`,
-          [
-            loanApplicationId,
-            details.statement_of_purpose,
-            details.comaker_name,
-            details.comaker_member_id,
-          ]
-        );
-        console.log("Marketing details inserted for loan ID:", loanApplicationId);
-        break;
-  
-      case 'BackToBack Loan':
-        await conn.query(
-          `INSERT INTO backtoback_details 
-           (loan_application_id, statement_of_purpose, coborrower_member_id, coborrower_relationship, coborrower_name, coborrower_contact, coborrower_address)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            loanApplicationId,
-            details.statement_of_purpose,
-            details.coborrower_member_id,
-            details.coborrower_relationship,
-            details.coborrower_name,
-            details.coborrower_contact,
-            details.coborrower_address,
-          ]
-        );
-        console.log("BackToBack details inserted for loan ID:", loanApplicationId);
-        break;
-  
-      case 'Regular Loan':
-        await conn.query(
-          `INSERT INTO regular_details 
-           (loan_application_id, statement_of_purpose, comaker_name, comaker_member_id)
-           VALUES (?, ?, ?, ?)`,
-          [
-            loanApplicationId,
-            details.statement_of_purpose,
-            details.comaker_name,
-            details.comaker_member_id,
-          ]
-        );
-        console.log("Regular details inserted for loan ID:", loanApplicationId);
-        break;
-  
-      default:
-        throw new Error('Invalid loan type provided.');
-    }
-  
-    // Commit the transaction after successful queries.
-    await conn.commit();
-  
-    return { loanApplicationId };
-  } catch (error) {
-    if (conn) await conn.rollback();
-    console.error("Error in createLoanApplication:", error);
-    throw error;
-  } finally {
-    if (conn) conn.release();
-  }
-}
+
 
 
 async function createInstallments(loanApplicationId, terms, loan_amount, service_fee) {

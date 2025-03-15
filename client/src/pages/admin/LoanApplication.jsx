@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, createContext } from "react";
 import axios from "axios";
-import { FaEdit, FaSearch } from "react-icons/fa";
+import { FaEdit, FaSearch, FaExclamationTriangle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 export const LoanContext = createContext();
@@ -13,6 +13,7 @@ const Loan = () => {
   const [barangayFilter, setBarangayFilter] = useState("All");
   const [selectedMember, setSelectedMember] = useState(null);
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
+  const [showNotEligibleModal, setShowNotEligibleModal] = useState(false);
   const navigate = useNavigate();
 
   // Fetch members from the API, filtering by name if needed.
@@ -50,16 +51,20 @@ const Loan = () => {
     return matchesSearch && matchesBarangay;
   });
 
-  // Open the Loan Application page and pass the selected member via state.
+  // Open the Loan Application page if eligible. Otherwise, show modal.
   const openLoanModal = (member) => {
+    // If member.is_borrower equals 1, then they already have a loan.
+    if (Number(member.is_borrower) === 1) {
+      setShowNotEligibleModal(true);
+      return;
+    }
     setSelectedMember(member);
     navigate("/apply-loan", { state: { selectedMember: member, members } });
   };
 
-  // (The closeLoanModal function is here for completeness.)
-  const closeLoanModal = () => {
-    setSelectedMember(null);
-    setIsLoanModalOpen(false);
+  // Function to close the not eligible modal.
+  const closeNotEligibleModal = () => {
+    setShowNotEligibleModal(false);
   };
 
   return (
@@ -134,7 +139,7 @@ const Loan = () => {
                       {member.memberCode}
                     </td>
                     <td className="py-3 px-4 border-b border-gray-300">
-                      {member.first_name} {member.last_name} {member.middle_name}
+                      {member.FirstName} {member.LastName} {member.MiddleName}
                     </td>
                     <td className="py-3 px-4 border-b border-gray-300">
                       {member.contact_number}
@@ -145,7 +150,7 @@ const Loan = () => {
                     <td className="py-3 px-4 border-b border-gray-300">
                       {member.share_capital}
                     </td>
-                  <td className="py-3 px-4 border-b border-gray-300">
+                    <td className="py-3 px-4 border-b border-gray-300">
                       <button
                         onClick={() => openLoanModal(member)}
                         className="flex items-center justify-center mx-auto space-x-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200"
@@ -166,6 +171,35 @@ const Loan = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Not Eligible Modal */}
+        {/* Not Eligible Modal */}
+{showNotEligibleModal && (
+  <div className="fixed inset-0 flex items-center justify-center z-50">
+    {/* Overlay */}
+    <div
+      className="absolute inset-0 bg-black opacity-50"
+      onClick={closeNotEligibleModal}
+    ></div>
+    {/* Modal Content */}
+    <div className="relative bg-white rounded-lg shadow-lg p-6 z-10 max-w-sm mx-auto">
+      <div className="flex flex-col items-center">
+        <FaExclamationTriangle className="text-red-500" size={48} />
+        <h2 className="text-xl font-bold mt-4">Not Eligible</h2>
+        <p className="mt-2 text-center text-gray-700">
+          This member is already a borrower and cannot apply for another loan.
+        </p>
+        <button
+          onClick={closeNotEligibleModal}
+          className="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       </div>
     </LoanContext.Provider>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logosibbap.png';
+import Unauthorized from '../Unauthorize';
 
 const LogIn = () => {
   const [email, setEmail] = useState(''); 
@@ -106,9 +107,10 @@ const LogIn = () => {
               case 'Teller':
                 setRedirectPath('/dashboard');
                 break;
-              default:
-                setRedirectPath('/');
-                break;
+                default:
+                  setRedirectPath('/authorize'); // Redirect to the authorize page
+                  break;
+              
             }
           }
         } else {
