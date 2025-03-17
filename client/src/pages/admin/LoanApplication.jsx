@@ -139,7 +139,7 @@ const Loan = () => {
                       {member.memberCode}
                     </td>
                     <td className="py-3 px-4 border-b border-gray-300">
-                      {member.FirstName} {member.LastName} {member.MiddleName}
+                      {member.first_name} {member.last_name} {member.middle_name}
                     </td>
                     <td className="py-3 px-4 border-b border-gray-300">
                       {member.contact_number}

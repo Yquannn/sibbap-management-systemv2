@@ -63,7 +63,7 @@ function TransactionDetails() {
 
   // Extract fields from the record.
   const totalRepaid = record.amount_paid ? Number(record.amount_paid) : 0;
-  const loanAmount = record.amount ? Number(record.amount) : 0;
+  const loanAmount = record.amount ? Number(record.amortization) : 0;
   const repaidTime = record.payment_date
     ? new Date(record.payment_date).toLocaleDateString()
     : "N/A";

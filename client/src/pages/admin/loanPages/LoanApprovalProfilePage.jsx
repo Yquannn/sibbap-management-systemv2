@@ -7,11 +7,11 @@ import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const LoanEvaluationProfilePage = () => {
+const LoanApprovalProfile = () => {
   const { loan_application_id } = useParams();
   const navigate = useNavigate();
 
-  // State for loan application (includes member details)
+  // State for loan application (which includes member details)
   const [loanApplication, setLoanApplication] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,15 +21,15 @@ const LoanEvaluationProfilePage = () => {
 
   // Message/feedback state
   const [showMessage, setShowMessage] = useState(false);
-  const [messageType, setMessageType] = useState("");
+  const [messageType, setMessageType] = useState(""); // "success" or "error"
   const [message, setMessage] = useState("");
   const [feedback, setFeedback] = useState("");
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
 
-  // Additional states for the "middle content" in the Loan Application tab
+  // Additional state (if needed)
   const [loanSearchTerm, setLoanSearchTerm] = useState("");
 
-  // Dummy helper functions for formatting
+  // Helper functions for formatting
   const formatCurrency = (value) => {
     if (!value) return "₱0.00";
     return "₱" + Number(value).toLocaleString("en-US", { minimumFractionDigits: 2 });
@@ -39,31 +39,6 @@ const LoanEvaluationProfilePage = () => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
-
-  // Dummy data for the middle content in the Loan Application tab
-  const searchedLoanApps = loanApplication ? [loanApplication] : [];
-  const isGoodOrOnTime = true; // assume true for demo purposes
-  const goodPayerPieData = {
-    labels: ["Paid Off", "Not Paid Off"],
-    datasets: [
-      {
-        data: [70, 30],
-        backgroundColor: ["#4ade80", "#f87171"],
-      },
-    ],
-  };
-  const pieData = {
-    labels: ["Active", "Inactive"],
-    datasets: [
-      {
-        data: [80, 20],
-        backgroundColor: ["#60a5fa", "#facc15"],
-      },
-    ],
-  };
-  const overallPaidOffLoanCount = 5;
-  const loanApps = loanApplication ? [loanApplication] : [];
-  const userDistribution = { activeUsers: 3, totalUsers: 10 };
 
   // Fetch loan application data on mount
   useEffect(() => {
@@ -129,7 +104,30 @@ const LoanEvaluationProfilePage = () => {
       ? `http://localhost:3001/uploads/${memberData.id_picture}`
       : pic;
 
-  // Disable action buttons if status is "approved" or "rejected"
+  // Define missing variables for member status card and loan applications table
+  const searchedLoanApps = loanApplication ? [loanApplication] : [];
+  const isGoodOrOnTime = true; // Replace with your real logic as needed
+  const goodPayerPieData = {
+    labels: ["Paid Off", "Remaining"],
+    datasets: [
+      {
+        data: [80, 20],
+      },
+    ],
+  };
+  const pieData = {
+    labels: ["Active", "Inactive"],
+    datasets: [
+      {
+        data: [50, 50],
+      },
+    ],
+  };
+  const overallPaidOffLoanCount = 10; // Replace with real data
+  const loanApps = loanApplication ? [loanApplication] : [];
+  const userDistribution = { activeUsers: 5, totalUsers: 10 }; // Replace with real data
+
+  // Disable action buttons if the loan application is already approved or rejected
   const disableActions =
     loanApplication &&
     ["approved", "rejected"].includes(loanApplication.status.toLowerCase());
@@ -141,52 +139,37 @@ const LoanEvaluationProfilePage = () => {
     setMessageType("");
   };
 
-  // Action Handlers (PUT requests)
-  const handlePassDue = async () => {
+  // Action handlers (only Approved and Rejected)
+  const handleApproved = async () => {
     try {
-      await axios.put(`http://localhost:3001/api/loan-applicant/${loan_application_id}/remarks`, {
-        remarks: "PassDue",
-      });
+      await axios.put(
+        `http://localhost:3001/api/loan-applicant/${loan_application_id}/approve`,
+        { status: "Approved" }
+      );
       setShowMessage(true);
-      setMessage("Loan application marked as PassDue.");
+      setMessage("Loan application marked as approved.");
+      setMessageType("success");
+      setShowFeedbackInput(true);
+    } catch (error) {
+      console.error("Error updating loan application:", error);
+      setShowMessage(true);
+      setMessage("Failed to update loan application status.");
+      setMessageType("error");
+    }
+  };
+
+  const handleRejected = async () => {
+    try {
+      await axios.put(
+        `http://localhost:3001/api/loan-applicant/${loan_application_id}/approve`,
+        { status: "Rejected" }
+      );
+      setShowMessage(true);
+      setMessage("Loan application marked as rejected.");
       setMessageType("success");
       setShowFeedbackInput(false);
-    } catch (err) {
-      console.error("Error updating loan application:", err);
-      setShowMessage(true);
-      setMessage("Failed to update loan application status.");
-      setMessageType("error");
-    }
-  };
-
-  const handleMispayment = async () => {
-    try {
-      await axios.put(`http://localhost:3001/api/loan-applicant/${loan_application_id}/remarks`, {
-        remarks: "Mispayment",
-      });
-      setShowMessage(true);
-      setMessage("Loan application marked as Mispayment.");
-      setMessageType("success");
-      setShowFeedbackInput(true);
-    } catch (err) {
-      console.error("Error updating loan application:", err);
-      setShowMessage(true);
-      setMessage("Failed to update loan application status.");
-      setMessageType("error");
-    }
-  };
-
-  const handleUpdated = async () => {
-    try {
-      await axios.put(`http://localhost:3001/api/loan-applicant/${loan_application_id}/remarks`, {
-        remarks: "Updated",
-      });
-      setShowMessage(true);
-      setMessage("Loan application marked as Updated.");
-      setMessageType("success");
-      setShowFeedbackInput(true);
-    } catch (err) {
-      console.error("Error updating loan application:", err);
+    } catch (error) {
+      console.error("Error updating loan application:", error);
       setShowMessage(true);
       setMessage("Failed to update loan application status.");
       setMessageType("error");
@@ -195,26 +178,28 @@ const LoanEvaluationProfilePage = () => {
 
   const handleFeedbackSubmit = async () => {
     try {
-      await axios.put(`http://localhost:3001/api/loan-applicant/${loan_application_id}/feedback`, {
-        feedback,
-      });
+      await axios.put(
+        `http://localhost:3001/api/loan-applicant/${loan_application_id}/feedback`,
+        { feedback }
+      );
       setShowMessage(true);
       setMessage("Feedback submitted successfully.");
       setMessageType("success");
       setFeedback("");
-    } catch (err) {
-      console.error("Error submitting feedback:", err);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
       setShowMessage(true);
       setMessage("Failed to submit feedback.");
       setMessageType("error");
     }
   };
 
+  // Render content
   return (
     <div className="">
       {/* Header */}
       <div className="flex justify-between items-center border-b pb-4 mb-6">
-        <h2 className="text-2xl font-bold">Loan Evaluation</h2>
+        <h2 className="text-2xl font-bold">Loan Approval</h2>
         <button onClick={() => navigate(-1)} className="text-red-500 text-3xl">
           &times;
         </button>
@@ -235,134 +220,132 @@ const LoanEvaluationProfilePage = () => {
       )}
 
       {/* Member Info Section */}
-        {memberData && (
-  <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-    {/* Left Column: Member Info spanning 2 columns */}
-    <div className="col-span-1 md:col-span-3 bg-white rounded-xl shadow-lg p-6">
-      <div className="flex flex-col md:flex-row">
-        {/* Profile Picture & Name */}
-        <div className="md:w-1/4 text-center border-r border-gray-200 pr-4">
-          <img
-            src={idPictureUrl}
-            alt="ID Picture"
-            className="w-40 h-40 rounded-full mx-auto object-cover"
-          />
-          <h3 className="text-3xl font-bold mt-4">
-            {memberData.last_name}, {memberData.first_name} {memberData.middle_name}
-          </h3>
-        </div>
-        {/* Additional Information */}
-        <div className="md:w-2/3 pl-4 mt-4 md:mt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <p className="border p-2">
-                <strong>Code Number:</strong> {memberData.memberCode}
-              </p>
-              <p className="border p-2">
-                <strong>Occupation Source:</strong> {memberData.occupation_source_of_income}
-              </p>
-              <p className="border p-2">
-                <strong>Monthly Salary:</strong> {memberData.monthly_income}
-              </p>
-              <p className="border p-2">
-                <strong>Date of Birth:</strong> {formattedDOB}
-              </p>
-              <p className="border p-2">
-                <strong>Place of Birth:</strong> {memberData.birthplace_province}
-              </p>
+      {memberData && (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Left Column: Member Info spanning 2 columns */}
+          <div className="col-span-1 md:col-span-3 bg-white rounded-xl shadow-lg p-6">
+            <div className="flex flex-col md:flex-row">
+              {/* Profile Picture & Name */}
+              <div className="md:w-1/4 text-center border-r border-gray-200 pr-4">
+                <img
+                  src={idPictureUrl}
+                  alt="ID Picture"
+                  className="w-40 h-40 rounded-full mx-auto object-cover"
+                />
+                <h3 className="text-3xl font-bold mt-4">
+                  {memberData.last_name}, {memberData.first_name} {memberData.middle_name}
+                </h3>
+              </div>
+              {/* Additional Information */}
+              <div className="md:w-2/3 pl-4 mt-4 md:mt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <p className="border p-2">
+                      <strong>Code Number:</strong> {memberData.memberCode}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Occupation Source:</strong> {memberData.occupation_source_of_income}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Monthly Salary:</strong> {memberData.monthly_income}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Date of Birth:</strong> {formattedDOB}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Place of Birth:</strong> {memberData.birthplace_province}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="border p-2">
+                      <strong>Age:</strong> {memberData.age}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Gender:</strong> {memberData.sex}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Address:</strong> {memberData.house_no_street} {memberData.barangay}{" "}
+                      {memberData.city}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Civil Status:</strong> {memberData.civil_status}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Dependents:</strong> {memberData.number_of_dependents}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="border p-2">
+                      <strong>Spouse Name:</strong> {memberData.spouse_name || "N/A"}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Spouse Occupation:</strong> {memberData.spouse_occupation_source_of_income || "N/A"}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Spouse Monthly Income:</strong> {memberData.spouse_monthly_income || "N/A"}
+                    </p>
+                    <p className="border p-2">
+                      <strong>Employer Address:</strong> {memberData.employer_address}
+                    </p>
+                  </div>
+                  {/* Extra Row spanning all columns */}
+                  <div className="col-span-1 sm:col-span-3 border p-2">
+                    <p className="text-center text-sm text-gray-600">
+                      Additional member notes can be displayed here.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <p className="border p-2">
-                <strong>Age:</strong> {memberData.age}
-              </p>
-              <p className="border p-2">
-                <strong>Gender:</strong> {memberData.sex}
-              </p>
-              <p className="border p-2">
-                <strong>Address:</strong> {memberData.house_no_street} {memberData.barangay} {memberData.city}
-              </p>
-              <p className="border p-2">
-                <strong>Civil Status:</strong> {memberData.civil_status}
-              </p>
-              <p className="border p-2">
-                <strong>Dependents:</strong> {memberData.number_of_dependents}
-              </p>
+          </div>
+
+          {/* Right Column: Member Status Card */}
+          <div className="col-span-1 bg-white shadow-md rounded-lg p-4 h-full">
+            <div className="flex items-center justify-between">
+              <div className="text-lg font-bold">
+                {isGoodOrOnTime ? "Good Payer / On Time" : "Active Users"}
+              </div>
+              {isGoodOrOnTime && <div className="badge badge-success">Excellent</div>}
             </div>
-            <div className="space-y-2">
-              <p className="border p-2">
-                <strong>Spouse Name:</strong> {memberData.spouse_name || "N/A"}
-              </p>
-              <p className="border p-2">
-                <strong>Spouse Occupation:</strong> {memberData.spouse_occupation_source_of_income || "N/A"}
-              </p>
-              <p className="border p-2">
-                <strong>Spouse Monthly Income:</strong> {memberData.spouse_monthly_income || "N/A"}
-              </p>
-              <p className="border p-2">
-                <strong>Employer Address:</strong> {memberData.employer_address}
-              </p>
+            <p className="text-sm text-gray-500 mb-4">
+              {isGoodOrOnTime
+                ? "Member demonstrates excellent payment behavior."
+                : "User distribution overview"}
+            </p>
+            <div className="flex flex-col items-center justify-center h-34">
+              <Pie
+                data={isGoodOrOnTime ? goodPayerPieData : pieData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                }}
+              />
             </div>
-            {/* Extra Row spanning all columns */}
-            <div className="col-span-1 sm:col-span-3 border p-2">
-              <p className="text-center text-sm text-gray-600">
-                Additional member notes can be displayed here.
-              </p>
+            <div className="text-center mt-2">
+              {isGoodOrOnTime ? (
+                <>
+                  <div className="text-sm font-bold">
+                    {overallPaidOffLoanCount.toLocaleString()} paid off loans
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    of {loanApps.length.toLocaleString()} total loans
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm font-bold">
+                    {userDistribution.activeUsers.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-500">Active</div>
+                  <div className="text-xs text-gray-500">
+                    / {userDistribution.totalUsers.toLocaleString()} total
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    {/* Right Column: Member Status Card */}
-    <div className="col-span-1 bg-white shadow-md rounded-lg p-4 h-full">
-      <div className="flex items-center justify-between">
-        <div className="text-lg font-bold">
-          {isGoodOrOnTime ? "Good Payer / On Time" : "Active Users"}
-        </div>
-        {isGoodOrOnTime && (
-          <div className="badge badge-success">Excellent</div>
-        )}
-      </div>
-      <p className="text-sm text-gray-500 mb-4">
-        {isGoodOrOnTime
-          ? "Member demonstrates excellent payment behavior."
-          : "User distribution overview"}
-      </p>
-      <div className="flex flex-col items-center justify-center h-34">
-        <Pie
-          data={isGoodOrOnTime ? goodPayerPieData : pieData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-          }}
-        />
-      </div>
-      <div className="text-center mt-2">
-        {isGoodOrOnTime ? (
-          <>
-            <div className="text-sm font-bold">
-              {overallPaidOffLoanCount.toLocaleString()} paid off loans
-            </div>
-            <div className="text-xs text-gray-500">
-              of {loanApps.length.toLocaleString()} total loans
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="text-sm font-bold">
-              {userDistribution.activeUsers.toLocaleString()}
-            </div>
-            <div className="text-xs text-gray-500">Active</div>
-            <div className="text-xs text-gray-500">
-              / {userDistribution.totalUsers.toLocaleString()} total
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
 
       {/* Tab Buttons */}
       <div className="mb-6">
@@ -396,10 +379,12 @@ const LoanEvaluationProfilePage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-gray-700 mb-2">
-                <strong className="font-bold">Account Number:</strong> {loanApplication ? loanApplication.accountNumber : "N/A"}
+                <strong className="font-bold">Account Number:</strong>{" "}
+                {loanApplication ? loanApplication.accountNumber : "N/A"}
               </p>
               <p className="text-gray-700 mb-2">
-                <strong className="font-bold">Code Number:</strong> {loanApplication ? loanApplication.memberCode : "N/A"}
+                <strong className="font-bold">Code Number:</strong>{" "}
+                {loanApplication ? loanApplication.memberCode : "N/A"}
               </p>
             </div>
             <div>
@@ -444,7 +429,10 @@ const LoanEvaluationProfilePage = () => {
           ) : error ? (
             <p className="text-center text-red-500">{error}</p>
           ) : loanApplication && loanApplication.existingLoans && loanApplication.existingLoans.length > 0 ? (
-            <div className="space-y-4 overflow-y-auto" style={{ maxHeight: loanApplication.existingLoans.length > 2 ? "350px" : "auto" }}>
+            <div
+              className="space-y-4 overflow-y-auto"
+              style={{ maxHeight: loanApplication.existingLoans.length > 2 ? "350px" : "auto" }}
+            >
               {loanApplication.existingLoans.map((loan) => (
                 <div
                   key={loan.loan_application_id}
@@ -455,8 +443,12 @@ const LoanEvaluationProfilePage = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 font-medium">Date of Loan:</span>
                       <span className="font-semibold text-gray-900">
-                        {loan?.created_at 
-                          ? new Date(loan.created_at).toLocaleDateString("en-US", { month: "long", day: "2-digit", year: "numeric" })
+                        {loan?.created_at
+                          ? new Date(loan.created_at).toLocaleDateString("en-US", {
+                              month: "long",
+                              day: "2-digit",
+                              year: "numeric",
+                            })
                           : "N/A"}
                       </span>
                     </div>
@@ -500,26 +492,11 @@ const LoanEvaluationProfilePage = () => {
       )}
 
       {activeTab === "loanApplication" && (
-        // Middle Content: Loan Applications Table and Member Status Card
         <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4">
           <div className="card bg-white shadow-md rounded-lg p-4" style={{ maxHeight: "300px" }}>
             <div className="card-title text-lg font-bold mb-2">Loan Applications</div>
-            <p className="text-sm text-gray-500 mb-4">
-              Details of loan applications.
-            </p>
-            {/* <div className="relative mb-4">
-              <input
-                type="text"
-                placeholder="Search Loan Applications..."
-                className="input input-bordered input-sm w-full pl-10"
-                value={loanSearchTerm}
-                onChange={(e) => setLoanSearchTerm(e.target.value)}
-              />
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-              />
-            </div> */}
+            <p className="text-sm text-gray-500 mb-4">Details of loan applications.</p>
+            {/* Loan Applications Table */}
             <div className="overflow-x-auto" style={{ maxHeight: "500px" }}>
               <table className="table w-full table-zebra">
                 <thead className="bg-green-100">
@@ -536,7 +513,6 @@ const LoanEvaluationProfilePage = () => {
                     <th>Status</th>
                     <th>Loan Status</th>
                     <th>Action</th>
-
                   </tr>
                 </thead>
                 <tbody>
@@ -568,7 +544,6 @@ const LoanEvaluationProfilePage = () => {
               </table>
             </div>
           </div>
-
         </div>
       )}
 
@@ -579,38 +554,29 @@ const LoanEvaluationProfilePage = () => {
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+      {/* Action Buttons: Only Approved and Rejected */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
         <button
           disabled={disableActions}
-          onClick={handleUpdated}
+          onClick={handleApproved}
           className={`px-4 py-2 rounded ${
             disableActions ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"
           }`}
         >
-          Updated
+          Approved
         </button>
         <button
           disabled={disableActions}
-          onClick={handleMispayment}
+          onClick={handleRejected}
           className={`px-4 py-2 rounded ${
-            disableActions ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"
+            disableActions ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700 text-white"
           }`}
         >
-          Mispayment
-        </button>
-        <button
-          disabled={disableActions}
-          onClick={handlePassDue}
-          className={`px-4 py-2 rounded ${
-            disableActions ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700 text-white"
-          }`}
-        >
-          Pass due
+          Rejected
         </button>
       </div>
     </div>
   );
 };
 
-export default LoanEvaluationProfilePage;
+export default LoanApprovalProfile;

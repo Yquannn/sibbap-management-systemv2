@@ -1,3 +1,4 @@
+// InstallmentRepayment.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { CreditCard, CheckCircle } from "lucide-react";
@@ -5,11 +6,12 @@ import { useParams } from "react-router-dom";
 import SuccessComponent from "./SuccessModal";
 import TransactionAuthenticate from "../../savingsPages/utils/TranscationAuthenticate";
 
-
 const InstallmentRepayment = () => {
   const { id } = useParams(); // installmentId from URL
   const [amountToPay, setAmountToPay] = useState(null);
   const [method, setMethod] = useState("Cash");
+  const [authorized, setAuthorized] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [fetchingAmount, setFetchingAmount] = useState(true);
   const [message, setMessage] = useState("");
@@ -24,7 +26,7 @@ const InstallmentRepayment = () => {
           `http://192.168.254.103:3001/api/installment/${id}`
         );
         if (Array.isArray(response.data) && response.data.length > 0) {
-          setAmountToPay(response.data[0].amount);
+          setAmountToPay(response.data[0].amortization);
         } else {
           setAmountToPay(0);
         }
@@ -38,15 +40,20 @@ const InstallmentRepayment = () => {
     fetchAmountToPay();
   }, [id]);
 
-  // Function that processes repayment after successful authentication
+  // Function that processes repayment after successful authentication.
   const processRepayment = async () => {
     setLoading(true);
     setMessage("");
+    // Retrieve the authorized username from session storage before sending the request
+    const currentAuthorized = sessionStorage.getItem("username");
+    setAuthorized(currentAuthorized);
+
     try {
-      await axios.post(
-        `http://192.168.254.103:3001/api/installment/${id}/repay`,
-        { amount_paid: parseFloat(amountToPay), method }
-      );
+      await axios.post(`http://192.168.254.103:3001/api/installment/${id}/repay`, {
+        amount_paid: parseFloat(amountToPay),
+        method,
+        authorized: currentAuthorized,
+      });
       setMessage("Repayment successful!");
       setShowModal(true); // Show success modal
       setMethod("Cash");
@@ -58,14 +65,14 @@ const InstallmentRepayment = () => {
     }
   };
 
-  // Called when the user clicks the "Submit Payment" button.
-  // Instead of processing payment directly, we show the auth modal.
+  // When the user clicks the "Submit Payment" button, show the authentication modal.
   const handleRepayClick = () => {
     setShowAuth(true);
   };
 
   // Callback when authentication succeeds.
   const handleAuthentication = (password) => {
+    // Optionally, you can validate the password before proceeding.
     processRepayment();
   };
 

@@ -31,7 +31,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-blue-500 shadow-md rounded-lg p-6 flex items-center">
+        {/* <div className="bg-blue-500 shadow-md rounded-lg p-6 flex items-center">
           <FaArrowDown className="text-white text-4xl mr-4" /> 
           <div>
             <h2 className="text-xl font-semibold text-white">Inflow</h2>
@@ -53,7 +53,7 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold text-white">Number of Borrowers</h2>
             <p className="text-4xl font-bold mt-4 text-white">350</p>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

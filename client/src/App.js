@@ -41,6 +41,7 @@ import InstallmentRepayment from "./pages/admin/loanPages/components/Installment
 import LoanEvaluationProfilePage from "./pages/admin/loanPages/LoanEvaluationProfilePage";
 import Authorize from "./pages/Unauthorize"; // Ensure filename matches
 import BareLayout from "./layouts/BareLayout";
+import LoanApprovalProfile from "./pages/admin/loanPages/LoanApprovalProfilePage";
 
 function App() {
   return (
@@ -69,6 +70,10 @@ function App() {
     <Route path="users" element={<Users />} />
     <Route path="announcement" element={<Announcement />} />
     <Route path="loan-application/:loan_application_id" element={<LoanEvaluationProfilePage />} />
+
+    <Route path="loan-application-approval/:loan_application_id" element={<LoanApprovalProfile />} />
+
+
 
     {/* Regular Savings Info */}
     <Route path="regular-savings-info/:memberId" element={<RegularSavingsInfo />} />

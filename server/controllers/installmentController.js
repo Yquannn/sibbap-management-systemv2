@@ -29,23 +29,28 @@ exports.getInstallments = async (req, res) => {
   }
 };
 
-// POST /installments/:installment_id/repay
-// Records a repayment transaction for a given installment.
 exports.addRepayment = async (req, res) => {
-    const { installment_id } = req.params;
-    const { amount_paid, method } = req.body; // Expect amount_paid and method in the request body
-    try {
-      const result = await installmentsModel.addRepayment(installment_id, amount_paid, method);
-      // result is expected to have repaymentId, transactionNumber, and status
-      res.json({ 
-        message: "Repayment recorded", 
-        repaymentId: result.repaymentId,
-        transactionNumber: result.transactionNumber,
-        status: result.status
-      });
-    } catch (error) {
-      console.error("Error recording repayment:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  };
-  
+  const { installment_id } = req.params;
+  const { amount_paid, method, authorized } = req.body; // Expect these values in the request body
+
+  try {
+    const result = await installmentsModel.addRepayment(
+      installment_id,
+      amount_paid,
+      method,
+      "Paid",
+      "Repayment", 
+      authorized
+    );
+    // The result is expected to have repaymentId, transactionNumber, and status
+    res.json({ 
+      message: "Repayment recorded", 
+      repaymentId: result.repaymentId,
+      transactionNumber: result.transactionNumber,
+      status: result.status
+    });
+  } catch (error) {
+    console.error("Error recording repayment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

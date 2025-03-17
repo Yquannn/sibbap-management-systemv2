@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaDollarSign, FaSearch, FaFilter } from 'react-icons/fa';
-import LoanApprovalProfileModal from './components/LoanApprovalProfileModal';
+import { useNavigate } from "react-router-dom";
 
 const LoanApproval = () => {
   const apiBaseURL = 'http://localhost:3001/api/loan-applicant/approve'; // Ensure this URL is correct
@@ -19,6 +19,7 @@ const LoanApproval = () => {
   const [statusFilter, setStatusFilter] = useState("All"); // State for status filtering
   const [error, setError] = useState(""); // For handling error messages
   
+  const navigate = useNavigate()
   // List of loan types available for filtering
   const loanTypes = [
     "Feeds Loan", "Rice Loan", "Marketing Loan", "Back-to-Back Loan",
@@ -259,7 +260,7 @@ const LoanApproval = () => {
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <div className="flex justify-center space-x-3">
                       <button
-                        onClick={() => openModal('viewOpen', borrower)}
+                        onClick={() => navigate(`/loan-application-approval/${borrower.loan_application_id}`)}
                         className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
                       >
                         View Evaluation
@@ -279,13 +280,7 @@ const LoanApproval = () => {
         </table>
       </div>
 
-      {/* Modal */}
-      {modalState.viewOpen && modalState.selectedMember && (
-        <LoanApprovalProfileModal
-          member={modalState.selectedMember}
-          onClose={closeModal}
-        />
-      )}
+     
     </div>
   );
 };

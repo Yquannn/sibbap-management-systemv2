@@ -47,7 +47,7 @@ const Bills = () => {
             month,
             status: inst.status,
             dueDate: formattedDueDate,
-            amount: Number(inst.amount),
+            amortization: Number(inst.amortization),
             upcoming: isUpcoming,
           };
         });
@@ -155,7 +155,7 @@ const Bills = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-xl font-semibold">
-                      ₱{bill.amount.toFixed(2)}
+                      ₱{bill.amortization.toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -188,7 +188,7 @@ const Bills = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-semibold">
-                        ₱{bill.amount.toFixed(2)}
+                        ₱{bill.amortization.toFixed(2)}
                       </div>
                     </div>
                   </div>

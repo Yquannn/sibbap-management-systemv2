@@ -48,18 +48,7 @@ const TimeDeposit = {
     `;
     const [rows] = await db.execute(sql);
     return rows;
-  },
-  updateIsTimeDepositor: async (memberId) => {
-    const sql = `
-      UPDATE members
-      SET is_borrower = 1
-      WHERE memberId = ?
-    `;
-    const [result] = await db.execute(sql, [memberId]); // Pass the memberId as a parameter
-    return result;
-  },
-  
-  
+  }
 };
 
 module.exports = TimeDeposit;

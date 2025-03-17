@@ -132,7 +132,7 @@ const LoanPage = () => {
       (inst) => inst.status.toLowerCase() === "unpaid"
     );
     if (nextUnpaid) {
-      upcomingRepaymentAmount = parseFloat(nextUnpaid.amount);
+      upcomingRepaymentAmount = parseFloat(nextUnpaid.amortization);
       const dueDateRaw = nextUnpaid.due_date || nextUnpaid.dueDate;
       upcomingDueDate = new Date(dueDateRaw);
     }
@@ -294,14 +294,7 @@ const LoanPage = () => {
             </div>
           ))}
 
-          {transactionHistory.length > 3 && (
-            <button
-              className="w-full text-blue-500 text-sm font-semibold mt-2 hover:underline"
-              onClick={() => navigate("/transactions")}
-            >
-              View All Transactions
-            </button>
-          )}
+          
         </>
       ) : (
         <p className="text-center text-sm text-gray-500">No transactions found.</p>

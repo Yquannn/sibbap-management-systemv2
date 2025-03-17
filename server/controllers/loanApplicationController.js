@@ -1,5 +1,6 @@
 const loanApplicationModel = require("../models/loanApplicationModel");
 
+// Controller: createLoanApplication
 async function createLoanApplication(req, res) {
   try {
     const loanData = req.body;

@@ -3,11 +3,11 @@ import axios from "axios";
 import {
   ChevronDown,
   Users,
-  PhilippinePeso ,
+  PhilippinePeso,
   CreditCard,
   Clock,
   Filter,
-  AppWindowMac,
+  SquareUserRound,
   CheckCircle,
   XCircle,
   Search,
@@ -125,6 +125,12 @@ export default function AdminLoanMonitorUI() {
     return <div className="p-6 text-center">No data available.</div>;
   }
 
+  // Extract personal information from the loanPersonalInformation array.
+  const personalInfo =
+    loanData.loanPersonalInformation && loanData.loanPersonalInformation.length > 0
+      ? loanData.loanPersonalInformation[0]
+      : null;
+
   // Extract loan applications array
   const loanApps = loanData.loanApplications || [];
 
@@ -154,7 +160,6 @@ export default function AdminLoanMonitorUI() {
     );
   });
   const isOnTime = overdueInstallments.length === 0;
-
   const isGoodOrOnTime = isGoodPayer || isOnTime;
 
   // Prepare pie chart data based on member status.
@@ -208,7 +213,6 @@ export default function AdminLoanMonitorUI() {
     );
   });
 
-  const statLoanCount = searchedLoanApps.length;
   const statTotalLoan = searchedLoanApps
     .reduce((acc, app) => acc + parseFloat(app.loan_amount), 0)
     .toFixed(2);
@@ -286,43 +290,17 @@ export default function AdminLoanMonitorUI() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
         <div className="stat bg-white shadow-md rounded-lg p-4 flex flex-col justify-between">
           <div className="flex items-center">
-            <AppWindowMac size={50} className="text-brown-800 mr-2" />
+            <SquareUserRound size={50} className="text-green-800 mr-2" />
             <div>
               <div className="stat-title text-sm text-gray-500">
-                Total Loan Applications
+                Member Code & Name
               </div>
               <div className="stat-value text-2xl font-bold">
-                {statLoanCount}
+                {personalInfo
+                  ? `${personalInfo.memberCode} - ${personalInfo.first_name} ${personalInfo.last_name}`
+                  : "N/A"}
               </div>
-              <div className="stat-desc text-gray-400">
-                {selectedLoanId === "all" ? "All Loans" : "Filtered Loans"}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="block text-xs text-gray-500 mb-1">
-              Filter by Loan:
-            </label>
-            <div className="relative">
-              <select
-                className="select select-bordered w-full text-sm pr-8"
-                value={selectedLoanId}
-                onChange={(e) => setSelectedLoanId(e.target.value)}
-              >
-                <option value="all">All Loans</option>
-                {loanApps.map((app) => (
-                  <option
-                    key={app.loan_application_id}
-                    value={app.loan_application_id}
-                  >
-                    {app.client_voucher_number} - {app.loan_type}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500 pointer-events-none"
-              />
+              
             </div>
           </div>
         </div>
@@ -343,7 +321,7 @@ export default function AdminLoanMonitorUI() {
         </div>
 
         <div className="stat bg-white shadow-md rounded-lg p-4 flex items-center">
-          <PhilippinePeso  size={50} className="text-orange-500 mr-2" />
+          <PhilippinePeso size={50} className="text-orange-500 mr-2" />
           <div>
             <div className="stat-title text-sm text-gray-500">
               Total Loan Amount
@@ -373,8 +351,6 @@ export default function AdminLoanMonitorUI() {
             </div>
           </div>
         </div>
-
-       
       </div>
 
       {/* Middle Content: Loan Applications Table and Active Users / Member Status Card */}
@@ -387,21 +363,9 @@ export default function AdminLoanMonitorUI() {
             Loan Applications
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Details of all loan applications.
+            Details of loan applications.
           </p>
-          <div className="relative mb-4">
-            <input
-              type="text"
-              placeholder="Search Loan Applications..."
-              className="input input-bordered input-sm w-full pl-10"
-              value={loanSearchTerm}
-              onChange={(e) => setLoanSearchTerm(e.target.value)}
-            />
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-            />
-          </div>
+
           <div className="overflow-x-auto" style={{ maxHeight: "500px" }}>
             <table className="table w-full table-zebra">
               <thead className="bg-green-100">
@@ -415,8 +379,6 @@ export default function AdminLoanMonitorUI() {
                   <th>Balance</th>
                   <th>Fee</th>
                   <th>Created At</th>
-                  {/* <th>Status</th> */}
-                  {/* <th>Remarks</th> */}
                   <th>Loan Status</th>
                   <th>Action</th>
                 </tr>
@@ -433,8 +395,6 @@ export default function AdminLoanMonitorUI() {
                     <td>₱{formatCurrency(app.balance)}</td>
                     <td>{app.service_fee}</td>
                     <td>{formatDate(app.created_at)}</td>
-                    {/* <td>{app.status}</td> */}
-                    {/* <td>{app.remarks}</td> */}
                     <td>{app.loan_status}</td>
                     <td>
                       <button
@@ -445,13 +405,15 @@ export default function AdminLoanMonitorUI() {
                       </button>
                       <button
                         className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 ml-2 transition duration-200"
-                        onClick={() => navigate(`/loan-repayment/${app.loan_application_id}?action=view`)}
+                        onClick={() =>
+                          navigate(
+                            `/loan-repayment/${app.loan_application_id}?action=view`
+                          )
+                        }
                       >
                         View
                       </button>
                     </td>
-
-
                   </tr>
                 ))}
               </tbody>
@@ -509,116 +471,129 @@ export default function AdminLoanMonitorUI() {
           </div>
         </div>
       </div>
-{/* Bottom Content: Installments and Repayments Tables */}
-<div className="grid grid-cols-3 gap-4">
-  {/* Monthly Amortization Table (1 column) */}
-  <div className="card bg-white shadow-md rounded-lg p-4">
-    <div className="card-title text-lg font-bold mb-2">
-      Monthly Amortization
-    </div>
-    <p className="text-sm text-gray-500 mb-4">
-      A list of installment data.
-    </p>
-    <div className="overflow-x-auto">
-      <table className="table w-full table-zebra">
-        <thead className="bg-green-100">
-          <tr>
-            <th>Terms</th>
-            <th>Amortization</th>
-            <th>Due Date</th>
-            <th>Status</th>
-            <th>Repayment</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredInstallments.map((inst, idx) => (
-            <tr key={idx}>
-              <td>{inst.installment_number}</td>
-              <td>₱{formatCurrency(inst.amount)}</td>
-              <td>{formatDate(inst.due_date)}</td>
-              <td>{inst.status}</td>
-              <td>
-                {inst.status.toLowerCase() === "unpaid" ? (
-                  <button
-                    className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    onClick={() =>
-                      navigate(`/loan-repayment/${inst.installment_id}`)
-                    }
-                  >
-                    Repay
-                  </button>
-                ) : (
-                  <span className="text-green-600 font-medium">
-                    Paid
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
+      {/* Bottom Content: Installments and Repayments Tables */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Monthly Amortization Table (1 column) */}
+        <div className="card bg-white shadow-md rounded-lg p-4">
+          <div className="card-title text-lg font-bold mb-2">
+            Monthly Amortization
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            A list of installment data.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="table w-full table-zebra">
+              <thead className="bg-green-100">
+                <tr>
+                  <th>Period</th>
+                  <th>Due</th>
+                  <th>Beg.Bal</th>
+                  <th>Amort</th>
+                  <th>Principal</th>
+                  <th>Interest</th>
+                  <th>Savings Dep</th>
 
-  {/* Repayments Table spanning 2 columns */}
-  <div className="card bg-white shadow-md rounded-lg p-4 col-span-2">
-    <div className="card-title text-lg font-bold mb-2">
-      Repayments Transaction
-    </div>
-    <p className="text-sm text-gray-500 mb-4">
-      A list of repayment data.
-    </p>
-    <div className="relative mb-4">
-      <input
-        type="text"
-        placeholder="Search Repayments..."
-        className="input input-bordered input-sm w-full pl-10"
-        value={repaymentSearchTerm}
-        onChange={(e) => setRepaymentSearchTerm(e.target.value)}
-      />
-      <Search
-        size={16}
-        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-      />
-    </div>
-    <div className="overflow-x-auto">
-      <table className="table w-full table-zebra">
-        <thead className="bg-green-100">
-          <tr>
-            <th>Txn #</th>
-            <th>Transaction Type</th>
-            <th>Transaction Amount</th>
-            <th>Date & Time</th>
-            <th>Authorize by</th>
-            <th>Mode of Payment</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {searchedRepayments.map((rep, idx) => (
-            <tr key={idx}>
-              <td>{rep.transaction_number}</td>
-              <td>{rep.transaction_type || "N/A"}</td>
-              <td>₱{formatCurrency(rep.amount_paid)}</td>
-              <td>{formatDate(rep.payment_date)}</td>
-              <td>{formatDate(rep.authorize_by || "N/A")}</td>
-              <td>{rep.method}</td>
-              <td>
-                <button
-                  className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  onClick={() => navigate("/")}
-                >
-                  View
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+                  <th>End.Bal</th>
+                  {/* <th>Status</th> */}
+                  <th>Repay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredInstallments.map((inst, idx) => (
+                  <tr key={idx}>
+                    <td>{inst.installment_number}</td>
+                    <td>{formatDate(inst.due_date)}</td>
 
+                    <td>{inst.beginning_balance}</td>
+                    <td>₱{formatCurrency(inst.amortization)}</td>
+
+                    <td>{inst.principal}</td>
+                    <td>{inst.interest}</td>
+                    <td>{inst.savings_deposit}</td>
+                    <td>{inst.ending_balance}</td>
+
+
+                    {/* <td>{inst.status}</td> */}
+                    <td>
+                      {inst.status.toLowerCase() === "unpaid" ? (
+                        <button
+                          className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          onClick={() =>
+                            navigate(`/loan-repayment/${inst.installment_id}`)
+                          }
+                        >
+                          Repay
+                        </button>
+                      ) : (
+                        <span className="text-green-600 font-medium">
+                          Paid
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {/* Repayments Table spanning 2 columns */}
+        <div className="card bg-white shadow-md rounded-lg p-4">
+          <div className="card-title text-lg font-bold mb-2">
+            Repayments Transaction
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            A list of repayment data.
+          </p>
+          <div className="relative mb-4">
+            <input
+              type="text"
+              placeholder="Search Repayments..."
+              className="input input-bordered input-sm w-full pl-10"
+              value={repaymentSearchTerm}
+              onChange={(e) => setRepaymentSearchTerm(e.target.value)}
+            />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+            />
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table w-full table-zebra">
+              <thead className="bg-green-100">
+                <tr>
+                  <th>Txn #</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Date/Time</th>
+                  <th>Authorize</th>
+                  <th>Method</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchedRepayments.map((rep, idx) => (
+                  <tr key={idx}>
+                    <td>{rep.transaction_number}</td>
+                    <td>{rep.transaction_type || "N/A"}</td>
+                    <td>₱{formatCurrency(rep.amount_paid)}</td>
+                    <td>{formatDate(rep.payment_date)}</td>
+                    <td>{rep.authorized || "N/A"}</td>
+                    <td>{rep.method}</td>
+                    <td>
+                      <button
+                        className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        onClick={() => navigate("/")}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

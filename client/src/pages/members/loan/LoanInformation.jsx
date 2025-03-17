@@ -65,7 +65,7 @@ const LoanInformation = () => {
       ? loanData.installments.map((item) => ({
           id: item.installment_id,
           label: `${item.installment_number}/${numPeriods}`,
-          amount: Number(item.amount),
+          amount: Number(item.amortization),
           dueDate: new Date(item.due_date).toLocaleDateString(),
           status: item.status,
         }))
