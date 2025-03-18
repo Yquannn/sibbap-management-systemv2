@@ -42,6 +42,7 @@ import LoanEvaluationProfilePage from "./pages/admin/loanPages/LoanEvaluationPro
 import Authorize from "./pages/Unauthorize"; // Ensure filename matches
 import BareLayout from "./layouts/BareLayout";
 import LoanApprovalProfile from "./pages/admin/loanPages/LoanApprovalProfilePage";
+import MemberProfilePage from "./pages/admin/MemberProfilePage";
 
 function App() {
   return (
@@ -58,6 +59,8 @@ function App() {
   <Route element={<AdminLayout />}>
     <Route path="dashboard" element={<Dashboard />} />
     <Route path="members" element={<Members />} />
+    <Route path="member-profile/:memberId" element={<MemberProfilePage />} />
+
     <Route path="file-maintenance" element={<FileMaintenance />} />
     <Route path="maintenance" element={<Maintenance />} />
     <Route path="savings" element={<Savings />} />

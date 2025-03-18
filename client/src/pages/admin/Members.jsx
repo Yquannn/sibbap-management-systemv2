@@ -82,9 +82,11 @@ const Members = () => {
   const updateMember = async (member) => {
     try {
       setLoading(true);
-      await axios.put(`${apiBaseURL}/${member.member_id}`, member, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await axios.put(
+        `${apiBaseURL}/members/${member.memberId}`,
+        member,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
       setMessage({ type: "success", text: "Member updated successfully!" });
       fetchMembers();
       closeModal();
@@ -106,8 +108,8 @@ const Members = () => {
     if (window.confirm('Are you sure you want to delete this member?')) {
       try {
         setLoading(true);
-        await axios.delete(`${apiBaseURL}/${memberId}`);
-        setMembers((prev) => prev.filter((member) => member.member_id !== memberId));
+        await axios.delete(`${apiBaseURL}/members/${memberId}`);
+        setMembers((prev) => prev.filter((member) => member.memberId !== memberId));
         setMessage({ type: 'success', text: "Member deleted successfully!" });
         fetchMembers();
       } catch (error) {
@@ -226,7 +228,7 @@ const Members = () => {
           </thead>
           <tbody>
             {members.map((member, index) => (
-              <tr key={`${member.member_id}-${index}`} className="hover">
+              <tr key={`${member.memberId}-${index}`} className="hover">
                 <th>
                   <label>
                     <input type="checkbox" className="checkbox" />
@@ -269,28 +271,16 @@ const Members = () => {
                   </span>
                 </td>
                 <td>
-                  <button className="btn btn-gray" onClick={() => openModal('viewOpen', member)}>
+                  <button 
+                    className="btn btn-gray" 
+                    onClick={() => navigate(`/member-profile/${member.memberId}`)}
+                  >
                     Details
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
-          {/* <tfoot>
-            <tr>
-              <th></th>
-              <th>Code Number</th>
-              <th>Name</th>
-              <th>Member Type</th>
-              <th>Date of Birth</th>
-              <th>Civil Status</th>
-              <th>Contact Number</th>
-              <th>Address</th>
-              <th>Shared Capital</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </tfoot> */}
         </table>
       </div>
 
@@ -300,7 +290,7 @@ const Members = () => {
           isOpen={modalState.addOpen || modalState.editOpen}
           onClose={closeModal}
           onSave={handleSave}
-          memberIdToEdit={modalState.editOpen ? modalState.selectedMember.member_id : null}
+          memberIdToEdit={modalState.editOpen ? modalState.selectedMember.memberId : null}
         />
       )}
       {modalState.viewOpen && (
