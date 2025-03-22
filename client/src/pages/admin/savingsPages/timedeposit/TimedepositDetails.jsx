@@ -31,11 +31,11 @@ ChartJS.register(
 
 const TimedepositInfo = () => {
   const { memberId } = useParams();
-  const [memberData, setMemberData] = useState();
+  const [depositData, setDepositData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [modalType, setModalType] = useState(""); // "deposit" or "withdraw"
 
@@ -46,56 +46,35 @@ const TimedepositInfo = () => {
   const [selectedGraphFilter, setSelectedGraphFilter] = useState("all");
   const [selectedTimeGroup, setSelectedTimeGroup] = useState("daily");
 
-  // Fetch member data
+  // Fetch time deposit data
   useEffect(() => {
     if (!memberId) {
       setError("No memberId provided in the route.");
       setLoading(false);
       return;
     }
-    const fetchMemberData = async () => {
+    const fetchDepositData = async () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://localhost:3001/api/members/timedepositor/${memberId}`
+          `http://localhost:3001/api/timedepositor/${memberId}`
         );
-        setMemberData(response.data.data);
+        // Assuming the API returns the time deposit record directly in response.data
+        setDepositData(response.data);
       } catch (err) {
-        setError("Failed to fetch member data.");
+        setError("Failed to fetch time deposit data.");
       } finally {
         setLoading(false);
       }
     };
-    fetchMemberData();
+    fetchDepositData();
   }, [memberId]);
 
-  // Fetch transactions using member email
+  // (Optional) Fetch transactions if available. Currently commented out.
   useEffect(() => {
-    if (!memberData) return;
-    const email = memberData.email;
-    if (!email) {
-      setError("Email not found. Please log in.");
-      return;
-    }
-    const fetchTransactions = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(
-          `http://localhost:3001/api/member/time-deposit/email/${email}`
-        );
-        if (response.data && response.data.transactions) {
-          setTransactions(response.data.transactions);
-        } else {
-          throw new Error("No transactions found.");
-        }
-      } catch (err) {
-        setError(err.message || "Error fetching transactions.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTransactions();
-  }, [memberData]);
+    if (!depositData) return;
+    // Implement transaction fetching here if your API provides it.
+  }, [depositData]);
 
   if (loading) {
     return <div className="text-center p-6">Loading...</div>;
@@ -103,54 +82,45 @@ const TimedepositInfo = () => {
   if (error) {
     return <div className="text-center p-6 text-red-600">{error}</div>;
   }
-  if (!memberData) {
-    return <div className="text-center p-6">No member data found.</div>;
+  if (!depositData) {
+    return <div className="text-center p-6">No time deposit data found.</div>;
   }
 
-  // Build a member address string
-  const memberAddress =
-    " " +
-    memberData.city +
-    " " +
-    memberData.house_no_street +
-    " " +
-    memberData.barangay;
+  // Destructure the time deposit record fields.
   const {
-    id_picture,
-    first_name,
-    last_name,
-    email,
-    date_of_birth,
-    age,
+    timeDepositId,
+    memberId: mId,
     amount,
-    civil_status,
-    contact_number,
-    address = memberAddress,
-    membership_status,
-    account_status,
-    tax_id,
-    occupation,
-    annual_income,
-    highest_education_attainment,
-    tin_number,
-  } = memberData;
+    fixedTerm,
+    interest,
+    payout,
+    maturityDate,
+    remarks,
+    account_type,
+    co_last_name,
+    co_middle_name,
+    co_first_name,
+    co_extension_name,
+    co_date_of_birth,
+    co_place_of_birth,
+    co_age,
+    co_gender,
+    co_civil_status,
+    co_contact_number,
+    co_relationship_primary,
+    co_complete_address,
+  } = depositData;
 
   const availableBalance = amount || 0;
-  const imageUrl = (filename) =>
-    filename ? `http://localhost:3001/uploads/${filename}` : "";
 
+  // (Optional) If you have transactions data, you can use the same grouping/graph logic.
   const filteredTransactions = [...transactions]
-    .sort(
-      (a, b) =>
-        new Date(b.transaction_date_time) - new Date(a.transaction_date_time)
-    )
+    .sort((a, b) => new Date(b.transaction_date_time) - new Date(a.transaction_date_time))
     .filter((tx) => {
       const search = transactionNumberFilter.toLowerCase();
       if (
         transactionNumberFilter.trim() &&
-        !tx.transaction_number
-          ?.toLowerCase()
-          .includes(search)
+        !tx.transaction_number?.toLowerCase().includes(search)
       ) {
         return false;
       }
@@ -175,8 +145,7 @@ const TimedepositInfo = () => {
           break;
         case "weekly": {
           const firstDayOfWeek = new Date(date);
-          const diff =
-            firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
+          const diff = firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
           firstDayOfWeek.setDate(firstDayOfWeek.getDate() + diff);
           firstDayOfWeek.setHours(0, 0, 0, 0);
           key = firstDayOfWeek.getTime();
@@ -241,10 +210,8 @@ const TimedepositInfo = () => {
   const sortedTimestamps = Object.keys(grouped)
     .map(Number)
     .sort((a, b) => a - b);
-  const labels = sortedTimestamps.map((ts) =>
-    formatLabel(ts, selectedTimeGroup)
-  );
-  const depositData = sortedTimestamps.map((ts) => grouped[ts].deposit);
+  const labels = sortedTimestamps.map((ts) => formatLabel(ts, selectedTimeGroup));
+  const depositDataChart = sortedTimestamps.map((ts) => grouped[ts].deposit);
   const withdrawData = sortedTimestamps.map((ts) => grouped[ts].withdraw);
   const interestData = sortedTimestamps.map((ts) => grouped[ts].interest);
 
@@ -253,12 +220,12 @@ const TimedepositInfo = () => {
   if (selectedGraphFilter === "all" || selectedGraphFilter === "deposit") {
     chartDatasetsBar.push({
       label: "Deposits",
-      data: depositData,
+      data: depositDataChart,
       backgroundColor: "#4ade80",
     });
     chartDatasetsLine.push({
       label: "Deposits",
-      data: depositData,
+      data: depositDataChart,
       borderColor: "#4ade80",
       backgroundColor: "#4ade80",
       fill: false,
@@ -282,10 +249,7 @@ const TimedepositInfo = () => {
       pointRadius: 3,
     });
   }
-  if (
-    selectedGraphFilter === "all" ||
-    selectedGraphFilter === "savings interest"
-  ) {
+  if (selectedGraphFilter === "all" || selectedGraphFilter === "savings interest") {
     chartDatasetsBar.push({
       label: "Savings Interest",
       data: interestData,
@@ -314,9 +278,7 @@ const TimedepositInfo = () => {
       legend: { position: "top" },
       title: {
         display: true,
-        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(
-          0
-        ).toUpperCase() + selectedTimeGroup.slice(1)})`,
+        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`,
       },
     },
     scales: {
@@ -346,9 +308,7 @@ const TimedepositInfo = () => {
       legend: { position: "top" },
       title: {
         display: true,
-        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(
-          0
-        ).toUpperCase() + selectedTimeGroup.slice(1)})`,
+        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`,
       },
     },
     scales: {
@@ -367,24 +327,42 @@ const TimedepositInfo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      {/* Header */}
-      <h1 className="text-3xl font-bold text-center mb-6">
-        Time Deposit Information
-      </h1>
+    <div className="bg-gray-100">
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Left Section */}
+        {/* Left Section - Deposit Info & Analytics */}
         <div className="flex-1 space-y-4">
-          {/* Total Time Deposit Balance */}
+          {/* Deposit Summary */}
           <div className="bg-white rounded-lg shadow p-6">
             <p className="text-xl">
-              Total Time Deposit Balance:{" "}
+              Deposit Amount:{" "}
               <span className="font-bold text-2xl">
                 {parseFloat(availableBalance).toLocaleString("en-PH", {
                   style: "currency",
                   currency: "PHP",
                 })}
               </span>
+            </p>
+            <p className="mt-2">
+              Fixed Term: <strong>{fixedTerm} Months</strong>
+            </p>
+            <p className="mt-2">
+              Interest: <strong>{interest}</strong>
+            </p>
+            <p className="mt-2">
+              Payout: <strong>{payout}</strong>
+            </p>
+            <p className="mt-2">
+              Maturity Date:{" "}
+              <strong>
+                {new Date(maturityDate).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </strong>
+            </p>
+            <p className="mt-2">
+              Remarks: <strong>{remarks}</strong>
             </p>
           </div>
           {/* Analytics Section */}
@@ -453,13 +431,13 @@ const TimedepositInfo = () => {
               )}
             </div>
           </div>
-          {/* Transactions Table */}
+          {/* Transactions Table (if transactions exist) */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex flex-wrap items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <FaHistory className="text-green-500" size={20} />
                 <h3 className="text-lg font-bold text-gray-800">
-                  Time Deposit Transaction History
+                  Transaction History
                 </h3>
               </div>
               <div className="flex flex-wrap items-center gap-4">
@@ -539,24 +517,7 @@ const TimedepositInfo = () => {
                           {tx.user_type || "N/A"}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.transaction_type?.toLowerCase() === "deposit" ? (
-                            <span className="flex items-center">
-                              <FaMoneyBillWave className="mr-1 text-green-500" size={16} />
-                              <span className="text-green-500 font-semibold">Deposit</span>
-                            </span>
-                          ) : tx.transaction_type?.toLowerCase() === "withdrawal" ? (
-                            <span className="flex items-center">
-                              <FaHandHoldingUsd className="mr-1 text-red-500" size={16} />
-                              <span className="text-red-500 font-semibold">Withdrawal</span>
-                            </span>
-                          ) : tx.transaction_type?.toLowerCase() === "savings interest" ? (
-                            <span className="flex items-center">
-                              <FaMoneyBillWave className="mr-1 text-blue-500" size={16} />
-                              <span className="text-blue-500 font-semibold">Savings Interest</span>
-                            </span>
-                          ) : (
-                            tx.transaction_type || "N/A"
-                          )}
+                          {tx.transaction_type || "N/A"}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           {tx.amount
@@ -581,65 +542,19 @@ const TimedepositInfo = () => {
           </div>
         </div>
 
-        {/* Right Section - Profile & Actions */}
+        {/* Right Section - Member & Actions */}
         <div className="w-full md:w-96 bg-white p-6 border-l border-gray-200 space-y-6 rounded-lg shadow-lg">
-          {/* Profile Section */}
-          <div className="flex items-center space-x-4">
-            <img
-              src={id_picture ? imageUrl(id_picture) : "https://via.placeholder.com/64"}
-              alt="Profile"
-              className="w-16 h-16 object-cover rounded-full border-2 border-gray-300"
-            />
-            <div>
-              <h2 className="text-lg font-semibold">
-                {last_name} {first_name}
-              </h2>
-              <p className="text-gray-500 text-sm">{email || "No Email"}</p>
-            </div>
-          </div>
-          {/* Personal Information Card */}
-          <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-3 text-gray-700">
-              Personal Information
-            </h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              {[
-                {
-                  label: "Date of Birth",
-                  value: date_of_birth
-                    ? new Date(date_of_birth).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "N/A",
-                },
-                { label: "Age", value: memberData.age },
-                { label: "Civil Status", value: civil_status },
-                { label: "Contact Number", value: contact_number },
-                { label: "Address", value: address },
-                { label: "Membership Status", value: membership_status },
-                { label: "Account Status", value: account_status },
-                { label: "Tax ID", value: tax_id },
-                { label: "Occupation", value: occupation },
-                {
-                  label: "Annual Income",
-                  value: annual_income
-                    ? parseFloat(annual_income).toLocaleString("en-PH", {
-                        style: "currency",
-                        currency: "PHP",
-                      })
-                    : "N/A",
-                },
-                { label: "Highest Education", value: highest_education_attainment },
-                { label: "TIN Number", value: tin_number },
-              ].map((item, index) => (
-                <div key={index} className="flex justify-between border-b py-2 last:border-b-0">
-                  <span className="font-medium text-gray-700">{item.label}:</span>
-                  <span className="text-gray-900">{item.value || "N/A"}</span>
-                </div>
-              ))}
-            </div>
+          {/* Simple Member Summary */}
+          <div className="p-4 border rounded-lg bg-gray-50">
+            <p className="text-lg font-bold">
+              Member ID: {mId}
+            </p>
+            <p>
+              Account Type: {account_type || "N/A"}
+            </p>
+            <p>
+              Remarks: {remarks || "N/A"}
+            </p>
           </div>
           {/* Invest / Redeem Buttons */}
           <div className="flex flex-col space-y-2">
@@ -668,7 +583,7 @@ const TimedepositInfo = () => {
           {showTransactionForm && (
             <TransactionForm
               modalType={modalType}
-              member={memberData}
+              member={depositData}
               onClose={() => setShowTransactionForm(false)}
             />
           )}

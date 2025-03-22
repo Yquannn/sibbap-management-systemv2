@@ -1,5 +1,31 @@
 const TimeDeposit = require("../models/timeDepositModel");
-const calculateInterestRate = require("../utils/calculateInterest");
+
+
+// Helper function to calculate the interest rate.
+const calculateInterestRate = (amount, termMonths) => {
+  if (termMonths === 6) {
+    if (amount >= 10000 && amount <= 100000) return 0.0075;
+    if (amount > 100000 && amount <= 200000) return 0.01;
+    if (amount > 200000 && amount <= 300000) return 0.0175;
+    if (amount > 300000 && amount <= 400000) return 0.0225;
+    if (amount > 400000 && amount <= 500000) return 0.025;
+    if (amount > 500000 && amount <= 1000000) return 0.025;
+    if (amount > 1000000) return 0.06;
+  } else if (termMonths === 12) {
+    if (amount >= 10000 && amount <= 100000) return 0.01;
+    if (amount > 100000 && amount <= 200000) return 0.015;
+    if (amount > 200000 && amount <= 300000) return 0.02;
+    if (amount > 300000 && amount <= 400000) return 0.0275;
+    if (amount > 400000 && amount <= 500000) return 0.03;
+    if (amount > 500000 && amount <= 1000000) return 0.0325;
+    if (amount > 1000000) return 0.06;
+  }
+  return 0;
+};
+
+// Helper function: convert undefined or empty strings to null.
+const safeValue = (val) =>
+  val === undefined || val === "" ? null : val;
 
 exports.createTimeDeposit = async (req, res) => {
   const {
@@ -15,13 +41,13 @@ exports.createTimeDeposit = async (req, res) => {
     place_of_birth,
     age,
     gender,
-    civil_status,            // corrected from civi_status if needed
+    civil_status,
     contact_number,
-    relationship_primary,    // corrected from ralationshiop_priimary if needed
+    relationship_primary,
     complete_address
   } = req.body;
 
-  // Validate required fields
+  // Validate required fields.
   if (!memberId || !amount || !fixedTerm) {
     return res.status(400).json({ error: "Member ID, amount, and fixed term are required." });
   }
@@ -29,39 +55,42 @@ exports.createTimeDeposit = async (req, res) => {
   try {
     const termMonths = parseInt(fixedTerm, 10);
     const interestRate = calculateInterestRate(amount, termMonths);
-
     const interest = amount * interestRate * (termMonths / 12);
     const payout = amount + interest;
     const maturityDate = new Date(new Date().setMonth(new Date().getMonth() + termMonths))
       .toISOString()
       .slice(0, 10);
 
-    // Ensure optional fields are not undefined by replacing with null if needed.
+    // Build the time deposit record and map the co-account fields to what the model expects.
     const newTimeDeposit = {
-      memberId,
-      amount,
-      fixedTerm,
+      memberId: safeValue(memberId),
+      amount: safeValue(amount),
+      fixedTerm: safeValue(fixedTerm),
       interest: interest.toFixed(2),
       payout: payout.toFixed(2),
-      maturityDate,
-      account_type: account_type ?? null,
-      last_name: last_name ?? null,
-      middle_name: middle_name ?? null,
-      first_name: first_name ?? null,
-      extension_name: extension_name ?? null,
-      date_of_birth: date_of_birth ?? null,
-      place_of_birth: place_of_birth ?? null,
-      age: age ?? null,
-      gender: gender ?? null,
-      civil_status: civil_status ?? null,
-      contact_number: contact_number ?? null,
-      relationship_primary: relationship_primary ?? null,
-      complete_address: complete_address ?? null
+      maturityDate: safeValue(maturityDate),
+      account_type: safeValue(account_type),
+      co_last_name: safeValue(last_name),
+      co_middle_name: safeValue(middle_name),
+      co_first_name: safeValue(first_name),
+      co_extension_name: safeValue(extension_name),
+      co_date_of_birth: safeValue(date_of_birth),
+      co_place_of_birth: safeValue(place_of_birth),
+      co_age: safeValue(age),
+      co_gender: safeValue(gender),
+      co_civil_status: safeValue(civil_status),
+      co_contact_number: safeValue(contact_number),
+      co_relationship_primary: safeValue(relationship_primary),
+      co_complete_address: safeValue(complete_address)
     };
 
+    // Debug: log the payload to ensure no undefined values are present.
+    console.log("Creating Time Deposit with payload:", newTimeDeposit);
+
+    // Create the time deposit record in the database.
     await TimeDeposit.create(newTimeDeposit);
 
-    // Return the expected response format
+    // Return the created record details.
     res.status(201).json({
       memberId,
       amount,
@@ -75,6 +104,10 @@ exports.createTimeDeposit = async (req, res) => {
     res.status(500).json({ error: "Error creating time deposit." });
   }
 };
+
+
+
+
 
 exports.getActiveTimeDeposits = async (req, res) => {
   try {
@@ -111,3 +144,26 @@ exports.getMemberWithNoTimeDeposit = async (req, res) => {
   }
 };
 
+
+
+
+exports.getTimeDepositorById = async (req, res) => {
+  try {
+    console.log("getTimeDepositorById: req.params =", req.params);
+    // Destructure memberId from req.params instead of id.
+    const { memberId } = req.params;
+    if (!memberId) {
+      return res.status(400).json({ error: "Member ID is required." });
+    }
+    const record = await TimeDeposit.getTimeDepositorById(memberId);
+    if (!record) {
+      return res
+        .status(404)
+        .json({ error: "No time deposit record found for this member." });
+    }
+    res.status(200).json(record);
+  } catch (error) {
+    console.error("Error retrieving time deposit record:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};

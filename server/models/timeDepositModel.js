@@ -9,7 +9,7 @@ const TimeDeposit = {
     payout,
     maturityDate,
     // Co‑account holder fields (all prefixed with "co_")
-    co_account_type,
+    account_type,
     co_last_name,
     co_middle_name,
     co_first_name,
@@ -23,23 +23,26 @@ const TimeDeposit = {
     co_relationship_primary,
     co_complete_address
   }) => {
+    // Use a bound parameter for remarks instead of a literal.
     const sql = `
       INSERT INTO time_deposit (
         memberId, amount, fixedTerm, interest, payout, maturityDate, remarks,
-        co_account_type, co_last_name, co_middle_name, co_first_name, co_extension_name,
+        account_type, co_last_name, co_middle_name, co_first_name, co_extension_name,
         co_date_of_birth, co_place_of_birth, co_age, co_gender, co_civil_status,
         co_contact_number, co_relationship_primary, co_complete_address
       )
-      VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await db.execute(sql, [
+    // Build an array with 20 values (including the remarks value "ACTIVE")
+    const params = [
       memberId,
       amount,
       fixedTerm,
       interest,
       payout,
       maturityDate,
-      co_account_type,
+      "ACTIVE",              // remarks parameter
+      account_type,
       co_last_name,
       co_middle_name,
       co_first_name,
@@ -52,7 +55,8 @@ const TimeDeposit = {
       co_contact_number,
       co_relationship_primary,
       co_complete_address
-    ]);
+    ];
+    const [result] = await db.execute(sql, params);
     return result;
   },
 
@@ -100,14 +104,9 @@ const TimeDeposit = {
   getTimeDepositorById: async (id) => {
     const sql = `
       SELECT 
-        memberId,
-        memberCode, 
-        last_name, 
-        first_name, 
-        contact_number, 
-        barangay
+        *
       FROM 
-        members
+        time_deposit
       WHERE memberId = ?
     `;
     const [rows] = await db.execute(sql, [id]);

@@ -13,8 +13,8 @@ const MemberAndCoAccountForm = () => {
 
   // Initialize form data with fetched member data where applicable.
   const [formData, setFormData] = useState({
-    // MEMBERS’ PERSONAL INFORMATION (already saved in DB)
-    accountType: "", // you might use this for co-account type as well
+    // MEMBER’S PERSONAL INFORMATION
+    accountType: "",
     memberCode: selectedMember?.memberCode || "",
     memberLastName: selectedMember?.last_name || "",
     memberMiddleName: selectedMember?.middle_name || "",
@@ -46,18 +46,12 @@ const MemberAndCoAccountForm = () => {
   // Change handlers for text/select fields and file uploads.
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0] || null;
-    setFormData((prev) => ({
-      ...prev,
-      coUploadPicture: file
-    }));
+    setFormData((prev) => ({ ...prev, coUploadPicture: file }));
   };
 
   // State to control display of the TimedepositAmountModal.
@@ -77,7 +71,7 @@ const MemberAndCoAccountForm = () => {
         <section className="bg-white p-4 rounded shadow">
           <h2 className="text-xl font-bold mb-4">MEMBERS’ PERSONAL INFORMATION</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Account Type (for co-account, if needed) */}
+            {/* Account Type */}
             <div className="flex flex-col">
               <label className="font-semibold">Account Type:</label>
               <select
@@ -258,14 +252,16 @@ const MemberAndCoAccountForm = () => {
 
         {/* CO‑ACCOUNT HOLDER PERSONAL INFORMATION */}
         <section className="bg-white p-4 rounded shadow">
-          <h2 className="text-xl font-bold mb-4">CO‑ACCOUNT HOLDER PERSONAL INFORMATION</h2>
+          <h2 className="text-xl font-bold mb-4">
+            CO‑ACCOUNT HOLDER PERSONAL INFORMATION
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex flex-col">
               <label className="font-semibold">Last Name:</label>
               <input
                 type="text"
                 name="coLastName"
-                value={formData.co_last_name}
+                value={formData.coLastName}
                 onChange={handleChange}
                 className="border p-2 rounded"
                 placeholder="Last Name"
@@ -276,7 +272,7 @@ const MemberAndCoAccountForm = () => {
               <input
                 type="text"
                 name="coMiddleName"
-                value={formData.co_middle_name}
+                value={formData.coMiddleName}
                 onChange={handleChange}
                 className="border p-2 rounded"
                 placeholder="Middle Name"
@@ -376,7 +372,9 @@ const MemberAndCoAccountForm = () => {
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Relationship to Primary:</label>
+              <label className="font-semibold">
+                Relationship to Primary:
+              </label>
               <select
                 name="coRelationship"
                 value={formData.coRelationship}
@@ -406,7 +404,7 @@ const MemberAndCoAccountForm = () => {
           </div>
         </section>
 
-        {/* Submit button */}
+        {/* Submit Button */}
         <div className="flex justify-end mt-6 w-full">
           <button
             type="button"
@@ -421,8 +419,8 @@ const MemberAndCoAccountForm = () => {
       {showAmountModal && (
         <TimedepositAmountModal
           onClose={() => setShowAmountModal(false)}
-          formData={formData}   // Pass the parent's form data
-          member={selectedMember || { memberId }}  // Pass member info
+          formData={formData}
+          member={selectedMember || { memberId }}
         />
       )}
     </>
