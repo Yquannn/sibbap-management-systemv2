@@ -160,7 +160,7 @@ export default function AdminLoanMonitorUI() {
     const fetchLoanData = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/member-loan/${memberId}`
+          `http://localhost:3001/api/member-loan/${memberId}`
         );
         if (!response.data || response.data.length === 0) {
           setError("No loan data found.");

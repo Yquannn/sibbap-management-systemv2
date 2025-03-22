@@ -89,7 +89,7 @@ const RegularSavingsInfo = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/member/email/${email}`
+          `http://localhost:3001/api/member/email/${email}`
         );
         if (response.data && response.data.transactions) {
           setTransactions(response.data.transactions);

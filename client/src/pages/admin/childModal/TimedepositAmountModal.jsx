@@ -13,16 +13,13 @@ const formatNumber = (num) => {
   });
 };
 
-const AmountModal = ({ member, modalType, onClose }) => {
-  // Get memberId from URL params.
+const TimedepositAmountModal = ({ member, modalType, onClose, formData }) => {
+  // Get memberId from URL params if not provided via member prop.
   const { memberId: paramMemberId } = useParams();
 
-  // We'll store the raw amount as a string (without commas)
   const [rawAmount, setRawAmount] = useState("");
-  // isAmountFocused tracks if the amount input is currently focused.
   const [isAmountFocused, setIsAmountFocused] = useState(false);
 
-  // When not focused and rawAmount is set, display the formatted amount.
   const displayedAmount =
     !isAmountFocused && rawAmount !== "" && !isNaN(rawAmount)
       ? formatNumber(parseFloat(rawAmount))
@@ -38,7 +35,6 @@ const AmountModal = ({ member, modalType, onClose }) => {
     interestRate: 0,
   });
 
-  // Calculate Interest Rate based on amount and term.
   const calculateInterestRate = (amount, termMonths) => {
     if (termMonths === 6) {
       if (amount >= 10000 && amount <= 100000) return 0.0075;
@@ -47,7 +43,7 @@ const AmountModal = ({ member, modalType, onClose }) => {
       if (amount > 300000 && amount <= 400000) return 0.0225;
       if (amount > 400000 && amount <= 500000) return 0.025;
       if (amount > 500000 && amount <= 1000000) return 0.025;
-      if (amount > 1000000) return 0.06; // 6% for amounts 1,000,001 and up.
+      if (amount > 1000000) return 0.06;
     } else if (termMonths === 12) {
       if (amount >= 10000 && amount <= 100000) return 0.01;
       if (amount > 100000 && amount <= 200000) return 0.015;
@@ -60,7 +56,6 @@ const AmountModal = ({ member, modalType, onClose }) => {
     return 0;
   };
 
-  // Update computation when rawAmount or fixedTerm changes.
   useEffect(() => {
     if (rawAmount && fixedTerm) {
       const principal = parseFloat(rawAmount);
@@ -70,9 +65,7 @@ const AmountModal = ({ member, modalType, onClose }) => {
       const interest = principal * interestRate * (days / 365);
       const payout = principal + interest;
       const currentDate = new Date();
-      const maturityDate = new Date(
-        currentDate.setMonth(currentDate.getMonth() + termMonths)
-      );
+      const maturityDate = new Date(currentDate.setMonth(currentDate.getMonth() + termMonths));
 
       setComputation({
         maturityDate: maturityDate.toLocaleDateString(),
@@ -83,17 +76,12 @@ const AmountModal = ({ member, modalType, onClose }) => {
     }
   }, [rawAmount, fixedTerm]);
 
-  // Handlers for the Amount input.
   const handleAmountChange = (e) => {
-    // Remove commas from the input value.
     const value = e.target.value.replace(/,/g, "");
     setRawAmount(value);
   };
 
-  const handleAmountFocus = () => {
-    setIsAmountFocused(true);
-  };
-
+  const handleAmountFocus = () => setIsAmountFocused(true);
   const handleAmountBlur = () => {
     setIsAmountFocused(false);
     const num = parseFloat(rawAmount);
@@ -102,33 +90,45 @@ const AmountModal = ({ member, modalType, onClose }) => {
     }
   };
 
-  // Handle Transaction.
+  // Build payload: merge modal's inputs with co-account fields from parent's formData.
+  const buildPayload = () => {
+    return {
+      memberId: member?.memberId || paramMemberId,
+      amount: parseFloat(rawAmount),
+      fixedTerm: parseInt(fixedTerm, 10),
+      // Co-account holder fields (only these fields are sent)
+      co_account_type: formData.account_type || null,
+      co_last_name: formData.co_last_name || null,
+      co_middle_name: formData.co_middle_name || null,
+      co_first_name: formData.co_first_name || null,
+      co_extension_name: formData.co_extension || null,
+      co_date_of_birth: formData.co_dob || null,
+      co_place_of_birth: formData.co_place_of_birth || null,
+      co_age: formData.co_age || null,
+      co_gender: formData.co_gender || null,
+      co_civil_status: formData.co_civil_status || null,
+      co_contact_number: formData.co_contact_number || null,
+      co_relationship_primary: formData.co_relationship || null,
+      co_complete_address: formData.co_complete_address || null
+    };
+  };
+
   const handleTransaction = async () => {
     if (!rawAmount || !fixedTerm) {
       setError("Amount and Fixed Term are required.");
       return;
     }
-
-    // Use member.memberId if available; otherwise, use the memberId from params.
     const id = member?.memberId || paramMemberId;
     if (!id) {
       setError("Member ID is required to proceed.");
       return;
     }
-
     setLoading(true);
     setError(null);
     try {
-      await axios.post(`${BASE_URL}/timedeposit`, {
-        memberId: id,
-        amount: parseFloat(rawAmount),
-        fixedTerm: parseInt(fixedTerm, 10),
-      });
-      await axios.put(`${BASE_URL}/time-deposits/update-depositors`, {
-        memberId: id,
-        amount: parseFloat(rawAmount),
-        fixedTerm: parseInt(fixedTerm, 10),
-      });
+      const payload = buildPayload();
+      console.log("Payload:", payload); // Debug log
+      await axios.post(`${BASE_URL}/timedeposit`, payload);
       alert("Deposit Successful!");
       onClose();
     } catch (err) {
@@ -144,14 +144,11 @@ const AmountModal = ({ member, modalType, onClose }) => {
         <h2 className="text-2xl font-semibold text-center mb-4">
           {modalType === "withdraw" ? "Withdraw Funds" : "Deposit Funds"}
         </h2>
-
         {error && (
           <div className="mb-4 p-2 bg-red-100 text-red-600 rounded">
             <p>{error}</p>
           </div>
         )}
-
-        {/* Amount Input Field with Comma Formatting */}
         <div className="mb-4">
           <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
             Amount
@@ -167,8 +164,6 @@ const AmountModal = ({ member, modalType, onClose }) => {
             placeholder="Enter amount"
           />
         </div>
-
-        {/* Fixed Term Input */}
         <div className="mb-4">
           <label htmlFor="fixedTerm" className="block text-sm font-medium text-gray-700">
             Fixed Term (Months)
@@ -184,8 +179,6 @@ const AmountModal = ({ member, modalType, onClose }) => {
             <option value="12">12 Months</option>
           </select>
         </div>
-
-        {/* Computation Display */}
         <div className="mb-4 bg-gray-100 p-4 rounded-md">
           <p className="text-sm">Computation:</p>
           <p>
@@ -201,7 +194,6 @@ const AmountModal = ({ member, modalType, onClose }) => {
             Payout: <strong>{computation.payout}</strong>
           </p>
         </div>
-
         <div className="flex justify-between space-x-3">
           <button
             onClick={handleTransaction}
@@ -224,4 +216,4 @@ const AmountModal = ({ member, modalType, onClose }) => {
   );
 };
 
-export default AmountModal;
+export default TimedepositAmountModal;

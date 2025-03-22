@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import TimedepositAmountModal from "../../childModal/TimedepositAmountModal";
 
 const MemberAndCoAccountForm = () => {
-  // Retrieve selectedMember from React Router's state
+  // Retrieve selectedMember from React Router's state and memberId from URL params.
   const location = useLocation();
-
-  const { memberId } = useParams()
+  const { memberId } = useParams();
   const { selectedMember } = location.state || {};
 
-  // If data was fetched, set a flag so fields are read-only
+  // If data was fetched, set a flag so fields are read-only.
   const isFetchedData = Boolean(selectedMember);
 
   // Initialize form data with fetched member data where applicable.
   const [formData, setFormData] = useState({
-    // MEMBERS’ PERSONAL INFORMATION
-    accountType: "",
+    // MEMBERS’ PERSONAL INFORMATION (already saved in DB)
+    accountType: "", // you might use this for co-account type as well
     memberCode: selectedMember?.memberCode || "",
     memberLastName: selectedMember?.last_name || "",
     memberMiddleName: selectedMember?.middle_name || "",
@@ -28,7 +27,6 @@ const MemberAndCoAccountForm = () => {
     memberCivilStatus: "",
     memberContactNumber: selectedMember?.contact_number || "",
     memberCompleteAddress: selectedMember?.barangay || "",
-
     // CO‑ACCOUNT HOLDER PERSONAL INFORMATION
     coLastName: "",
     coMiddleName: "",
@@ -62,21 +60,14 @@ const MemberAndCoAccountForm = () => {
     }));
   };
 
-  // State to control display of the TimedepositAmountModal
+  // State to control display of the TimedepositAmountModal.
   const [showAmountModal, setShowAmountModal] = useState(false);
 
   // When the Next button is clicked, show the modal.
-  const handleNextClick = (e) => {
-    e.preventDefault();
-    // You can add additional form validations here if needed.
-    setShowAmountModal(true);
-  };
-
-  // Example submit handler (if needed later)
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
-    alert("Form data logged to console!");
+    console.log("Parent Form Data:", formData);
+    setShowAmountModal(true);
   };
 
   return (
@@ -86,7 +77,7 @@ const MemberAndCoAccountForm = () => {
         <section className="bg-white p-4 rounded shadow">
           <h2 className="text-xl font-bold mb-4">MEMBERS’ PERSONAL INFORMATION</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Account Type */}
+            {/* Account Type (for co-account, if needed) */}
             <div className="flex flex-col">
               <label className="font-semibold">Account Type:</label>
               <select
@@ -274,7 +265,7 @@ const MemberAndCoAccountForm = () => {
               <input
                 type="text"
                 name="coLastName"
-                value={formData.coLastName}
+                value={formData.co_last_name}
                 onChange={handleChange}
                 className="border p-2 rounded"
                 placeholder="Last Name"
@@ -285,7 +276,7 @@ const MemberAndCoAccountForm = () => {
               <input
                 type="text"
                 name="coMiddleName"
-                value={formData.coMiddleName}
+                value={formData.co_middle_name}
                 onChange={handleChange}
                 className="border p-2 rounded"
                 placeholder="Middle Name"
@@ -313,7 +304,6 @@ const MemberAndCoAccountForm = () => {
                 placeholder="e.g. Jr, Sr"
               />
             </div>
-
             <div className="flex flex-col">
               <label className="font-semibold">Date of Birth:</label>
               <input
@@ -359,7 +349,6 @@ const MemberAndCoAccountForm = () => {
                 <option value="Female">Female</option>
               </select>
             </div>
-
             <div className="flex flex-col">
               <label className="font-semibold">Civil Status:</label>
               <select
@@ -421,7 +410,7 @@ const MemberAndCoAccountForm = () => {
         <div className="flex justify-end mt-6 w-full">
           <button
             type="button"
-            onClick={handleNextClick}
+            onClick={handleSubmit}
             className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg flex items-center gap-3 shadow-md hover:bg-green-800 transition-all"
           >
             <span className="text-2xl">&#187;&#187;</span> Next
@@ -432,7 +421,8 @@ const MemberAndCoAccountForm = () => {
       {showAmountModal && (
         <TimedepositAmountModal
           onClose={() => setShowAmountModal(false)}
-          formData={formData}
+          formData={formData}   // Pass the parent's form data
+          member={selectedMember || { memberId }}  // Pass member info
         />
       )}
     </>
