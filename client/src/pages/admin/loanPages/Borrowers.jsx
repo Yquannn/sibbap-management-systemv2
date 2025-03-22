@@ -30,8 +30,12 @@ const Borrowers = () => {
   const fetchBorrowers = async () => {
     try {
       const response = await axios.get(apiBaseURL);
-      setBorrowers(response.data);
-      console.log("Fetched Borrowers:", response.data);
+      // Sort borrowers by application date (created_at) in descending order (newest first)
+      const sortedBorrowers = response.data.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+      setBorrowers(sortedBorrowers);
+      console.log("Fetched Borrowers:", sortedBorrowers);
     } catch (error) {
       setError('Failed to fetch borrowers. Please try again later.');
       console.error('Error fetching borrowers:', error);

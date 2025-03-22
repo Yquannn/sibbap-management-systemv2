@@ -2,10 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { FaMoneyBillWave, FaHandHoldingUsd, FaHistory } from "react-icons/fa";
-import defaultProfileImage from "./blankPicture.png";
-import TransactionForm from "./utils/TransactionForm";
-
-// 1) Import from react-chartjs-2 and chart.js
+import TransactionForm from "../utils/TransactionForm";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -16,11 +13,10 @@ import {
   BarElement,
   Title,
   LineElement,
-  PointElement
+  PointElement,
 } from "chart.js";
 import { Doughnut, Bar, Line } from "react-chartjs-2";
 
-// 2) Register chart.js components
 ChartJS.register(
   ArcElement,
   Tooltip,
@@ -33,7 +29,7 @@ ChartJS.register(
   PointElement
 );
 
-const RegularSavingsInfo = () => {
+const TimedepositInfo = () => {
   const { memberId } = useParams();
   const [memberData, setMemberData] = useState();
   const [transactions, setTransactions] = useState([]);
@@ -43,15 +39,11 @@ const RegularSavingsInfo = () => {
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [modalType, setModalType] = useState(""); // "deposit" or "withdraw"
 
-  // For filtering transactions in the table
   const [transactionNumberFilter, setTransactionNumberFilter] = useState("");
   const [transactionTypeFilter, setTransactionTypeFilter] = useState("all");
 
-  // State for selecting chart type (bar or line)
   const [selectedChartType, setSelectedChartType] = useState("bar");
-  // State for filtering graph data ("all", "deposit", "withdrawal", or "savings interest")
   const [selectedGraphFilter, setSelectedGraphFilter] = useState("all");
-  // New state for time grouping filter ("daily", "weekly", "monthly", "quarterly", "annually")
   const [selectedTimeGroup, setSelectedTimeGroup] = useState("daily");
 
   // Fetch member data
@@ -65,7 +57,7 @@ const RegularSavingsInfo = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://localhost:3001/api/members/savings/${memberId}`
+          `http://localhost:3001/api/members/timedepositor/${memberId}`
         );
         setMemberData(response.data.data);
       } catch (err) {
@@ -77,7 +69,7 @@ const RegularSavingsInfo = () => {
     fetchMemberData();
   }, [memberId]);
 
-  // Fetch transactions using the email from memberData
+  // Fetch transactions using member email
   useEffect(() => {
     if (!memberData) return;
     const email = memberData.email;
@@ -89,7 +81,7 @@ const RegularSavingsInfo = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/member/email/${email}`
+          `http://localhost:3001/api/member/time-deposit/email/${email}`
         );
         if (response.data && response.data.transactions) {
           setTransactions(response.data.transactions);
@@ -115,6 +107,7 @@ const RegularSavingsInfo = () => {
     return <div className="text-center p-6">No member data found.</div>;
   }
 
+  // Build a member address string
   const memberAddress =
     " " +
     memberData.city +
@@ -122,7 +115,6 @@ const RegularSavingsInfo = () => {
     memberData.house_no_street +
     " " +
     memberData.barangay;
-  // Destructure personal info from memberData
   const {
     id_picture,
     first_name,
@@ -140,25 +132,25 @@ const RegularSavingsInfo = () => {
     occupation,
     annual_income,
     highest_education_attainment,
-    tin_number
+    tin_number,
   } = memberData;
 
   const availableBalance = amount || 0;
   const imageUrl = (filename) =>
     filename ? `http://localhost:3001/uploads/${filename}` : "";
 
-  // Filter transactions for the table
   const filteredTransactions = [...transactions]
     .sort(
       (a, b) =>
         new Date(b.transaction_date_time) - new Date(a.transaction_date_time)
     )
     .filter((tx) => {
+      const search = transactionNumberFilter.toLowerCase();
       if (
         transactionNumberFilter.trim() &&
         !tx.transaction_number
           ?.toLowerCase()
-          .includes(transactionNumberFilter.toLowerCase())
+          .includes(search)
       ) {
         return false;
       }
@@ -171,7 +163,6 @@ const RegularSavingsInfo = () => {
       return true;
     });
 
-  // Function to group transactions by time range
   function groupTransactionsByTime(transactions, timeGroup) {
     const map = {};
     transactions.forEach((tx) => {
@@ -184,7 +175,8 @@ const RegularSavingsInfo = () => {
           break;
         case "weekly": {
           const firstDayOfWeek = new Date(date);
-          const diff = firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
+          const diff =
+            firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
           firstDayOfWeek.setDate(firstDayOfWeek.getDate() + diff);
           firstDayOfWeek.setHours(0, 0, 0, 0);
           key = firstDayOfWeek.getTime();
@@ -221,7 +213,6 @@ const RegularSavingsInfo = () => {
     return map;
   }
 
-  // Format labels based on time grouping
   function formatLabel(timestamp, timeGroup) {
     const date = new Date(Number(timestamp));
     switch (timeGroup) {
@@ -229,7 +220,7 @@ const RegularSavingsInfo = () => {
         return date.toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",
-          year: "numeric"
+          year: "numeric",
         });
       case "weekly":
         return "Week of " + date.toLocaleDateString("en-US");
@@ -257,14 +248,13 @@ const RegularSavingsInfo = () => {
   const withdrawData = sortedTimestamps.map((ts) => grouped[ts].withdraw);
   const interestData = sortedTimestamps.map((ts) => grouped[ts].interest);
 
-  // Prepare chart datasets based on selected graph filter
   const chartDatasetsBar = [];
   const chartDatasetsLine = [];
   if (selectedGraphFilter === "all" || selectedGraphFilter === "deposit") {
     chartDatasetsBar.push({
       label: "Deposits",
       data: depositData,
-      backgroundColor: "#4ade80"
+      backgroundColor: "#4ade80",
     });
     chartDatasetsLine.push({
       label: "Deposits",
@@ -273,14 +263,14 @@ const RegularSavingsInfo = () => {
       backgroundColor: "#4ade80",
       fill: false,
       tension: 0.1,
-      pointRadius: 3
+      pointRadius: 3,
     });
   }
   if (selectedGraphFilter === "all" || selectedGraphFilter === "withdrawal") {
     chartDatasetsBar.push({
       label: "Withdrawals",
       data: withdrawData,
-      backgroundColor: "#f87171"
+      backgroundColor: "#f87171",
     });
     chartDatasetsLine.push({
       label: "Withdrawals",
@@ -289,14 +279,17 @@ const RegularSavingsInfo = () => {
       backgroundColor: "#f87171",
       fill: false,
       tension: 0.1,
-      pointRadius: 3
+      pointRadius: 3,
     });
   }
-  if (selectedGraphFilter === "all" || selectedGraphFilter === "savings interest") {
+  if (
+    selectedGraphFilter === "all" ||
+    selectedGraphFilter === "savings interest"
+  ) {
     chartDatasetsBar.push({
       label: "Savings Interest",
       data: interestData,
-      backgroundColor: "#60a5fa"
+      backgroundColor: "#60a5fa",
     });
     chartDatasetsLine.push({
       label: "Savings Interest",
@@ -305,13 +298,13 @@ const RegularSavingsInfo = () => {
       backgroundColor: "#60a5fa",
       fill: false,
       tension: 0.1,
-      pointRadius: 3
+      pointRadius: 3,
     });
   }
 
   const barData = {
     labels,
-    datasets: chartDatasetsBar
+    datasets: chartDatasetsBar,
   };
 
   const barOptions = {
@@ -321,8 +314,10 @@ const RegularSavingsInfo = () => {
       legend: { position: "top" },
       title: {
         display: true,
-        text: `Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`
-      }
+        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(
+          0
+        ).toUpperCase() + selectedTimeGroup.slice(1)})`,
+      },
     },
     scales: {
       y: {
@@ -331,17 +326,17 @@ const RegularSavingsInfo = () => {
           callback: function (value) {
             return value.toLocaleString("en-PH", {
               style: "currency",
-              currency: "PHP"
+              currency: "PHP",
             });
-          }
-        }
-      }
-    }
+          },
+        },
+      },
+    },
   };
 
   const lineData = {
     labels,
-    datasets: chartDatasetsLine
+    datasets: chartDatasetsLine,
   };
 
   const lineOptions = {
@@ -351,8 +346,10 @@ const RegularSavingsInfo = () => {
       legend: { position: "top" },
       title: {
         display: true,
-        text: `Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`
-      }
+        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(
+          0
+        ).toUpperCase() + selectedTimeGroup.slice(1)})`,
+      },
     },
     scales: {
       y: {
@@ -361,40 +358,41 @@ const RegularSavingsInfo = () => {
           callback: function (value) {
             return value.toLocaleString("en-PH", {
               style: "currency",
-              currency: "PHP"
+              currency: "PHP",
             });
-          }
-        }
-      }
-    }
+          },
+        },
+      },
+    },
   };
 
   return (
-    <div className="bg-gray-100">
+    <div className="min-h-screen bg-gray-100 p-4">
+      {/* Header */}
+      <h1 className="text-3xl font-bold text-center mb-6">
+        Time Deposit Information
+      </h1>
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left Section */}
         <div className="flex-1 space-y-4">
-          {/* Total Balance */}
+          {/* Total Time Deposit Balance */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex flex-col md:flex-row items-center justify-between">
-              <div className="mb-4 md:mb-0">
-                <p className="text-xl">
-                  Total Current Balance:{" "}
-                  <span className="font-bold text-2xl">
-                    {parseFloat(availableBalance).toLocaleString("en-PH", {
-                      style: "currency",
-                      currency: "PHP"
-                    })}
-                  </span>
-                </p>
-              </div>
-            </div>
+            <p className="text-xl">
+              Total Time Deposit Balance:{" "}
+              <span className="font-bold text-2xl">
+                {parseFloat(availableBalance).toLocaleString("en-PH", {
+                  style: "currency",
+                  currency: "PHP",
+                })}
+              </span>
+            </p>
           </div>
-
           {/* Analytics Section */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex flex-wrap items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Analytics Over Time</h3>
+              <h3 className="text-lg font-bold">
+                Time Deposit Analytics Over Time
+              </h3>
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center">
                   <label htmlFor="chartTypeFilter" className="mr-2 font-semibold">
@@ -423,7 +421,9 @@ const RegularSavingsInfo = () => {
                     <option value="all">All</option>
                     <option value="deposit">Deposit Only</option>
                     <option value="withdrawal">Withdrawal Only</option>
-                    <option value="savings interest">Savings Interest Only</option>
+                    <option value="savings interest">
+                      Savings Interest Only
+                    </option>
                   </select>
                 </div>
                 <div className="flex items-center">
@@ -453,17 +453,21 @@ const RegularSavingsInfo = () => {
               )}
             </div>
           </div>
-
           {/* Transactions Table */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex flex-wrap items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <FaHistory className="text-green-500" size={20} />
-                <h3 className="text-lg font-bold text-gray-800">Transactions History</h3>
+                <h3 className="text-lg font-bold text-gray-800">
+                  Time Deposit Transaction History
+                </h3>
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center">
-                  <label htmlFor="txNumberFilter" className="mr-2 font-semibold text-gray-700">
+                  <label
+                    htmlFor="txNumberFilter"
+                    className="mr-2 font-semibold text-gray-700"
+                  >
                     Filter by Txn No:
                   </label>
                   <input
@@ -476,7 +480,10 @@ const RegularSavingsInfo = () => {
                   />
                 </div>
                 <div className="flex items-center">
-                  <label htmlFor="txTypeFilter" className="mr-2 font-semibold text-gray-700">
+                  <label
+                    htmlFor="txTypeFilter"
+                    className="mr-2 font-semibold text-gray-700"
+                  >
                     Transaction Type:
                   </label>
                   <select
@@ -521,7 +528,7 @@ const RegularSavingsInfo = () => {
                                 hour: "2-digit",
                                 minute: "2-digit",
                                 second: "2-digit",
-                                hour12: true
+                                hour12: true,
                               })
                             : "N/A"}
                         </td>
@@ -555,7 +562,7 @@ const RegularSavingsInfo = () => {
                           {tx.amount
                             ? parseFloat(tx.amount).toLocaleString("en-PH", {
                                 style: "currency",
-                                currency: "PHP"
+                                currency: "PHP",
                               })
                             : "N/A"}
                         </td>
@@ -563,7 +570,7 @@ const RegularSavingsInfo = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-4 text-center">
+                      <td colSpan={6} className="py-4 text-center">
                         No transactions found.
                       </td>
                     </tr>
@@ -579,7 +586,7 @@ const RegularSavingsInfo = () => {
           {/* Profile Section */}
           <div className="flex items-center space-x-4">
             <img
-              src={id_picture ? imageUrl(id_picture) : defaultProfileImage}
+              src={id_picture ? imageUrl(id_picture) : "https://via.placeholder.com/64"}
               alt="Profile"
               className="w-16 h-16 object-cover rounded-full border-2 border-gray-300"
             />
@@ -590,10 +597,11 @@ const RegularSavingsInfo = () => {
               <p className="text-gray-500 text-sm">{email || "No Email"}</p>
             </div>
           </div>
-
           {/* Personal Information Card */}
           <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-3 text-gray-700">Personal Information</h3>
+            <h3 className="text-lg font-semibold mb-3 text-gray-700">
+              Personal Information
+            </h3>
             <div className="space-y-2 text-sm text-gray-600">
               {[
                 {
@@ -602,9 +610,9 @@ const RegularSavingsInfo = () => {
                     ? new Date(date_of_birth).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "long",
-                        day: "numeric"
+                        day: "numeric",
                       })
-                    : "N/A"
+                    : "N/A",
                 },
                 { label: "Age", value: memberData.age },
                 { label: "Civil Status", value: civil_status },
@@ -619,12 +627,12 @@ const RegularSavingsInfo = () => {
                   value: annual_income
                     ? parseFloat(annual_income).toLocaleString("en-PH", {
                         style: "currency",
-                        currency: "PHP"
+                        currency: "PHP",
                       })
-                    : "N/A"
+                    : "N/A",
                 },
                 { label: "Highest Education", value: highest_education_attainment },
-                { label: "TIN Number", value: tin_number }
+                { label: "TIN Number", value: tin_number },
               ].map((item, index) => (
                 <div key={index} className="flex justify-between border-b py-2 last:border-b-0">
                   <span className="font-medium text-gray-700">{item.label}:</span>
@@ -633,8 +641,7 @@ const RegularSavingsInfo = () => {
               ))}
             </div>
           </div>
-
-          {/* Deposit / Withdraw Buttons */}
+          {/* Invest / Redeem Buttons */}
           <div className="flex flex-col space-y-2">
             <button
               className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded flex items-center justify-center"
@@ -644,7 +651,7 @@ const RegularSavingsInfo = () => {
               }}
             >
               <FaMoneyBillWave className="mr-2" />
-              Deposit
+              Invest
             </button>
             <button
               className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded flex items-center justify-center"
@@ -654,10 +661,9 @@ const RegularSavingsInfo = () => {
               }}
             >
               <FaHandHoldingUsd className="mr-2" />
-              Withdraw
+              Redeem
             </button>
           </div>
-
           {/* Transaction Modal */}
           {showTransactionForm && (
             <TransactionForm
@@ -672,4 +678,4 @@ const RegularSavingsInfo = () => {
   );
 };
 
-export default RegularSavingsInfo;
+export default TimedepositInfo;

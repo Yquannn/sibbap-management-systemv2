@@ -16,11 +16,52 @@ const MemberProfilePage = () => {
   const [messageType, setMessageType] = useState(""); // "success" or "error"
   const [message, setMessage] = useState("");
 
+  // Define an array of background color classes for fallback
+  const bgColors = [
+    "bg-red-500",
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-purple-500",
+    "bg-indigo-500",
+    "bg-pink-500",
+    "bg-orange-500",
+  ];
+
+  // Helper to compute a consistent background color based on member's unique id
+  const getMemberFallbackColor = (member) => {
+    // Use memberId if available; otherwise, fall back to name concatenation
+    let id = member.memberId ? String(member.memberId) : `${member.first_name || ""}${member.last_name || ""}`;
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % bgColors.length;
+    return bgColors[index];
+  };
+
+  // Helper to build an image URL
+  const imageUrl = (filename) =>
+    filename ? `http://localhost:3001/uploads/${filename}` : "";
+
+  // Helper to format dates
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   // Fetch the member data from your API
   useEffect(() => {
     const fetchMember = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/api/members/${memberId}`);
+        const response = await axios.get(
+          `http://localhost:3001/api/members/${memberId}`
+        );
         setMember(response.data);
       } catch (error) {
         console.error("Error fetching member data:", error);
@@ -40,21 +81,6 @@ const MemberProfilePage = () => {
 
   if (loading) return <p className="p-8 text-xl">Loading...</p>;
   if (!member) return <p className="p-8 text-xl">{message}</p>;
-
-  // Helper to build an image URL
-  const imageUrl = (filename) =>
-    filename ? `http://localhost:3001/uploads/${filename}` : "https://via.placeholder.com/150";
-
-  // Helper to format dates
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   // ------------------ PERSONAL INFO (3-COLUMN LAYOUT) ------------------
   const PersonalInfo = () => {
@@ -98,11 +124,23 @@ const MemberProfilePage = () => {
         <div className="flex flex-col md:flex-row md:items-center mb-8">
           {/* Profile Picture */}
           <div className="flex-shrink-0 flex items-center">
-            <img
-              src={imageUrl(member.id_picture)}
-              alt="Profile"
-              className="w-32 h-32 rounded-full object-cover border-4 border-gray-400 shadow-md"
-            />
+            {imageUrl(member.id_picture) ? (
+              <img
+                src={imageUrl(member.id_picture)}
+                alt="Profile"
+                className="w-32 h-32 rounded-full object-cover border-4 border-gray-400 shadow-md"
+              />
+            ) : (
+              <div
+                className={`w-32 h-32 rounded-full flex items-center justify-center border-4 border-gray-400 shadow-md ${getMemberFallbackColor(
+                  member
+                )}`}
+              >
+                <span className="text-3xl font-bold text-white">
+                  {`${member.first_name?.charAt(0) || ""}${member.last_name?.charAt(0) || ""}`}
+                </span>
+              </div>
+            )}
             <div className="ml-6">
               <h2 className="text-3xl font-bold">
                 {member.first_name} {member.last_name}
@@ -599,7 +637,11 @@ const MemberProfilePage = () => {
         {member.id_picture && (
           <div className="flex flex-col items-center">
             <p className="text-xl font-semibold text-gray-600 mb-2">ID Picture</p>
-            <a href={imageUrl(member.id_picture)} target="_blank" rel="noopener noreferrer">
+            <a
+              href={imageUrl(member.id_picture)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <img
                 src={imageUrl(member.id_picture)}
                 alt="ID"
@@ -610,7 +652,9 @@ const MemberProfilePage = () => {
         )}
         {member.barangay_clearance && (
           <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">Barangay Clearance</p>
+            <p className="text-xl font-semibold text-gray-600 mb-2">
+              Barangay Clearance
+            </p>
             <a
               href={imageUrl(member.barangay_clearance)}
               target="_blank"
@@ -626,7 +670,9 @@ const MemberProfilePage = () => {
         )}
         {member.tax_identification_id && (
           <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">TIN Document</p>
+            <p className="text-xl font-semibold text-gray-600 mb-2">
+              TIN Document
+            </p>
             <a
               href={imageUrl(member.tax_identification_id)}
               target="_blank"
@@ -643,7 +689,11 @@ const MemberProfilePage = () => {
         {member.valid_id && (
           <div className="flex flex-col items-center">
             <p className="text-xl font-semibold text-gray-600 mb-2">Valid ID</p>
-            <a href={imageUrl(member.valid_id)} target="_blank" rel="noopener noreferrer">
+            <a
+              href={imageUrl(member.valid_id)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <img
                 src={imageUrl(member.valid_id)}
                 alt="Valid ID"
@@ -654,7 +704,9 @@ const MemberProfilePage = () => {
         )}
         {member.membership_agreement && (
           <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">Membership Agreement</p>
+            <p className="text-xl font-semibold text-gray-600 mb-2">
+              Membership Agreement
+            </p>
             <a
               href={imageUrl(member.membership_agreement)}
               target="_blank"
@@ -686,11 +738,14 @@ const MemberProfilePage = () => {
             <strong>Relationship:</strong> {member.relationship || "N/A"}
           </p>
           <p>
-            <strong>Contact:</strong> {member.beneficiary_contactNumber || "N/A"}
+            <strong>Contact:</strong>{" "}
+            {member.beneficiary_contactNumber || "N/A"}
           </p>
         </div>
         <div>
-          <h4 className="text-2xl font-semibold mb-4">Character Reference</h4>
+          <h4 className="text-2xl font-semibold mb-4">
+            Character Reference
+          </h4>
           <p>
             <strong>Name:</strong> {member.referenceName || "N/A"}
           </p>
@@ -698,7 +753,8 @@ const MemberProfilePage = () => {
             <strong>Position:</strong> {member.position || "N/A"}
           </p>
           <p>
-            <strong>Contact:</strong> {member.reference_contactNumber || "N/A"}
+            <strong>Contact:</strong>{" "}
+            {member.reference_contactNumber || "N/A"}
           </p>
         </div>
       </div>
@@ -729,7 +785,9 @@ const MemberProfilePage = () => {
             onClick={async () => {
               setActivationLoading(true);
               try {
-                await axios.put(`http://localhost:3001/api/activate/${member.memberId}`);
+                await axios.put(
+                  `http://localhost:3001/api/activate/${member.memberId}`
+                );
                 setMember((prev) => ({ ...prev, accountStatus: "ACTIVATED" }));
                 setMessageType("success");
                 setMessage("Account activated successfully!");

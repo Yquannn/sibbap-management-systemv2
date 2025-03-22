@@ -237,7 +237,7 @@ const RegularSavings = ({ openModal, handleDelete }) => {
       </div>
 
       {/* Savings Table with vertical scrolling */}
-      <div className="overflow-y-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
+      <div className="overflow-y-auto max-h-[75vh] card bg-white shadow-md rounded-lg p-4">
         <table className="table w-full">
           <thead className="text-center">
             <tr>

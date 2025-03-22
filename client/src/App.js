@@ -43,6 +43,11 @@ import Authorize from "./pages/Unauthorize"; // Ensure filename matches
 import BareLayout from "./layouts/BareLayout";
 import LoanApprovalProfile from "./pages/admin/loanPages/LoanApprovalProfilePage";
 import MemberProfilePage from "./pages/admin/MemberProfilePage";
+import ApplyTimedeposit from "./pages/admin/savingsPages/timedeposit/ApplyTimedeposit";
+import RegularSavings from "./pages/admin/savingsPages/RegularSavings";
+import TimeDeposit from "./pages/admin/savingsPages/timedeposit/TimeDeposit";
+import ShareCapital from "./pages/admin/savingsPages/SharedCapital";
+import TimeDepositDetails from "./pages/admin/savingsPages/timedeposit/TimedepositDetails";
 
 function App() {
   return (
@@ -73,8 +78,19 @@ function App() {
     <Route path="users" element={<Users />} />
     <Route path="announcement" element={<Announcement />} />
     <Route path="loan-application/:loan_application_id" element={<LoanEvaluationProfilePage />} />
+    <Route path="regular-savings" element={<RegularSavings />} />
+    <Route path="time-deposit" element={<TimeDeposit />} />
+    <Route path="time-deposit-info/:memberId" element={<TimeDepositDetails />} />
+
+    <Route path="share-capital" element={<ShareCapital />} />
+
+
+
 
     <Route path="loan-application-approval/:loan_application_id" element={<LoanApprovalProfile />} />
+
+    <Route path="apply-timedeposit/:memberId" element={<ApplyTimedeposit />} />
+
 
 
 
@@ -117,9 +133,11 @@ function App() {
 
   {/* Bare Layout Routes (NO Navbar & Sidebar) */}
   <Route element={<BareLayout />}>
-    <Route index path="authorize" element={<Authorize />} />
+     <Route index path="authorize" element={<Authorize />} /> 
     <Route index  path="*" element={<NotFoundPage />} /> {/* Only for pages under BareLayout */}
   </Route>
+
+  
 </Routes>
 
   );

@@ -6,20 +6,27 @@ import {
   HiOutlineDocumentText, 
   HiOutlineChartBar, 
   HiOutlineCog, 
+  HiCurrencyDollar,
   HiOutlineBell, 
   HiOutlineLogout, 
   HiOutlineChevronDown, 
   HiOutlineChevronUp, 
   HiOutlineLockClosed,
+  HiCheckCircle,
 } from 'react-icons/hi';
 import { HiOutlineBanknotes } from "react-icons/hi2";
+import { IoTimerSharp } from "react-icons/io5";
+import { FaShareFromSquare } from "react-icons/fa6";
+import { IoPeople } from "react-icons/io5";
 
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../partials/logosibbap.png';
 
 const SideBar = () => {
   const [loanDropdown, setLoanDropdown] = useState(false);
+  const [savingsDropdown, setSavingsDropdown] = useState(false);
   const [userType, setUserType] = useState('');
+  const [activePath, setActivePath] = useState(""); // Track active menu item
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,8 +39,10 @@ const SideBar = () => {
       navigate("/authorize");
     } else {
       setUserType(storedUserType);
+      // Initialize activePath if not already set.
+      if (!activePath) setActivePath(location.pathname);
     }
-  }, [navigate]);
+  }, [navigate, location.pathname, activePath]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -64,24 +73,28 @@ const SideBar = () => {
     "loan-approval": isSystemAdmin || userType === "Treasurer",
   };
 
-  // Helper function that adds extra styling if the route is active.
+  // Helper function to render a menu item with active styling.
   const renderItem = (allowedFlag, to, icon, label, onClick = null) => {
-    const isActive = location.pathname === to;
+    const isActive = activePath === to;
     const baseClasses = "flex items-center w-full p-2 rounded transition-colors";
     const activeClasses = isActive
       ? "bg-green-500 text-white"
       : "text-gray-600 hover:text-green-500 hover:bg-gray-200";
       
-    // If an icon is provided, clone it and update its className based on active state.
     const iconElement = icon 
       ? cloneElement(icon, { className: `${isActive ? 'text-white' : 'text-gray-700'} mr-2` })
       : null;
       
+    const handleClick = (e) => {
+      if (onClick) onClick(e);
+      setActivePath(to);
+    };
+
     if (allowedFlag) {
       return (
         <Link 
           to={to} 
-          onClick={onClick} 
+          onClick={handleClick} 
           className={`${baseClasses} ${activeClasses}`}
         >
           {iconElement}
@@ -120,9 +133,30 @@ const SideBar = () => {
           <li>
             {renderItem(allowed.members, "/members", <HiOutlineUserGroup />, "Members")}
           </li>
-          <li>
-            {renderItem(allowed.savings, "/savings", <HiOutlineBanknotes  />, "Savings")}
+          {/* Savings Dropdown */}
+          <li 
+            className="flex items-center w-full p-2 rounded hover:bg-gray-200 cursor-pointer transition-colors"
+            onClick={() => setSavingsDropdown(!savingsDropdown)}
+          >
+            {cloneElement(<HiOutlineBanknotes />, { className: "mr-2 text-gray-700" })}
+            <span className="flex-grow text-gray-700">Savings</span>
+            {savingsDropdown 
+              ? <HiOutlineChevronUp className="text-gray-700" /> 
+              : <HiOutlineChevronDown className="text-gray-700" />}
           </li>
+          {savingsDropdown && (
+            <ul className="ml-6 space-y-1">
+              <li>
+                {renderItem(allowed.savings, "/regular-savings", <HiCurrencyDollar />, "Regular Savings")}
+              </li>
+              <li>
+                {renderItem(allowed.savings, "/time-deposit", <IoTimerSharp />, "Time Deposit")}
+              </li>
+              <li>
+                {renderItem(allowed.savings, "/share-capital", <FaShareFromSquare />, "Share Capital")}
+              </li>
+            </ul>
+          )}
           {allowed.loan ? (
             <>
               <li 
@@ -131,14 +165,24 @@ const SideBar = () => {
               >
                 {cloneElement(<HiBriefcase />, { className: "mr-2 text-gray-700" })}
                 <span className="flex-grow text-gray-700">Loan</span>
-                {loanDropdown ? <HiOutlineChevronUp className="text-gray-700" /> : <HiOutlineChevronDown className="text-gray-700" />}
+                {loanDropdown 
+                  ? <HiOutlineChevronUp className="text-gray-700" /> 
+                  : <HiOutlineChevronDown className="text-gray-700" />}
               </li>
               {loanDropdown && (
                 <ul className="ml-6 space-y-1">
-                  <li>{renderItem(loanSubAllowed["borrower"], "/borrower", null, "Borrowers")}</li>
-                  <li>{renderItem(loanSubAllowed["loan-application"], "/loan-application", null, "Loan application")}</li>
-                  <li>{renderItem(loanSubAllowed["loan-applicant"], "/loan-applicant", null, "Loan Applicant")}</li>
-                  <li>{renderItem(loanSubAllowed["loan-approval"], "/loan-approval", null, "Loan Approval")}</li>
+                  <li>
+                    {renderItem(loanSubAllowed["borrower"], "/borrower", <HiOutlineUserGroup />, "Borrowers")}
+                  </li>
+                  <li>
+                    {renderItem(loanSubAllowed["loan-application"], "/loan-application", <HiOutlineDocumentText />, "Loan Application")}
+                  </li>
+                  <li>
+                    {renderItem(loanSubAllowed["loan-applicant"], "/loan-applicant", <IoPeople />, "Loan Applicant")}
+                  </li>
+                  <li>
+                    {renderItem(loanSubAllowed["loan-approval"], "/loan-approval", <HiCheckCircle />, "Loan Approval")}
+                  </li>
                 </ul>
               )}
             </>

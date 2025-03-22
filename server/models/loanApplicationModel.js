@@ -741,6 +741,10 @@ WHERE
 }
 
 
+
+
+
+
 async function createInstallments(loanApplicationId, terms, loan_amount, service_fee) {
   let conn;
   try {
@@ -748,61 +752,68 @@ async function createInstallments(loanApplicationId, terms, loan_amount, service
 
     // 1) Select the current status and memberId of the loan application.
     const [loanRows] = await conn.query(
-      `SELECT status, memberId 
-         FROM loan_applications 
-        WHERE loan_application_id = ?`,
+      `SELECT status, memberId FROM loan_applications WHERE loan_application_id = ?`,
       [loanApplicationId]
     );
+
     if (loanRows.length === 0) {
       console.error(`Loan application with ID ${loanApplicationId} not found.`);
       return;
     }
+
     const { status: loanStatus, memberId } = loanRows[0];
     console.log(`Loan application status for ID ${loanApplicationId}: ${loanStatus}`);
-    
+
     // 2) Proceed only if the status is approved.
     if (String(loanStatus).toLowerCase() !== "approved") {
       console.log(`Loan application ${loanApplicationId} is not approved. Installments will not be created.`);
       return;
     }
 
-    // 3) Calculate total amount = loan_amount + service_fee.
+    // 3) Compute total amount including service fee.
     const principalAmount = Number(loan_amount);
     const fee = Number(service_fee);
     const totalAmount = principalAmount + fee;
 
     // 4) Compute fixed monthly amortization.
-    //    Formula: ceil(loan_amount * 0.0945596) + 100
     const monthlyAmortization = Math.ceil(principalAmount * 0.0945596) + 100;
-    console.log(`Monthly Amortization calculated as: ${monthlyAmortization}`);
+    console.log(`Monthly Amortization: ${monthlyAmortization}`);
 
-    // 5) Set the beginning balance for the first installment.
     let begBalance = totalAmount;
+    let previousPenalty = 0;
 
-    // 6) Create installments (each installment is due 1 month apart).
+    // 5) Establish a starting due date:
+    let dueDate = new Date();
+    // Set first due date to 30 days from today
+    dueDate.setDate(dueDate.getDate() + 30);
+
+    // 6) Generate installments.
     for (let i = 0; i < Number(terms); i++) {
-      let dueDate = new Date();
-      dueDate.setMonth(dueDate.getMonth() + i + 1);
+      // Use the current dueDate for this installment.
+      // Format dueDate as YYYY-MM-DD:
+      const formattedDueDate = dueDate.toISOString().split("T")[0];
 
-      // 7) Compute interest, principal, and ending balance.
-      const savingsDeposit = 100; // fixed savings deposit
+      // Check for penalty on previous installment.
+      let penalty = previousPenalty; // Carry over unpaid penalties
+
+      // 7) Compute interest, principal, amortization, and end balance.
+      const savingsDeposit = 100;
       let interest, principal, amortization, endBalance;
-      
+
       if (i < Number(terms) - 1) {
-        // For all installments except the last one:
-        interest = begBalance * 0.02; // 2% interest on beginning balance
-        amortization = monthlyAmortization;
+        interest = begBalance * 0.02;
+        amortization = monthlyAmortization + penalty; // Add previous penalty to next amortization
         principal = amortization - interest - savingsDeposit;
         endBalance = begBalance - principal;
       } else {
-        // For the final installment, adjust so that ending balance is 0.
-        interest = begBalance * 0.02; 
-        principal = begBalance; 
-        amortization = principal + interest + savingsDeposit;
+        // Last installment must clear balance
+        interest = begBalance * 0.02;
+        principal = begBalance;
+        amortization = principal + interest + savingsDeposit + penalty;
         endBalance = 0;
       }
 
-      // 8) Insert the installment record into the database.
+      // Insert installment record.
       await conn.query(
         `INSERT INTO installments 
           (loan_application_id,
@@ -812,10 +823,11 @@ async function createInstallments(loanApplicationId, terms, loan_amount, service
            principal,
            interest,
            savings_deposit,
+           penalty,
            ending_balance,
            due_date,
            status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           loanApplicationId,
           i + 1,
@@ -824,33 +836,41 @@ async function createInstallments(loanApplicationId, terms, loan_amount, service
           principal.toFixed(2),
           interest.toFixed(2),
           savingsDeposit.toFixed(2),
+          penalty.toFixed(2),
           endBalance.toFixed(2),
-          dueDate.toISOString().split("T")[0],
+          formattedDueDate,
           "Unpaid",
         ]
       );
 
-      console.log(`Installment ${i + 1} created with due date ${dueDate.toISOString().split("T")[0]}`);
+      console.log(`Installment ${i + 1} created with due date ${formattedDueDate}`);
+
       await updateIsBorrower(memberId);
+
+      // 8) Compute penalty for next installment if payment is late.
+      let currentDate = new Date();
+      let daysLate = Math.floor((currentDate - dueDate) / (1000 * 60 * 60 * 24));
+      if (daysLate > 35) {
+        previousPenalty = monthlyAmortization * 0.02; // 2% penalty on amortization
+      } else {
+        previousPenalty = 0;
+      }
 
       // 9) Update the beginning balance for the next installment.
       begBalance = endBalance;
+
+      // 10) Set due date for the next installment by adding 30 days.
+      dueDate.setDate(dueDate.getDate() + 30);
     }
 
     console.log(`Created ${terms} installment(s) for loan application ID ${loanApplicationId}`);
   } catch (error) {
-    console.error("Error creating installments for loan application ID", loanApplicationId, ":", error);
+    console.error("Error creating installments:", error);
     throw error;
   } finally {
     if (conn) conn.release();
   }
 }
-
-
-
-
-
-
 
 
 

@@ -1,10 +1,33 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useParams } from "react-router-dom";
 
 const BASE_URL = "http://localhost:3001/api";
 
+// Helper function to format numbers with commas and two decimals.
+const formatNumber = (num) => {
+  if (isNaN(num)) return "";
+  return Number(num).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const AmountModal = ({ member, modalType, onClose }) => {
-  const [amount, setAmount] = useState("");
+  // Get memberId from URL params.
+  const { memberId: paramMemberId } = useParams();
+
+  // We'll store the raw amount as a string (without commas)
+  const [rawAmount, setRawAmount] = useState("");
+  // isAmountFocused tracks if the amount input is currently focused.
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
+
+  // When not focused and rawAmount is set, display the formatted amount.
+  const displayedAmount =
+    !isAmountFocused && rawAmount !== "" && !isNaN(rawAmount)
+      ? formatNumber(parseFloat(rawAmount))
+      : rawAmount;
+
   const [fixedTerm, setFixedTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -15,7 +38,7 @@ const AmountModal = ({ member, modalType, onClose }) => {
     interestRate: 0,
   });
 
-  // Calculate Interest Rate
+  // Calculate Interest Rate based on amount and term.
   const calculateInterestRate = (amount, termMonths) => {
     if (termMonths === 6) {
       if (amount >= 10000 && amount <= 100000) return 0.0075;
@@ -24,7 +47,7 @@ const AmountModal = ({ member, modalType, onClose }) => {
       if (amount > 300000 && amount <= 400000) return 0.0225;
       if (amount > 400000 && amount <= 500000) return 0.025;
       if (amount > 500000 && amount <= 1000000) return 0.025;
-      if (amount > 1000000) return 0.025;
+      if (amount > 1000000) return 0.06; // 6% for amounts 1,000,001 and up.
     } else if (termMonths === 12) {
       if (amount >= 10000 && amount <= 100000) return 0.01;
       if (amount > 100000 && amount <= 200000) return 0.015;
@@ -37,17 +60,15 @@ const AmountModal = ({ member, modalType, onClose }) => {
     return 0;
   };
 
-  // Update Computation when Amount or FixedTerm Changes
+  // Update computation when rawAmount or fixedTerm changes.
   useEffect(() => {
-    if (amount && fixedTerm) {
-      const principal = parseFloat(amount);
+    if (rawAmount && fixedTerm) {
+      const principal = parseFloat(rawAmount);
       const termMonths = parseInt(fixedTerm, 10);
       const interestRate = calculateInterestRate(principal, termMonths);
-
       const days = termMonths === 6 ? 181 : 365;
       const interest = principal * interestRate * (days / 365);
       const payout = principal + interest;
-
       const currentDate = new Date();
       const maturityDate = new Date(
         currentDate.setMonth(currentDate.getMonth() + termMonths)
@@ -55,43 +76,59 @@ const AmountModal = ({ member, modalType, onClose }) => {
 
       setComputation({
         maturityDate: maturityDate.toLocaleDateString(),
-        interest: interest.toFixed(2),
-        payout: payout.toFixed(2),
-        interestRate: interestRate * 100,
+        interest: formatNumber(interest),
+        payout: formatNumber(payout),
+        interestRate: formatNumber(interestRate * 100),
       });
     }
-  }, [amount, fixedTerm]);
+  }, [rawAmount, fixedTerm]);
 
-  // Handle Transaction
+  // Handlers for the Amount input.
+  const handleAmountChange = (e) => {
+    // Remove commas from the input value.
+    const value = e.target.value.replace(/,/g, "");
+    setRawAmount(value);
+  };
+
+  const handleAmountFocus = () => {
+    setIsAmountFocused(true);
+  };
+
+  const handleAmountBlur = () => {
+    setIsAmountFocused(false);
+    const num = parseFloat(rawAmount);
+    if (!isNaN(num)) {
+      setRawAmount(num.toString());
+    }
+  };
+
+  // Handle Transaction.
   const handleTransaction = async () => {
-    if (!amount || !fixedTerm) {
+    if (!rawAmount || !fixedTerm) {
       setError("Amount and Fixed Term are required.");
       return;
     }
 
-    if (!member?.memberId) {
+    // Use member.memberId if available; otherwise, use the memberId from params.
+    const id = member?.memberId || paramMemberId;
+    if (!id) {
       setError("Member ID is required to proceed.");
       return;
     }
 
     setLoading(true);
     setError(null);
-
     try {
-      // 1. Send POST request to create a new time deposit
       await axios.post(`${BASE_URL}/timedeposit`, {
-        memberId: member.memberId,
-        amount: parseFloat(amount),
+        memberId: id,
+        amount: parseFloat(rawAmount),
         fixedTerm: parseInt(fixedTerm, 10),
       });
-
-      // 2. Send PUT request to update the depositor's status
       await axios.put(`${BASE_URL}/time-deposits/update-depositors`, {
-        memberId: member.memberId,
-        amount: parseFloat(amount),
+        memberId: id,
+        amount: parseFloat(rawAmount),
         fixedTerm: parseInt(fixedTerm, 10),
       });
-
       alert("Deposit Successful!");
       onClose();
     } catch (err) {
@@ -114,35 +151,26 @@ const AmountModal = ({ member, modalType, onClose }) => {
           </div>
         )}
 
-        {/* Display Member Code */}
+        {/* Amount Input Field with Comma Formatting */}
         <div className="mb-4">
-          <p className="text-center text-gray-700 font-medium">
-            <strong>Code Number:</strong> {member?.memberCode || "N/A"}
-          </p>
-        </div>
-
-        <div className="mb-4">
-          <label
-            className="block text-sm font-medium text-gray-700"
-            htmlFor="amount"
-          >
+          <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
             Amount
           </label>
           <input
             id="amount"
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            type="text"
+            value={displayedAmount}
+            onChange={handleAmountChange}
+            onFocus={handleAmountFocus}
+            onBlur={handleAmountBlur}
             className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Enter amount"
           />
         </div>
 
+        {/* Fixed Term Input */}
         <div className="mb-4">
-          <label
-            className="block text-sm font-medium text-gray-700"
-            htmlFor="fixedTerm"
-          >
+          <label htmlFor="fixedTerm" className="block text-sm font-medium text-gray-700">
             Fixed Term (Months)
           </label>
           <select
@@ -157,6 +185,7 @@ const AmountModal = ({ member, modalType, onClose }) => {
           </select>
         </div>
 
+        {/* Computation Display */}
         <div className="mb-4 bg-gray-100 p-4 rounded-md">
           <p className="text-sm">Computation:</p>
           <p>
@@ -177,9 +206,9 @@ const AmountModal = ({ member, modalType, onClose }) => {
           <button
             onClick={handleTransaction}
             disabled={loading}
-            className={`w-1/2 py-2 px-4 text-white font-semibold rounded-lg shadow hover:opacity-80 focus:outline-none 
-              ${modalType === "withdraw" ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}
-              ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-1/2 py-2 px-4 text-white font-semibold rounded-lg shadow hover:opacity-80 focus:outline-none ${
+              modalType === "withdraw" ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+            } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {loading ? "Processing..." : modalType === "withdraw" ? "Withdraw" : "Deposit"}
           </button>

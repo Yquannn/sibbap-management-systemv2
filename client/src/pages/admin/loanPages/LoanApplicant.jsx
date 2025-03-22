@@ -23,31 +23,35 @@ const LoanApplicant = () => {
     "Special Loan", "Reconstruction Loan"
   ];
 
+  useEffect(() => {
+    fetchBorrowers();
+  }, []);
+
   const fetchBorrowers = async () => {
     try {
       const response = await axios.get(apiBaseURL);
-      setBorrowers(response.data);
+      // Sort borrowers by application date (created_at) in descending order (newest first)
+      const sortedBorrowers = response.data.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+      setBorrowers(sortedBorrowers);
     } catch (err) {
       setError('Failed to fetch borrowers. Please try again later.');
       console.error('Error fetching borrowers:', err);
     }
   };
 
-  useEffect(() => {
-    fetchBorrowers();
-  }, []);
-
   // Filtering logic: filter by loan type, search query, and status.
   const filteredBorrowers = borrowers.filter(borrower => {
     if (!borrower) return false;
-  
+
     const matchesLoanType = activeTab === "All" ? true : borrower.loan_type === activeTab;
-  
+
     const firstName = borrower.first_name || "";
     const lastName = borrower.last_name || "";
     const middleName = borrower.middle_name || "";
     const fullName = `${firstName} ${lastName} ${middleName}`.toLowerCase();
-  
+
     const matchesSearch =
       searchQuery === "" ||
       fullName.includes(searchQuery.toLowerCase()) ||
@@ -55,10 +59,10 @@ const LoanApplicant = () => {
         borrower.client_voucher_number.toString().includes(searchQuery)) ||
       (borrower.memberCode &&
         borrower.memberCode.toString().toLowerCase().includes(searchQuery.toLowerCase()));
-  
+
     const borrowerStatus = borrower.status || "Waiting for Approval";
     const matchesStatus = statusFilter === "All" ? true : borrowerStatus === statusFilter;
-  
+
     return matchesLoanType && matchesSearch && matchesStatus;
   });
 
@@ -143,9 +147,7 @@ const LoanApplicant = () => {
       {/* Borrower Table */}
       <h3 className="text-2xl font-semibold mb-4">
         Loan Application List for{" "}
-        {activeTab === "All"
-          ? "All Loans"
-          : activeTab.replace(/([A-Z])/g, ' $1').trim()}
+        {activeTab === "All" ? "All Loans" : activeTab.replace(/([A-Z])/g, ' $1').trim()}
       </h3>
       <div className="overflow-x-auto" style={{ maxHeight: "65vh" }}>
         <table className="min-w-full table-auto bg-white border border-gray-300 text-sm divide-y divide-gray-200">

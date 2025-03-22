@@ -5,7 +5,6 @@ import MemberProfileModal from '../../components/modal/MemberProfileModal';
 import AddMemberModal from '../../components/modal/AddMemberModal';
 import { UserPlus } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
-import blankPicture from '../../components/blankPicture.png';
 import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdAttachMoney } from 'react-icons/md';
 
 const apiBaseURL = 'http://localhost:3001/api';
@@ -28,8 +27,27 @@ const Members = () => {
 
   const navigate = useNavigate();
 
+  // Function to generate image URL if available
   const imageUrl = (filename) =>
     filename ? `http://localhost:3001/uploads/${filename}` : "";
+
+  // Define an array of background color classes
+  const bgColors = [
+    "bg-red-500", "bg-blue-500", "bg-green-500",
+    "bg-yellow-500", "bg-purple-500", "bg-indigo-500",
+    "bg-pink-500", "bg-orange-500"
+  ];
+
+  // Helper to compute a consistent background color based on the member's unique id
+  const getMemberFallbackColor = (member) => {
+    const id = member.memberId ? String(member.memberId) : `${member.first_name || ''}${member.last_name || ''}`;
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % bgColors.length;
+    return bgColors[index];
+  };
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -39,7 +57,11 @@ const Members = () => {
       if (filterMemberType !== "All") params.member_type = filterMemberType;
       if (filterStatus !== "All") params.status = filterStatus;
       const response = await axios.get(`${apiBaseURL}/members`, { params });
-      setMembers(response.data);
+      // Sort members by memberCode (or id) in descending order
+      const sortedMembers = response.data.sort(
+        (a, b) => parseInt(b.memberCode) - parseInt(a.memberCode)
+      );
+      setMembers(sortedMembers);
     } catch (err) {
       setError('Error fetching members: ' + err.message);
     } finally {
@@ -123,36 +145,39 @@ const Members = () => {
   return (
     <div className="">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-gradient-to-r from-green-400 to-green-600 shadow-xl text-white">
+        <div className="card bg-white  text-black">
           <div className="card-body flex items-center">
-            <MdPeople className="text-5xl mr-4" />
+            <MdPeople className="text-5xl mr-4 text-green-600" />
             <div>
               <h2 className="card-title text-sm">Total Members</h2>
               <p className="text-xl font-bold">{totalMember.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card bg-gradient-to-r from-blue-400 to-blue-600 shadow-xl text-white">
+        
+        <div className="card bg-white  text-black">
           <div className="card-body flex items-center">
-            <MdCheckCircle className="text-5xl mr-4" />
+            <MdCheckCircle className="text-5xl mr-4 text-blue-600" />
             <div>
               <h2 className="card-title text-sm">Active Members</h2>
               <p className="text-xl font-bold">25,000</p>
             </div>
           </div>
         </div>
-        <div className="card bg-gradient-to-r from-red-400 to-red-600 shadow-xl text-white">
+        
+        <div className="card bg-white text-black">
           <div className="card-body flex items-center">
-            <MdRemoveCircleOutline className="text-5xl mr-4" />
+            <MdRemoveCircleOutline className="text-5xl mr-4 text-red-600" />
             <div>
               <h2 className="card-title text-sm">Inactive Members</h2>
               <p className="text-xl font-bold">15,000</p>
             </div>
           </div>
         </div>
-        <div className="card bg-gradient-to-r from-purple-400 to-purple-600 shadow-xl text-white">
+        
+        <div className="card bg-white text-black">
           <div className="card-body flex items-center">
-            <MdAttachMoney className="text-5xl mr-4" />
+            <MdAttachMoney className="text-5xl mr-4 text-purple-600" />
             <div>
               <h2 className="card-title text-sm">Membership Fee</h2>
               <p className="text-xl font-bold">Php350</p>
@@ -160,6 +185,7 @@ const Members = () => {
           </div>
         </div>
       </div>
+
 
       {/* Search & Filter Bar with Add Member Button */}
       <div className="flex flex-col sm:flex-row justify-end items-center bg-white p-4 rounded-lg mb-6 gap-4 mt-4">
@@ -239,10 +265,18 @@ const Members = () => {
                   <div className="flex items-center gap-3">
                     <div className="avatar">
                       <div className="mask mask-squircle h-12 w-12">
-                        <img
-                          src={imageUrl(member.id_picture) || blankPicture}
-                          alt="Avatar"
-                        />
+                        {imageUrl(member.id_picture) ? (
+                          <img
+                            src={imageUrl(member.id_picture)}
+                            alt="Avatar"
+                          />
+                        ) : (
+                          <div className={`flex items-center justify-center h-full w-full ${getMemberFallbackColor(member)}`}>
+                            <span className="text-lg font-bold text-white">
+                              {`${member.first_name?.charAt(0) || ''}${member.last_name?.charAt(0) || ''}`.toUpperCase()}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div>

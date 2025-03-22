@@ -1,21 +1,33 @@
 import React from 'react';
-import blank from './blankPicture.png';
 import { FaCog, FaQuestionCircle } from 'react-icons/fa';
 
 const UserHeader = ({ name, userType, notifications }) => {
+  // Function to get initials from name
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map((n) => n[0].toUpperCase())
+      .join('');
+  };
+
+  // Function to generate a random pastel color
+  const getRandomColor = () => {
+    const pastelColors = ["#FFADAD", "#FFD6A5", "#FDFFB6", "#CAFFBF", "#9BF6FF", "#A0C4FF", "#BDB2FF", "#FFC6FF"];
+    return pastelColors[Math.floor(Math.random() * pastelColors.length)];
+  };
+
   return (
     <div className="p-4 mb-4 flex justify-between items-center bg-white rounded shadow">
       {/* Left Section */}
       <div className="flex items-center space-x-4">
-        <div className="w-12 h-12 rounded-full border border-gray-300 overflow-hidden">
-          <img 
-            src={blank} 
-            alt={`${name} avatar`} 
-            className="w-full h-full object-cover" 
-          />
+        <div 
+          className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 font-bold text-xl"
+          style={{ backgroundColor: getRandomColor() }}
+        >
+          {name ? getInitials(name) : '?'}
         </div>
         <div>
-          <h2 className="font-bold text-lg text-gray-800">Welcome, {name}!</h2>         
+          <h2 className="font-bold text-lg text-gray-800">Welcome, {name}!</h2>
           <p className="text-sm text-gray-500 flex items-center">
             {userType}
             <span className="ml-2 flex items-center text-green-500">
