@@ -18,7 +18,7 @@ const Bills = () => {
     const fetchBills = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/member-loan/${memberId}`
+          `http://192.168.254.106:3001/api/member-loan/${memberId}`
         );
         // Expecting an object with an installments array.
         const installments = response.data.installments || [];

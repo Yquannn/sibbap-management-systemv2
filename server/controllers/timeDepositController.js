@@ -1,28 +1,5 @@
 const TimeDeposit = require("../models/timeDepositModel");
 
-
-// Helper function to calculate the interest rate.
-const calculateInterestRate = (amount, termMonths) => {
-  if (termMonths === 6) {
-    if (amount >= 10000 && amount <= 100000) return 0.0075;
-    if (amount > 100000 && amount <= 200000) return 0.01;
-    if (amount > 200000 && amount <= 300000) return 0.0175;
-    if (amount > 300000 && amount <= 400000) return 0.0225;
-    if (amount > 400000 && amount <= 500000) return 0.025;
-    if (amount > 500000 && amount <= 1000000) return 0.025;
-    if (amount > 1000000) return 0.06;
-  } else if (termMonths === 12) {
-    if (amount >= 10000 && amount <= 100000) return 0.01;
-    if (amount > 100000 && amount <= 200000) return 0.015;
-    if (amount > 200000 && amount <= 300000) return 0.02;
-    if (amount > 300000 && amount <= 400000) return 0.0275;
-    if (amount > 400000 && amount <= 500000) return 0.03;
-    if (amount > 500000 && amount <= 1000000) return 0.0325;
-    if (amount > 1000000) return 0.06;
-  }
-  return 0;
-};
-
 // Helper function: convert undefined or empty strings to null.
 const safeValue = (val) =>
   val === undefined || val === "" ? null : val;
@@ -44,30 +21,27 @@ exports.createTimeDeposit = async (req, res) => {
     civil_status,
     contact_number,
     relationship_primary,
-    complete_address
+    complete_address,
+    interest,       // Now expected to be passed in (or null)
+    payout,         // Now expected to be passed in (or null)
+    maturityDate    // Now expected to be passed in (or null)
   } = req.body;
 
   // Validate required fields.
   if (!memberId || !amount || !fixedTerm) {
-    return res.status(400).json({ error: "Member ID, amount, and fixed term are required." });
+    return res
+      .status(400)
+      .json({ error: "Member ID, amount, and fixed term are required." });
   }
 
   try {
-    const termMonths = parseInt(fixedTerm, 10);
-    const interestRate = calculateInterestRate(amount, termMonths);
-    const interest = amount * interestRate * (termMonths / 12);
-    const payout = amount + interest;
-    const maturityDate = new Date(new Date().setMonth(new Date().getMonth() + termMonths))
-      .toISOString()
-      .slice(0, 10);
-
-    // Build the time deposit record and map the co-account fields to what the model expects.
+    // Build the time deposit record using safeValue.
     const newTimeDeposit = {
       memberId: safeValue(memberId),
       amount: safeValue(amount),
       fixedTerm: safeValue(fixedTerm),
-      interest: interest.toFixed(2),
-      payout: payout.toFixed(2),
+      interest: safeValue(interest),
+      payout: safeValue(payout),
       maturityDate: safeValue(maturityDate),
       account_type: safeValue(account_type),
       co_last_name: safeValue(last_name),
@@ -96,18 +70,14 @@ exports.createTimeDeposit = async (req, res) => {
       amount,
       fixedTerm,
       maturityDate,
-      interest: interest.toFixed(2),
-      payout: payout.toFixed(2)
+      interest,
+      payout
     });
   } catch (err) {
     console.error("Error creating time deposit:", err.message);
     res.status(500).json({ error: "Error creating time deposit." });
   }
 };
-
-
-
-
 
 exports.getActiveTimeDeposits = async (req, res) => {
   try {
@@ -124,16 +94,14 @@ exports.getActiveTimeDeposits = async (req, res) => {
 
 exports.getMemberWithNoTimeDeposit = async (req, res) => {
   try {
-    // Fetch members (or depositors) from the model
+    // Fetch members (or depositors) from the model.
     const deposits = await TimeDeposit.getTimeDepositor();
-
     if (!deposits || deposits.length === 0) {
       return res.status(200).json({
         message: "No members found without active time deposits.",
         data: []
       });
     }
-
     res.status(200).json({ data: deposits });
   } catch (err) {
     console.error("Error fetching members:", err.message);
@@ -144,22 +112,17 @@ exports.getMemberWithNoTimeDeposit = async (req, res) => {
   }
 };
 
-
-
-
 exports.getTimeDepositorById = async (req, res) => {
   try {
     console.log("getTimeDepositorById: req.params =", req.params);
-    // Destructure memberId from req.params instead of id.
-    const { memberId } = req.params;
-    if (!memberId) {
-      return res.status(400).json({ error: "Member ID is required." });
+    // Destructure timeDepositId from req.params.
+    const { timeDepositId } = req.params;
+    if (!timeDepositId) {
+      return res.status(400).json({ error: "Time Deposit ID is required." });
     }
-    const record = await TimeDeposit.getTimeDepositorById(memberId);
+    const record = await TimeDeposit.getTimeDepositorById(timeDepositId);
     if (!record) {
-      return res
-        .status(404)
-        .json({ error: "No time deposit record found for this member." });
+      return res.status(404).json({ error: "No time deposit record found." });
     }
     res.status(200).json(record);
   } catch (error) {

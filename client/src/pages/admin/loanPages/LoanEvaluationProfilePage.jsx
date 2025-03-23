@@ -396,7 +396,7 @@ const LoanEvaluationProfilePage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-gray-700 mb-2">
-                <strong className="font-bold">Account Number:</strong> {loanApplication ? loanApplication.accountNumber : "N/A"}
+                <strong className="font-bold">Account Number:</strong> {loanApplication ? loanApplication.account_number : "N/A"}
               </p>
               <p className="text-gray-700 mb-2">
                 <strong className="font-bold">Code Number:</strong> {loanApplication ? loanApplication.memberCode : "N/A"}

@@ -81,9 +81,8 @@ const MemberAndCoAccountForm = () => {
                 className="border p-2 rounded"
               >
                 <option value="">Select an item</option>
-                <option value="Savings">Savings</option>
-                <option value="Time Deposit">Time Deposit</option>
-                <option value="Share Capital">Share Capital</option>
+                <option value="Savings">Individual</option>
+                <option value="Time Deposit">Joint Account</option>
               </select>
             </div>
             {/* Member Code */}

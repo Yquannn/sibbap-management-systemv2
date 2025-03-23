@@ -163,6 +163,19 @@ exports.getMemberById = async (req, res) => {
 };
 
 
+
+
+// Generate a unique regular savings account number.
+const generateUniqueAccountNumber = async () => {
+  // For example, prefix "RS", then use the last 8 digits of Date.now()
+  // and two random digits (zero-padded) to increase uniqueness.
+  const timestampPart = Date.now().toString().slice(-6);
+  const randomPart = Math.floor(Math.random() * 100)
+    .toString()
+    .padStart(2, "0");
+  return `${timestampPart}${randomPart}`;
+};
+
 exports.addMember = async (req, res) => {
   const {
     registration_type,
@@ -293,6 +306,7 @@ exports.addMember = async (req, res) => {
     tax_identification_id: taxIdentificationId || null,
     valid_id: validId || null,
     membership_agreement: membershipAgreement || null,
+    // Use additionalSavings for savings field as per example logic.
     savings: additionalSavings,
     identification_card_fee: identification_card_fee_num,
     membership_fee: membership_fee_num,
@@ -306,7 +320,7 @@ exports.addMember = async (req, res) => {
     await connection.beginTransaction();
 
     // Generate unique member code
-    const memberCode = await generateUniqueMemberId();
+    const memberCode = await generateUniqueMemberId(); // Assuming this function exists
 
     // Insert into members table (include new document fields)
     const memberQuery = `
@@ -368,7 +382,7 @@ exports.addMember = async (req, res) => {
     const memberId = memberResult.insertId;
 
     // Insert into member_account table
-    const accountStatus = email && password ? "ACTIVE" : "NOT ACTIVATED";
+    const accountStatus = email && password ? "NOT ACTIVATED" : "NOT ACTIVATED";
     const accountQuery = `
       INSERT INTO member_account
         (memberId, email, password, accountStatus)
@@ -376,8 +390,8 @@ exports.addMember = async (req, res) => {
     `;
     const accountParams = [
       memberId,
-      sanitizedData.email,
-      sanitizedData.password,
+      memberCode, // Using memberCode as email placeholder
+      memberCode, // Using memberCode as password placeholder
       accountStatus
     ];
     await connection.execute(accountQuery, accountParams);
@@ -432,12 +446,14 @@ exports.addMember = async (req, res) => {
 
     // INSERT into regular_savings if applicable
     if (sanitizedData.savings > 0) {
+      // Generate unique regular savings account number.
+      const accountNumber = await generateUniqueAccountNumber();
       const savingsQuery = `
         INSERT INTO regular_savings 
-          (memberId, amount)
-        VALUES (?, ?)
+          (memberId, account_number, amount)
+        VALUES (?, ?, ?)
       `;
-      const savingsParams = [memberId, sanitizedData.savings];
+      const savingsParams = [memberId, accountNumber, sanitizedData.initial_savings];
       await connection.execute(savingsQuery, savingsParams);
     }
 
@@ -457,6 +473,7 @@ exports.addMember = async (req, res) => {
 
 
 
+
 exports.getMemberSavings = async (req, res) => {
   const connection = await db.getConnection();
 
@@ -466,6 +483,7 @@ exports.getMemberSavings = async (req, res) => {
     CONCAT(m.first_name, ' ', m.last_name) AS fullName,
     m.*, 
     s.amount AS savingsAmount,
+    s.account_number,
     s.remarks AS savingsStatus  
       FROM 
           members m

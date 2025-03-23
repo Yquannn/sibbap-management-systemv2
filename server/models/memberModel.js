@@ -37,6 +37,7 @@ exports.getMemberByEmail = async (email) => {
         s.savingsId AS regular_savings_id,
         s.amount AS savingsAmount,
         s.earnings AS totalEarnings,
+        s.account_number,
         l.amount AS timeDepositAmount
       FROM member_account ma
       JOIN members m ON ma.memberId = m.memberId

@@ -97,7 +97,7 @@ export default function AdminLoanMonitorUI() {
     printWindow.close();
   };
 
-  // New function to print all repayment transactions
+  // Function to print all repayment transactions
   const printAllTransactions = () => {
     const printWindow = window.open("", "_blank", "width=800,height=600");
     let htmlContent = `<html><head><title>Print All Transactions</title>`;
@@ -222,7 +222,11 @@ export default function AdminLoanMonitorUI() {
   // Extract loan applications array
   const loanApps = loanData.loanApplications || [];
 
-  // Compute overall counts (from all data, regardless of filters)
+  // Calculate total interest based on amortization (sum of interest from installments)
+  const totalInterest = (loanData.installments || [])
+    .reduce((acc, inst) => acc + parseFloat(inst.interest || 0), 0)
+    .toFixed(2);
+
   const overallActiveLoanCount = loanApps.filter(
     (app) =>
       app.loan_status &&
@@ -234,11 +238,9 @@ export default function AdminLoanMonitorUI() {
       app.loan_status.toLowerCase() === "paid off"
   ).length;
 
-  // Determine if the member is a good payer (no active loans & at least one paid-off loan)
   const isGoodPayer =
     overallActiveLoanCount === 0 && overallPaidOffLoanCount > 0;
 
-  // Determine if the member is on time to pay by checking for overdue installments.
   const today = new Date();
   const overdueInstallments = (loanData.installments || []).filter((inst) => {
     return (
@@ -250,7 +252,6 @@ export default function AdminLoanMonitorUI() {
   const isOnTime = overdueInstallments.length === 0;
   const isGoodOrOnTime = isGoodPayer || isOnTime;
 
-  // Prepare pie chart data based on member status.
   const goodPayerPieData = {
     labels: ["Paid Off Loans", "Other Loans"],
     datasets: [
@@ -263,7 +264,6 @@ export default function AdminLoanMonitorUI() {
     ],
   };
 
-  // Default pie chart data for Active Users (used if not good payer or on time)
   const pieData = {
     labels: ["Active Users", "Other Users"],
     datasets: [
@@ -276,7 +276,6 @@ export default function AdminLoanMonitorUI() {
     ],
   };
 
-  // Filter loan applications based on dropdowns:
   let filteredLoanApps = loanApps;
   if (selectedLoanId !== "all") {
     filteredLoanApps = filteredLoanApps.filter(
@@ -291,7 +290,6 @@ export default function AdminLoanMonitorUI() {
     );
   }
 
-  // Apply search filter on loan applications
   const searchedLoanApps = filteredLoanApps.filter((app) => {
     const search = loanSearchTerm.toLowerCase();
     return (
@@ -383,17 +381,18 @@ export default function AdminLoanMonitorUI() {
           </div>
         </div>
 
+        {/* New Card: Total Interest based on amortization */}
         <div className="stat bg-white shadow-md rounded-lg p-4 flex items-center">
-          <CheckCircle size={50} className="text-blue-500 mr-2" />
+          <CreditCard size={50} className="text-orange-500 mr-2" />
           <div>
             <div className="stat-title text-sm text-gray-500">
-              Active Loans Count
+              Total Interest
             </div>
             <div className="stat-value text-2xl font-bold">
-              {overallActiveLoanCount.toLocaleString()}
+              ₱{formatCurrency(totalInterest)}
             </div>
             <div className="stat-desc text-gray-400">
-              Number of active loans
+              Cumulative interest from amortization
             </div>
           </div>
         </div>
@@ -544,8 +543,7 @@ export default function AdminLoanMonitorUI() {
       
       {/* Bottom Content: Loan Applications and Repayments Tables */}
       <div className="grid grid-cols-2 gap-4 max-h-[400px]">
-        
-  <div
+        <div
           className="card bg-white shadow-md rounded-lg p-4"
           style={{ maxHeight: "300px" }}
         >
@@ -562,13 +560,9 @@ export default function AdminLoanMonitorUI() {
                 <tr>
                   <th>Voucher</th>
                   <th>Type</th>
-                  {/* <th>Application</th> */}
-                  {/* <th>Loan Amt</th> */}
                   <th>Interest</th>
                   <th>Terms</th>
-                  {/* <th>Balance</th> */}
                   <th>Fee</th>
-                  {/* <th>Created At</th> */}
                   <th>Loan Status</th>
                   <th>Action</th>
                 </tr>
@@ -577,14 +571,10 @@ export default function AdminLoanMonitorUI() {
                 {searchedLoanApps.map((app) => (
                   <tr key={app.loan_application_id}>
                     <td>{app.client_voucher_number}</td>
-                    {/* <td>{app.loan_type}</td> */}
                     <td>{app.application}</td>
-                    {/* <td>₱{formatCurrency(app.loan_amount)}</td> */}
                     <td>₱{formatCurrency(app.interest)}</td>
                     <td>{Number(app.terms).toLocaleString()}</td>
-                    {/* <td>₱{formatCurrency(app.balance)}</td> */}
                     <td>₱{formatCurrency(app.service_fee)}</td>
-                    {/* <td>{formatDate(app.created_at)}</td> */}
                     <td>{app.loan_status}</td>
                     <td>
                       <button
@@ -631,7 +621,6 @@ export default function AdminLoanMonitorUI() {
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
             />
           </div>
-          {/* Print All Button */}
           <div className="mb-4">
             <button
               className="px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-gray-800"

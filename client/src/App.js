@@ -48,6 +48,7 @@ import RegularSavings from "./pages/admin/savingsPages/RegularSavings";
 import TimeDeposit from "./pages/admin/savingsPages/timedeposit/TimeDeposit";
 import ShareCapital from "./pages/admin/savingsPages/SharedCapital";
 import TimeDepositDetails from "./pages/admin/savingsPages/timedeposit/TimedepositDetails";
+import TransactionForm from "./pages/admin/savingsPages/utils/TransactionForm";
 
 function App() {
   return (
@@ -80,10 +81,11 @@ function App() {
     <Route path="loan-application/:loan_application_id" element={<LoanEvaluationProfilePage />} />
     <Route path="regular-savings" element={<RegularSavings />} />
     <Route path="time-deposit" element={<TimeDeposit />} />
-    <Route path="time-deposit-info/:memberId" element={<TimeDepositDetails />} />
+    <Route path="member/time-deposit-info/:timeDepositId" element={<TimeDepositDetails />} />
 
     <Route path="share-capital" element={<ShareCapital />} />
 
+    <Route path="regular-saviings-deposit/:memberId" element={<TransactionForm />} />
 
 
 

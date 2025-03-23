@@ -105,11 +105,9 @@ const Dashboard = () => {
   memberId = member.memberId;
 
   // Function to fetch/reload member data.
-  // When called with isRefresh=true, we simulate a slight delay so the refresh indicator shows.
   const fetchMemberData = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
-      // Simulate a delay (e.g., 1 second) so the refresh indicator remains visible.
       await new Promise((resolve) => setTimeout(resolve, 1000));
     } else {
       setLoading(true);
@@ -120,7 +118,7 @@ const Dashboard = () => {
         throw new Error("User email not found. Please log in again.");
       }
       const response = await axios.get(
-        `http://192.168.254.103:3001/api/member/email/${email}`
+        `http://192.168.254.106:3001/api/member/email/${email}`
       );
       if (response.data) {
         setMember(response.data);
@@ -138,13 +136,10 @@ const Dashboard = () => {
     }
   };
 
-  // Initial data fetch
   useEffect(() => {
     fetchMemberData();
   }, []);
 
-  // Scroll listener: reload data when user scrolls upward more than 50px.
-  // When triggered, the refresh indicator will appear.
   const lastScrollY = useRef(window.pageYOffset);
   useEffect(() => {
     const threshold = 50;
@@ -162,31 +157,36 @@ const Dashboard = () => {
   if (loading) return <DashboardSkeleton />;
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
 
+  // Compute member initials
+  const initials = `${member?.first_name?.charAt(0) || ""}${member?.last_name?.charAt(0) || ""}`.toUpperCase();
+
   return (
     <div className="min-h-screen relative">
       {/* Refreshing Indicator */}
       {refreshing && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mb-4">
-          <div className="">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
-          </div>
+          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
         </div>
-
       )}
 
       {/* Header Section */}
       <div className="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
         <div className="flex items-center">
-          <img
-            src={
-              member?.id_picture
-                ? `http://192.168.254.103:3001/uploads/${member.id_picture}`
-                : defaultPicture
-            }
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-green-500 cursor-pointer"
-            onClick={() => navigate("/member-profile")}
-          />
+          {member?.id_picture ? (
+            <img
+              src={`http://192.168.254.106:3001/uploads/${member.id_picture}`}
+              alt="Profile"
+              className="w-10 h-10 rounded-full border-2 border-green-500 cursor-pointer"
+              onClick={() => navigate("/member-profile")}
+            />
+          ) : (
+            <div
+              className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold border-2 border-green-500 cursor-pointer"
+              onClick={() => navigate("/member-profile")}
+            >
+              {initials || "NA"}
+            </div>
+          )}
           <div className="ml-3">
             <p className="text-lg font-semibold">
               {member?.first_name} {member?.last_name}
@@ -204,12 +204,12 @@ const Dashboard = () => {
             onClick={() => navigate("/member-notification")}
           >
             <ConciergeBell className="w-6 h-6" />
-            {notificationCount > 0 && (
+            {count > 0 && (
               <span
                 className={`absolute top-1 -right-0.5 bg-red-500 text-white font-bold rounded-full flex items-center justify-center 
-                  px-2 py-0.5 ${notificationCount >= 100 ? "text-[10px] min-w-[28px]" : "text-xs min-w-[20px]"}`}
+                  px-2 py-0.5 ${count >= 100 ? "text-[10px] min-w-[28px]" : "text-xs min-w-[20px]"}`}
               >
-                {notificationCount > 99 ? "99+" : notificationCount}
+                {count > 99 ? "99+" : count}
               </span>
             )}
           </button>
@@ -226,10 +226,17 @@ const Dashboard = () => {
           {/* Regular Savings */}
           <motion.div className="snap-center shrink-0 w-[300px]">
             <div className="bg-green-600 text-white p-6 rounded-lg w-full">
-              <p className="text-sm text-gray-100">Regular Savings Balance</p>
+            <p className="text-sm text-gray-100 mt-1">
+    Account No.: {member?.account_number 
+        ? member.account_number.replace(/(\d{4})/g, '$1-').replace(/-$/, '') 
+        : "N/A"}
+</p>
+              {/* <p className="text-sm text-gray-100">Regular Savings Balance</p> */}
               <p className="text-4xl font-bold">
                 ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.savingsAmount || 0)}
               </p>
+
+
               <hr className="my-3 border-t border-white/30" />
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-100">Total Earnings</p>
@@ -255,7 +262,7 @@ const Dashboard = () => {
               </p>
               <hr className="my-3 border-t border-white/30" />
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-100">Total Collected Dividends</p>
+                <p className="text-sm text-gray-100">Collected Dividends</p>
                 <button
                   className="text-white text-sm font-semibold"
                   onClick={() => navigate("/member-regular-savings-transaction")}
@@ -298,9 +305,7 @@ const Dashboard = () => {
           {[0, 1, 2].map((index) => (
             <span
               key={index}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${
-                activeIndex2 === index ? "bg-gray-500 w-2.3 h-2.3" : "bg-gray-300"
-              }`}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${activeIndex2 === index ? "bg-gray-500 w-2.3 h-2.3" : "bg-gray-300"}`}
             ></span>
           ))}
         </div>
@@ -308,10 +313,9 @@ const Dashboard = () => {
 
       {/* Math Tools Section */}
       <div className="mt-4">
-      <div className="mb-2">
+        <div className="mb-2">
           <div className="text-sm font-medium text-gray-700 font-semibold">Let’s Do Some Math!</div>
         </div>
-        {/* <h2 className="text-lg font-semibold text-gray-700">Let’s Do Some Math!</h2> */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -372,9 +376,7 @@ const Dashboard = () => {
           {[0, 1, 2, 3].map((index) => (
             <span
               key={index}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${
-                activeIndex === index ? "bg-gray-500 w-2.3 h-2.3" : "bg-gray-300"
-              }`}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${activeIndex === index ? "bg-gray-500 w-2.3 h-2.3" : "bg-gray-300"}`}
             ></span>
           ))}
         </div>
@@ -383,10 +385,9 @@ const Dashboard = () => {
       {/* Announcements & Badge Section */}
       <div className="mb-3">
         <div className="mt-3">
-        <div className="mb-2">
-          <div className="text-sm font-medium text-gray-700 font-semibold">Important Announcement!</div>
-        </div>
-          {/* <h2 className="text-lg font-semibold text-gray-700">Important Announcement!</h2> */}
+          <div className="mb-2">
+            <div className="text-sm font-medium text-gray-700 font-semibold">Important Announcement!</div>
+          </div>
           <div className="grid grid-cols-2 gap-4 mt-2">
             {(member?.announcements?.length ? member.announcements : dummyMember.announcements).map(
               (announcement, index) => (

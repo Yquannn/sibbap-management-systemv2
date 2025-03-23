@@ -15,13 +15,13 @@ const TransactionInfo = () => {
   const navigate = useNavigate();
 
   const imageUrl = (filename) =>
-    filename ? `http://192.168.254.103:3001/uploads/${filename}` : "";
+    filename ? `http://192.168.254.106:3001/uploads/${filename}` : "";
 
   useEffect(() => {
     const fetchTransaction = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/transactions/${transactionNumber}`
+          `http://192.168.254.106:3001/api/transactions/${transactionNumber}`
         );
         setTransaction(response.data);
       } catch (err) {

@@ -63,16 +63,16 @@ const TimedepositAmountModal = ({ member, modalType, onClose, formData }) => {
       const principal = parseFloat(rawAmount);
       const termMonths = parseInt(fixedTerm, 10);
       const interestRate = calculateInterestRate(principal, termMonths);
+      // Assuming 6-month term uses 181 days, otherwise 365 days.
       const days = termMonths === 6 ? 181 : 365;
       const interest = principal * interestRate * (days / 365);
       const payout = principal + interest;
       const currentDate = new Date();
-      const maturityDate = new Date(
-        currentDate.setMonth(currentDate.getMonth() + termMonths)
-      );
+      const maturityDate = new Date(currentDate.setMonth(currentDate.getMonth() + termMonths));
 
       setComputation({
-        maturityDate: maturityDate.toLocaleDateString(),
+        // Store maturity date as ISO string (YYYY-MM-DD)
+        maturityDate: maturityDate.toISOString().slice(0, 10),
         interest: formatNumber(interest),
         payout: formatNumber(payout),
         interestRate: formatNumber(interestRate * 100),
@@ -100,6 +100,13 @@ const TimedepositAmountModal = ({ member, modalType, onClose, formData }) => {
       memberId: member?.memberId || paramMemberId,
       amount: parseFloat(rawAmount),
       fixedTerm: parseInt(fixedTerm, 10),
+      interest: computation.interest
+        ? parseFloat(computation.interest.replace(/,/g, ""))
+        : 0,
+      payout: computation.payout
+        ? parseFloat(computation.payout.replace(/,/g, ""))
+        : 0,
+      maturityDate: computation.maturityDate || new Date().toISOString().slice(0, 10),
       account_type: formData.accountType || null,
       last_name: formData.coLastName || null,
       middle_name: formData.coMiddleName || null,
@@ -112,7 +119,7 @@ const TimedepositAmountModal = ({ member, modalType, onClose, formData }) => {
       civil_status: formData.coCivilStatus || null,
       contact_number: formData.coContactNumber || null,
       relationship_primary: formData.coRelationship || null,
-      complete_address: formData.coCompleteAddress || null
+      complete_address: formData.coCompleteAddress || null,
     };
   };
 
@@ -146,7 +153,7 @@ const TimedepositAmountModal = ({ member, modalType, onClose, formData }) => {
   // This function handles closing the success modal and redirects the page.
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
-    // Redirect to the timedeposit page
+    // Redirect to the time deposit page
     navigate("/time-deposit");
   };
 

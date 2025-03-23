@@ -23,7 +23,7 @@ const MemberProfile = () => {
           throw new Error("User email not found. Please log in again.");
         }
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/member/email/${email}`
+          `http://192.168.254.106:3001/api/member/email/${email}`
         );
         setUser(response.data);
         setEditableData(response.data);
@@ -61,7 +61,7 @@ const MemberProfile = () => {
 
   const handleBlurOrEnter = async (field) => {
     try {
-      await axios.put(`http://192.168.254.103:3001/api/member/update`, {
+      await axios.put(`http://192.168.254.106:3001/api/member/update`, {
         email: user.email,
         [field]: editableData[field],
       });
@@ -101,7 +101,7 @@ const MemberProfile = () => {
 
     try {
       const response = await axios.post(
-        "http://192.168.254.103:3001/api/member/uploadPicture",
+        "http://192.168.254.106:3001/api/member/uploadPicture",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -116,6 +116,9 @@ const MemberProfile = () => {
   if (error) {
     return <p className="text-center text-red-500">{error}</p>;
   }
+
+  // Compute member initials (if no profile image exists)
+  const initials = `${user?.first_name?.charAt(0) || ""}${user?.last_name?.charAt(0) || ""}`.toUpperCase();
 
   return (
     <div className="w-full max-w-sm mx-auto text-center">
@@ -133,17 +136,24 @@ const MemberProfile = () => {
         </div>
       ) : (
         <>
-          <img
-            src={
-              imagePreview ||
-              (user?.id_picture
-                ? `http://192.168.254.103:3001/uploads/${user.id_picture}`
-                : defaultPicture)
-            }
-            alt="Profile"
-            className="w-24 h-24 mx-auto rounded-full border-4 border-green-500 mt-2 cursor-pointer"
-            onClick={handleProfileClick}
-          />
+          {imagePreview || user?.id_picture ? (
+            <img
+              src={
+                imagePreview ||
+                `http://192.168.254.106:3001/uploads/${user.id_picture}`
+              }
+              alt="Profile"
+              className="w-24 h-24 mx-auto rounded-full border-4 border-green-500 mt-2 cursor-pointer"
+              onClick={handleProfileClick}
+            />
+          ) : (
+            <div
+              className="w-24 h-24 mx-auto rounded-full border-4 border-green-500 mt-2 cursor-pointer bg-cyan-500 flex items-center justify-center text-white font-bold text-2xl"
+              onClick={handleProfileClick}
+            >
+              {initials || "NA"}
+            </div>
+          )}
           <input
             type="file"
             accept="image/*"
@@ -253,11 +263,7 @@ const MemberProfile = () => {
                     <strong>Address:</strong>
                     <input
                       type="text"
-                      value={`${editableData.houseNoStreet || ""}, ${
-                        editableData.barangay || ""
-                      }, ${editableData.city || ""}, ${
-                        editableData.province || ""
-                      }`}
+                      value={`${editableData.houseNoStreet || ""}, ${editableData.barangay || ""}, ${editableData.city || ""}, ${editableData.province || ""}`}
                       className="border rounded px-2 py-1 w-full"
                       readOnly
                     />

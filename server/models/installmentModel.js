@@ -26,6 +26,9 @@ exports.getInstallmentsWithRepayments = async (installment_id) => {
   return rows;
 };
 
+
+
+
 function generateTransactionNumber() {
     const timestamp = Date.now();
     const randomNum = Math.floor(1000 + Math.random() * 9000);

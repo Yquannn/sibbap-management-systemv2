@@ -36,7 +36,7 @@ const Transaction = () => {
 
       try {
         // Replace with your actual API endpoint
-        const response = await axios.get("http://192.168.254.103:3001/api/transactions");
+        const response = await axios.get("http://192.168.254.106:3001/api/transactions");
 
         if (response.data && Array.isArray(response.data)) {
           setTransactions(response.data);

@@ -26,7 +26,7 @@ const TimeDeposit = {
     // Use a bound parameter for remarks instead of a literal.
     const sql = `
       INSERT INTO time_deposit (
-        memberId, amount, fixedTerm, interest, payout, maturityDate, remarks,
+        memberId, amount, fixedTerm, interest, payout, maturityDate, account_status,
         account_type, co_last_name, co_middle_name, co_first_name, co_extension_name,
         co_date_of_birth, co_place_of_birth, co_age, co_gender, co_civil_status,
         co_contact_number, co_relationship_primary, co_complete_address
@@ -41,7 +41,7 @@ const TimeDeposit = {
       interest,
       payout,
       maturityDate,
-      "ACTIVE",              // remarks parameter
+      "PRE-MATURE",              // remarks parameter
       account_type,
       co_last_name,
       co_middle_name,
@@ -63,13 +63,7 @@ const TimeDeposit = {
   getAllActive: async () => {
     const sql = `
       SELECT 
-        td.timeDepositId, 
-        td.amount, 
-        td.fixedTerm, 
-        td.interest, 
-        td.payout, 
-        td.maturityDate, 
-        td.remarks, 
+        td.*,
         m.memberId,
         m.last_name, 
         m.first_name, 
@@ -78,12 +72,12 @@ const TimeDeposit = {
         time_deposit td
       INNER JOIN 
         members m ON td.memberId = m.memberId
-      WHERE 
-        td.remarks = 'ACTIVE'
+      
     `;
     const [rows] = await db.execute(sql);
     return rows;
   },
+  
 
   getTimeDepositor: async () => {
     const sql = `
@@ -103,15 +97,16 @@ const TimeDeposit = {
 
   getTimeDepositorById: async (id) => {
     const sql = `
-      SELECT 
-        *
-      FROM 
-        time_deposit
-      WHERE memberId = ?
+      SELECT td.*, m.*
+      FROM time_deposit td
+      INNER JOIN members m ON td.memberId = m.memberId
+      WHERE td.timeDepositId = ?
     `;
     const [rows] = await db.execute(sql, [id]);
-    return rows[0];
-  }
+    return rows[0]; // returns the first (and only) matching record
+  },
+  
+  
 };
 
 module.exports = TimeDeposit;

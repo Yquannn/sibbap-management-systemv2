@@ -77,13 +77,19 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
     return query === "" || fullName.includes(query) || code.includes(query);
   });
 
+  // Sort filtered deposits by latest.
+  // Here, we assume that a higher timeDepositId indicates a more recent deposit.
+  const sortedDeposits = [...filteredDeposits].sort(
+    (a, b) => b.timeDepositId - a.timeDepositId
+  );
+
   return (
     <div className="p-0">
       <div className="p-4 bg-white shadow-lg rounded-lg mb-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           {/* Title */}
           <h4 className="text-xl font-bold">
-            Time Deposit Members - {filteredDeposits.length}
+            Time Deposit Members - {sortedDeposits.length}
           </h4>
           {/* Search and Open Account Button */}
           <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -120,7 +126,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
       />
 
       {/* Data Table */}
-      <div className="overflow-y-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
+      <div className="overflow-y-auto max-h-[75vh] card bg-white shadow-md rounded-lg p-4">
         {loading ? (
           <p className="text-center text-gray-500 p-4">Loading...</p>
         ) : error ? (
@@ -150,8 +156,8 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredDeposits.length > 0 ? (
-                filteredDeposits.map((depositor, index) => (
+              {sortedDeposits.length > 0 ? (
+                sortedDeposits.map((depositor, index) => (
                   <tr
                     key={`${depositor.id}-${index}`}
                     className="text-center hover:bg-gray-100 cursor-pointer"
@@ -177,7 +183,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                     </td>
                     {/* Co-Account Holder */}
                     <td className="py-3 px-4 border-b border-gray-300">
-                      {depositor.coAccountHolder || "N/A"}
+                      {depositor.co_last_name} {depositor.co_first_name}
                     </td>
                     {/* Deposited Amount */}
                     <td className="py-3 px-4 border-b border-gray-300">
@@ -204,7 +210,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                       <div className="flex justify-center space-x-3">
                         <button
                           onClick={() =>
-                            navigate(`/time-deposit-info/${depositor.memberId}`)
+                            navigate(`/member/time-deposit-info/${depositor.timeDepositId}`)
                           }
                           className="btn btn-success btn-sm flex items-center"
                         >

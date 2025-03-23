@@ -19,7 +19,7 @@ function TransactionDetails() {
     const fetchTransactionData = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.254.103:3001/api/installment/${billId}`
+          `http://192.168.254.106:3001/api/installment/${billId}`
         );
         // Assuming the endpoint returns an array of records.
         setTransactionData(response.data);
