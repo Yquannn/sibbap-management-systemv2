@@ -84,8 +84,9 @@ function App() {
     <Route path="member/time-deposit-info/:timeDepositId" element={<TimeDepositDetails />} />
 
     <Route path="share-capital" element={<ShareCapital />} />
+    <Route path="regular-savings-deposit/:memberId" element={<TransactionForm />} />
+<Route path="regular-savings-withdrawal/:memberId" element={<TransactionForm />} />
 
-    <Route path="regular-saviings-deposit/:memberId" element={<TransactionForm />} />
 
 
 

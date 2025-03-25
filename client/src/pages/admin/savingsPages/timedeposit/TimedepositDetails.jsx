@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { FaMoneyBillWave, FaHandHoldingUsd, FaHistory, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import {
+  FaMoneyBillWave,
+  FaHandHoldingUsd,
+  FaHistory,
+  FaArrowUp,
+  FaArrowDown,
+} from "react-icons/fa";
 import TransactionForm from "../utils/TransactionForm";
 import {
   Chart as ChartJS,
@@ -91,7 +97,8 @@ const TimedepositDetails = () => {
 
   if (loading) return <div className="text-center p-6">Loading...</div>;
   if (error) return <div className="text-center p-6 text-red-600">{error}</div>;
-  if (!depositData) return <div className="text-center p-6">No time deposit data found.</div>;
+  if (!depositData)
+    return <div className="text-center p-6">No time deposit data found.</div>;
 
   // Destructure fields from depositData (joined time_deposit and member fields)
   const {
@@ -136,7 +143,7 @@ const TimedepositDetails = () => {
     annual_income,
     highest_education_attainment,
     tin_number,
-    place_of_birth
+    place_of_birth,
   } = depositData;
 
   const availableBalance = amount || 0;
@@ -149,7 +156,9 @@ const TimedepositDetails = () => {
     filename ? `http://localhost:3001/uploads/${filename}` : defaultProfileImageURL;
 
   // Calculate initials for profile placeholder if no image exists.
-  const initials = `${first_name ? first_name.charAt(0) : ""}${last_name ? last_name.charAt(0) : ""}`.toUpperCase();
+  const initials = `${first_name ? first_name.charAt(0) : ""}${
+    last_name ? last_name.charAt(0) : ""
+  }`.toUpperCase();
 
   // Filter transactions based on filter inputs
   const filteredTransactions = [...transactions]
@@ -333,7 +342,9 @@ const TimedepositDetails = () => {
       legend: { position: "top" },
       title: {
         display: true,
-        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`,
+        text: `Time Deposit Transactions (${
+          selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)
+        })`,
       },
     },
     scales: {
@@ -360,7 +371,9 @@ const TimedepositDetails = () => {
       legend: { position: "top" },
       title: {
         display: true,
-        text: `Time Deposit Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`,
+        text: `Time Deposit Transactions (${
+          selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)
+        })`,
       },
     },
     scales: {
@@ -423,7 +436,10 @@ const TimedepositDetails = () => {
               <p className="text-sm text-gray-500">Interest</p>
               <p className="font-semibold text-2xl">
                 {interest
-                  ? parseFloat(interest).toLocaleString("en-PH", { style: "currency", currency: "PHP" })
+                  ? parseFloat(interest).toLocaleString("en-PH", {
+                      style: "currency",
+                      currency: "PHP",
+                    })
                   : "0.00"}
               </p>
             </div>
@@ -431,20 +447,18 @@ const TimedepositDetails = () => {
               <p className="text-sm text-gray-500">Payout</p>
               <p className="font-semibold text-2xl">
                 {payout
-                  ? parseFloat(payout).toLocaleString("en-PH", { style: "currency", currency: "PHP" })
+                  ? parseFloat(payout).toLocaleString("en-PH", {
+                      style: "currency",
+                      currency: "PHP",
+                    })
                   : "N/A"}
               </p>
             </div>
-
             <div className="flex flex-col items-center m-2">
               <p className="text-sm text-gray-500">Account Status</p>
-              <p className="font-semibold text-2xl">
-                {"Pre-mature"}
-              </p>
+              <p className="font-semibold text-2xl">Pre-mature</p>
             </div>
           </div>
-
-
 
           {/* Transactions Table */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -591,7 +605,6 @@ const TimedepositDetails = () => {
                 { label: "Contact Number", value: contact_number || "N/A" },
                 { label: "Address", value: address || "N/A" },
                 { label: "Place of Birth", value: place_of_birth || "N/A" },
-
               ].map((item, index) => (
                 <div key={index} className="flex justify-between border-b py-2 last:border-b-0">
                   <span className="font-medium text-gray-700">{item.label}:</span>
@@ -602,6 +615,18 @@ const TimedepositDetails = () => {
           </div>
           {/* Deposit / Withdraw Buttons */}
           <div className="flex flex-col space-y-2">
+            {/* Early Withdrawal: Withdrawal action (red, withdrawal icon) */}
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded flex items-center justify-center"
+              onClick={() => {
+                setModalType("withdrawal");
+                setShowTransactionForm(true);
+              }}
+            >
+              <FaHandHoldingUsd className="mr-2" />
+              Early Withdrawal
+            </button>
+            {/* Roll Over: Deposit action (green, deposit icon) */}
             <button
               className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded flex items-center justify-center"
               onClick={() => {
@@ -610,9 +635,10 @@ const TimedepositDetails = () => {
               }}
             >
               <FaMoneyBillWave className="mr-2" />
-              Early Withdrawal
+              Roll Over
             </button>
-            {/* <button
+            {/* Maturity Withdrawal: Withdrawal action (red, withdrawal icon) */}
+            <button
               className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded flex items-center justify-center"
               onClick={() => {
                 setModalType("withdrawal");
@@ -620,8 +646,8 @@ const TimedepositDetails = () => {
               }}
             >
               <FaHandHoldingUsd className="mr-2" />
-              Withdraw
-            </button> */}
+              Maturity Withdrawal
+            </button>
           </div>
 
           {/* Transaction Modal */}

@@ -35,17 +35,17 @@ const LoanApplicant = () => {
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
       setBorrowers(sortedBorrowers);
-    } catch (err) {
+    } catch (error) {
       setError('Failed to fetch borrowers. Please try again later.');
-      console.error('Error fetching borrowers:', err);
+      console.error('Error fetching borrowers:', error);
     }
   };
 
-  // Filtering logic: filter by loan type, search query, and status.
+  // Filtering logic: filter by loan type, search query (full name, voucher, or code number), and status.
   const filteredBorrowers = borrowers.filter(borrower => {
     if (!borrower) return false;
 
-    const matchesLoanType = activeTab === "All" ? true : borrower.loan_type === activeTab;
+    const matchesLoanType = activeTab === "All" ? true : borrower.loanType === activeTab;
 
     const firstName = borrower.first_name || "";
     const lastName = borrower.last_name || "";
@@ -60,7 +60,7 @@ const LoanApplicant = () => {
       (borrower.memberCode &&
         borrower.memberCode.toString().toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const borrowerStatus = borrower.status || "Waiting for Approval";
+    const borrowerStatus = borrower.remarks || "Waiting for Approval";
     const matchesStatus = statusFilter === "All" ? true : borrowerStatus === statusFilter;
 
     return matchesLoanType && matchesSearch && matchesStatus;
@@ -187,7 +187,9 @@ const LoanApplicant = () => {
                     {borrower.application || "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-gray-700">
-                    {borrower.loan_amount || "N/A"}
+                    {borrower.loan_amount 
+                      ? Number(borrower.loan_amount).toLocaleString("en-US", { maximumFractionDigits: 2 })
+                      : "N/A"}
                   </td>
                   <td className="px-4 py-2 text-center text-gray-700">
                     {borrower.interest || "N/A"}
@@ -202,6 +204,7 @@ const LoanApplicant = () => {
                       day: "numeric",
                     })}
                   </td>
+                
                   <td className="px-4 py-2 text-center">
                     <span className="inline-block px-2 py-1 rounded-full">
                       {borrower.status}
@@ -221,12 +224,14 @@ const LoanApplicant = () => {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-center">
-                    <button
-                      onClick={() => navigate(`/loan-application/${borrower.loan_application_id}`)}
-                      className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
-                    >
-                      View Evaluation
-                    </button>
+                    <div className="flex justify-center space-x-3">
+                      <button
+                        onClick={() => navigate(`/loan-application/${borrower.loan_application_id}`)}
+                        className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
+                      >
+                        View Evaluation
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

@@ -49,44 +49,9 @@ const LoanApproval = () => {
     fetchBorrowers();
   }, []);
 
-  // Modal handlers
-  const openModal = (type, borrower = null) => {
-    setModalState({
-      addOpen: type === 'addOpen',
-      editOpen: type === 'editOpen',
-      viewOpen: type === 'viewOpen',
-      selectedMember: borrower,
-    });
-  };
-
-  const closeModal = () => {
-    setModalState({
-      addOpen: false,
-      editOpen: false,
-      viewOpen: false,
-      selectedMember: null,
-    });
-  };
-
-  // Event handlers to mark a borrower as approved or rejected
-  const handleApprove = (id) => {
-    const updatedBorrowers = borrowers.map((borrower) =>
-      borrower.id === id ? { ...borrower, remarks: "Approved" } : borrower
-    );
-    setBorrowers(updatedBorrowers);
-  };
-
-  const handleReject = (id) => {
-    const updatedBorrowers = borrowers.map((borrower) =>
-      borrower.id === id ? { ...borrower, remarks: "Rejected" } : borrower
-    );
-    setBorrowers(updatedBorrowers);
-  };
-
   // Filtering logic: filter by loan type, search query (full name, voucher, or code number), and status.
   const filteredBorrowers = borrowers.filter(borrower => {
-    const matchesLoanType =
-      activeTab === "All" ? true : borrower.loanType === activeTab;
+    const matchesLoanType = activeTab === "All" ? true : borrower.loanType === activeTab;
 
     const fullName = `${borrower.FirstName} ${borrower.LastName} ${borrower.MiddleName}`.toLowerCase();
 
@@ -229,7 +194,9 @@ const LoanApproval = () => {
                     {borrower.application || "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
-                    {borrower.loan_amount || "N/A"}
+                    {borrower.loan_amount 
+                      ? Number(borrower.loan_amount).toLocaleString("en-US", { maximumFractionDigits: 2 })
+                      : "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
                     {borrower.interest || "N/A"}
@@ -244,6 +211,7 @@ const LoanApproval = () => {
                       day: "numeric",
                     })}
                   </td>
+                 
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <span className="inline-block px-2 py-1 rounded-full">
                       {borrower.status}
@@ -265,8 +233,8 @@ const LoanApproval = () => {
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <div className="flex justify-center space-x-3">
                       <button
-                        onClick={() => navigate(`/loan-application-approval/${borrower.loan_application_id}`)}
                         className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 text-sm"
+                        onClick={() => navigate(`/loan-application-approval/${borrower.loan_application_id}`)}
                       >
                         View Evaluation
                       </button>

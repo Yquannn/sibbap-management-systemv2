@@ -9,9 +9,8 @@ import {
   FaArrowDown
 } from "react-icons/fa";
 import defaultProfileImage from "./blankPicture.png";
-import TransactionForm from "./utils/TransactionForm";
 
-// Import from react-chartjs-2 and chart.js
+// Chart.js imports
 import {
   Chart as ChartJS,
   ArcElement,
@@ -24,9 +23,9 @@ import {
   LineElement,
   PointElement
 } from "chart.js";
-import { Doughnut, Bar, Line } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 
-// Register chart.js components
+// Register chart components
 ChartJS.register(
   ArcElement,
   Tooltip,
@@ -41,29 +40,25 @@ ChartJS.register(
 
 const RegularSavingsInfo = () => {
   const { memberId } = useParams();
-  const [memberData, setMemberData] = useState();
+  const navigate = useNavigate();
+
+  const [memberData, setMemberData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [modalType, setModalType] = useState(""); // "deposit" or "withdrawal"
-
-  // For filtering transactions in the table
+  // Filters for the transactions table
   const [transactionNumberFilter, setTransactionNumberFilter] = useState("");
   const [transactionTypeFilter, setTransactionTypeFilter] = useState("all");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
 
-  // State for selecting chart type (bar or line)
+  // Chart controls
   const [selectedChartType, setSelectedChartType] = useState("bar");
-  // State for filtering graph data ("all", "deposit", "withdrawal", or "savings interest")
   const [selectedGraphFilter, setSelectedGraphFilter] = useState("all");
-  // State for time grouping filter ("daily", "weekly", "monthly", "quarterly", "annually")
   const [selectedTimeGroup, setSelectedTimeGroup] = useState("daily");
 
-  // Fetch member data
+  // Fetch member data based on memberId
   useEffect(() => {
     if (!memberId) {
       setError("No memberId provided in the route.");
@@ -86,7 +81,7 @@ const RegularSavingsInfo = () => {
     fetchMemberData();
   }, [memberId]);
 
-  // Fetch transactions using the email from memberData
+  // Once member data is fetched, get transactions using the member's email
   useEffect(() => {
     if (!memberData) return;
     const email = memberData.email;
@@ -124,6 +119,7 @@ const RegularSavingsInfo = () => {
     return <div className="text-center p-6">No member data found.</div>;
   }
 
+  // Prepare address and member info
   const memberAddress =
     " " +
     memberData.city +
@@ -131,7 +127,6 @@ const RegularSavingsInfo = () => {
     memberData.house_no_street +
     " " +
     memberData.barangay;
-  // Destructure personal info from memberData
   const {
     id_picture,
     first_name,
@@ -149,7 +144,8 @@ const RegularSavingsInfo = () => {
     occupation,
     annual_income,
     highest_education_attainment,
-    tin_number
+    tin_number,
+    account_number  // Added here
   } = memberData;
 
   const availableBalance = amount || 0;
@@ -158,11 +154,16 @@ const RegularSavingsInfo = () => {
 
   // Apply filters to transactions
   const filteredTransactions = [...transactions]
-    .sort((a, b) => new Date(b.transaction_date_time) - new Date(a.transaction_date_time))
+    .sort(
+      (a, b) =>
+        new Date(b.transaction_date_time) - new Date(a.transaction_date_time)
+    )
     .filter((tx) => {
       if (
         transactionNumberFilter.trim() &&
-        !tx.transaction_number?.toLowerCase().includes(transactionNumberFilter.toLowerCase())
+        !tx.transaction_number
+          ?.toLowerCase()
+          .includes(transactionNumberFilter.toLowerCase())
       ) {
         return false;
       }
@@ -178,7 +179,7 @@ const RegularSavingsInfo = () => {
       return true;
     });
 
-  // Compute totals from filtered transactions
+  // Compute summary totals
   const totalDeposited = filteredTransactions.reduce((acc, tx) => {
     return tx.transaction_type?.toLowerCase() === "deposit"
       ? acc + (parseFloat(tx.amount) || 0)
@@ -197,7 +198,7 @@ const RegularSavingsInfo = () => {
       : acc;
   }, 0);
 
-  // Helper: Group transactions by given time range
+  // Helper to group transactions by a time period
   function groupTransactionsByTime(data, timeGroup) {
     const map = {};
     data.forEach((tx) => {
@@ -210,7 +211,8 @@ const RegularSavingsInfo = () => {
           break;
         case "weekly": {
           const firstDayOfWeek = new Date(date);
-          const diff = firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
+          const diff =
+            firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
           firstDayOfWeek.setDate(firstDayOfWeek.getDate() + diff);
           firstDayOfWeek.setHours(0, 0, 0, 0);
           key = firstDayOfWeek.getTime();
@@ -247,11 +249,12 @@ const RegularSavingsInfo = () => {
     return map;
   }
 
-  // Use monthly grouping (for percentage change) on filtered transactions
+  // Compute monthly changes for analytics
   const monthlyGrouped = groupTransactionsByTime(filteredTransactions, "monthly");
-  const monthlyKeys = Object.keys(monthlyGrouped).map(Number).sort((a, b) => a - b);
+  const monthlyKeys = Object.keys(monthlyGrouped)
+    .map(Number)
+    .sort((a, b) => a - b);
 
-  // Helper to compute percentage change for a given metric from monthly data
   const computeMonthlyChange = (metric, data) => {
     if (monthlyKeys.length < 2) return null;
     const prev = data[monthlyKeys[monthlyKeys.length - 2]][metric];
@@ -260,7 +263,6 @@ const RegularSavingsInfo = () => {
     return ((curr - prev) / prev) * 100;
   };
 
-  // Compute net change for "Current Balance" (deposit - withdrawal + interest)
   const computeNet = (data) => data.deposit - data.withdraw + data.interest;
   const currentBalanceChange =
     monthlyKeys.length < 2
@@ -276,7 +278,7 @@ const RegularSavingsInfo = () => {
   const withdrawChange = computeMonthlyChange("withdraw", monthlyGrouped);
   const interestChange = computeMonthlyChange("interest", monthlyGrouped);
 
-  // Prepare grouping and chart data based on selectedTimeGroup (using filteredTransactions)
+  // Prepare data for charts
   function formatLabel(timestamp, timeGroup) {
     const date = new Date(Number(timestamp));
     switch (timeGroup) {
@@ -305,9 +307,7 @@ const RegularSavingsInfo = () => {
   const sortedTimestamps = Object.keys(grouped)
     .map(Number)
     .sort((a, b) => a - b);
-  const labels = sortedTimestamps.map((ts) =>
-    formatLabel(ts, selectedTimeGroup)
-  );
+  const labels = sortedTimestamps.map((ts) => formatLabel(ts, selectedTimeGroup));
   const depositDataArr = sortedTimestamps.map((ts) => grouped[ts].deposit);
   const withdrawDataArr = sortedTimestamps.map((ts) => grouped[ts].withdraw);
   const interestDataArr = sortedTimestamps.map((ts) => grouped[ts].interest);
@@ -363,11 +363,7 @@ const RegularSavingsInfo = () => {
     });
   }
 
-  const barData = {
-    labels,
-    datasets: chartDatasetsBar
-  };
-
+  const barData = { labels, datasets: chartDatasetsBar };
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -393,11 +389,7 @@ const RegularSavingsInfo = () => {
     }
   };
 
-  const lineData = {
-    labels,
-    datasets: chartDatasetsLine
-  };
-
+  const lineData = { labels, datasets: chartDatasetsLine };
   const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -424,37 +416,12 @@ const RegularSavingsInfo = () => {
   };
 
   return (
-    <div className="bg-gray-100">
+    <div className="bg-gray-100 ">
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Left Section */}
+        {/* Left Section: Balance, Analytics, Transactions Table */}
         <div className="flex-1 space-y-4">
           {/* Total Balance Section */}
-          {/* <div className="flex items-center">
-                <label htmlFor="startDateFilter" className="mr-2 font-semibold text-gray-700">
-                  Start Date:
-                </label>
-                <input
-                  id="startDateFilter"
-                  type="date"
-                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                  value={startDateFilter}
-                  onChange={(e) => setStartDateFilter(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center">
-                <label htmlFor="endDateFilter" className="mr-2 font-semibold text-gray-700">
-                  End Date:
-                </label>
-                <input
-                  id="endDateFilter"
-                  type="date"
-                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                  value={endDateFilter}
-                  onChange={(e) => setEndDateFilter(e.target.value)}
-                />
-              </div> */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-wrap items-center justify-around">
-          
             <div className="flex flex-col items-center m-2">
               <p className="text-sm text-gray-500">Current Balance</p>
               <p className="font-semibold text-2xl">
@@ -606,7 +573,6 @@ const RegularSavingsInfo = () => {
 
           {/* Transactions Table */}
           <div className="bg-white rounded-lg shadow p-6">
-            {/* Additional Filters: Date Range */}
             <div className="flex flex-wrap items-center gap-4 mb-4">
               <div className="flex items-center">
                 <label htmlFor="txNumberFilter" className="mr-2 font-semibold text-gray-700">
@@ -637,7 +603,30 @@ const RegularSavingsInfo = () => {
                   <option value="savings interest">Savings Interest</option>
                 </select>
               </div>
-              
+              <div className="flex items-center">
+                <label htmlFor="startDateFilter" className="mr-2 font-semibold text-gray-700">
+                  Start Date:
+                </label>
+                <input
+                  id="startDateFilter"
+                  type="date"
+                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  value={startDateFilter}
+                  onChange={(e) => setStartDateFilter(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center">
+                <label htmlFor="endDateFilter" className="mr-2 font-semibold text-gray-700">
+                  End Date:
+                </label>
+                <input
+                  id="endDateFilter"
+                  type="date"
+                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  value={endDateFilter}
+                  onChange={(e) => setEndDateFilter(e.target.value)}
+                />
+              </div>
             </div>
             <div className="overflow-y-auto max-h-64">
               <table className="w-full text-sm text-left">
@@ -672,10 +661,10 @@ const RegularSavingsInfo = () => {
                             : "N/A"}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.authorized || "N/A"}
+                          {tx.authorized || "Sibbap System"}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.user_type || "N/A"}
+                          {tx.user_type || "Automated System"}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           {tx.transaction_type?.toLowerCase() === "deposit" ? (
@@ -720,9 +709,9 @@ const RegularSavingsInfo = () => {
           </div>
         </div>
 
-        {/* Right Section - Profile & Actions */}
+        {/* Right Section: Profile & Actions */}
         <div className="w-full md:w-96 bg-white p-6 border-l border-gray-200 space-y-6 rounded-lg shadow-lg">
-          {/* Profile Section */}
+          {/* Profile */}
           <div className="flex items-center space-x-4">
             <img
               src={id_picture ? imageUrl(id_picture) : defaultProfileImage}
@@ -734,10 +723,13 @@ const RegularSavingsInfo = () => {
                 {last_name} {first_name}
               </h2>
               <p className="text-gray-500 text-sm">{email || "No Email"}</p>
+              <p className="text-gray-500 text-sm">
+                {account_number || "No Account Number"}
+              </p>
             </div>
           </div>
 
-          {/* Personal Information Card */}
+          {/* Personal Information */}
           <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
             <h3 className="text-lg font-semibold mb-3 text-gray-700">Personal Information</h3>
             <div className="space-y-2 text-sm text-gray-600">
@@ -752,12 +744,13 @@ const RegularSavingsInfo = () => {
                       })
                     : "N/A"
                 },
-                { label: "Age", value: memberData.age },
+                { label: "Age", value: age },
                 { label: "Civil Status", value: civil_status },
                 { label: "Contact Number", value: contact_number },
                 { label: "Address", value: address },
                 { label: "Membership Status", value: membership_status },
                 { label: "Account Status", value: account_status },
+                { label: "Account Number", value: account_number },
                 { label: "Tax ID", value: tax_id },
                 { label: "Occupation", value: occupation },
                 {
@@ -784,34 +777,27 @@ const RegularSavingsInfo = () => {
           <div className="flex flex-col space-y-2">
             <button
               className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded flex items-center justify-center"
-              onClick={() => {
-                setModalType("deposit");
-                setShowTransactionForm(true);
-              }}
+              onClick={() =>
+                navigate(`/regular-savings-deposit/${memberId}`, {
+                  state: { modalType: "deposit", member: memberData }
+                })
+              }
             >
               <FaMoneyBillWave className="mr-2" />
               Deposit
             </button>
             <button
               className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded flex items-center justify-center"
-              onClick={() => {
-                setModalType("withdrawal");
-                setShowTransactionForm(true);
-              }}
+              onClick={() =>
+                navigate(`/regular-savings-withdrawal/${memberId}`, {
+                  state: { modalType: "withdrawal", member: memberData }
+                })
+              }
             >
               <FaHandHoldingUsd className="mr-2" />
               Withdraw
             </button>
           </div>
-
-          {/* Transaction Modal */}
-          {showTransactionForm && (
-            <TransactionForm
-              modalType={modalType}
-              member={memberData}
-              onClose={() => setShowTransactionForm(false)}
-            />
-          )}
         </div>
       </div>
     </div>

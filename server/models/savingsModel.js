@@ -149,7 +149,6 @@ const updateSavingsAmount = async (memberId, authorized, user_type, amount, tran
 //   try {
 //     connection = await db.getConnection();
 
-//     // Update query using the correct interest rate calculation
 //     const query = `
 //       UPDATE regular_savings 
 //       SET 

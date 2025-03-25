@@ -171,7 +171,9 @@ const Borrowers = () => {
                     {borrower.application || "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
-                    {borrower.loan_amount || "N/A"}
+                    {borrower.loan_amount 
+                      ? Number(borrower.loan_amount).toLocaleString("en-US", { maximumFractionDigits: 2 })
+                      : "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
                     {borrower.interest || "N/A"}
@@ -187,7 +189,9 @@ const Borrowers = () => {
                     })}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
-                    {borrower.balance || 0}
+                    {borrower.balance 
+                      ? Number(borrower.balance).toLocaleString("en-US", { maximumFractionDigits: 2 })
+                      : 0}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <span

@@ -77,9 +77,9 @@ const InstallmentRepayment = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+    <div className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-md">
       <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
-        <CreditCard size={20} /> Installment Repayment
+        <CreditCard size={20} /> Amortization Repayment
       </h2>
 
       {/* Display Amount To Pay */}
@@ -126,6 +126,12 @@ const InstallmentRepayment = () => {
           </>
         )}
       </button>
+      <button
+          onClick={() => navigate(-1)}
+          className="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg text-center hover:bg-gray-400 transition"
+        >
+          Back
+        </button>
 
       {/* Success Modal with icon and redirect (back by 1) */}
       {showModal && (
