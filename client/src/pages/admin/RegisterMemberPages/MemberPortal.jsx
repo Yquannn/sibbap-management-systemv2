@@ -21,7 +21,6 @@ const MemberPortal = ({ handleSave, handlePrevious, formData, setFormData }) => 
   // This function calls the passed in handleSave and then navigates to the members page
   const onSaveAndNavigate = async () => {
     await handleSave();
-    navigate("/members");
   };
 
   return (

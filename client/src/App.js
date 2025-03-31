@@ -27,7 +27,7 @@ import ShareCapitalCalculator from "./pages/members/home/utils/ShareCapitalCalcu
 import MemberLoanTracker from "./pages/members/loan/MemberLoanTracker";
 import RegularSavingsTransactionHistory from "./pages/members/home/transaction/RegularSavingsTransaction";
 import LoanDetails from "./pages/members/loan/LoanDetails";
-import MembershipRegistration from "./pages/admin/RegisterMemberPages/MembershipRegistration";
+import MembershipApplication from "./pages/admin/RegisterMemberPages/MembershipApplication";
 import ApplyForLoan from "./pages/admin/loanPages/ApplyForLoan";
 import RegularSavingsInfo from "./pages/admin/savingsPages/RegularSavingsInfo";
 import TransactionInfo from "./pages/members/transaction/TransactionInfo";
@@ -49,6 +49,12 @@ import TimeDeposit from "./pages/admin/savingsPages/timedeposit/TimeDeposit";
 import ShareCapital from "./pages/admin/savingsPages/SharedCapital";
 import TimeDepositDetails from "./pages/admin/savingsPages/timedeposit/TimedepositDetails";
 import TransactionForm from "./pages/admin/savingsPages/utils/TransactionForm";
+import SavingsDashboard from "./pages/admin/savingsPages/SavingsDashboard";
+import LoanDashboard from "./pages/admin/loanPages/LoanDashboard";
+import MemberRegistrationList from "./pages/admin/RegisterMemberPages/MemberRegistrationList";
+import MemberRegistration from "./pages/admin/RegisterMemberPages/MemberRegistration";
+import MemberRegistrationParent from "./pages/admin/RegisterMemberPages/MemberRegistrationParent";
+import MemberApplicant from "./pages/admin/RegisterMemberPages/MemberApplicant";
 
 function App() {
   return (
@@ -64,6 +70,17 @@ function App() {
   {/* Admin Routes (with Navbar & Sidebar) */}
   <Route element={<AdminLayout />}>
     <Route path="dashboard" element={<Dashboard />} />
+    <Route path="savings-dashboard" element={<SavingsDashboard />} />
+    <Route path="loan-dashboard" element={<LoanDashboard />} />
+    <Route path="members-registration" element={<MemberRegistrationList />} />
+    {/* <Route path="member-registration/:memberId" element={<MemberRegistrationParent />} /> */}
+    {/* <Route path="members-applicant" element={<MemberApplicant/>} /> */}
+    <Route path="member-application/*" element={<MembershipApplication />} />
+
+
+    <Route path="member-registration/:memberId" element={<MemberRegistration />} />
+
+
     <Route path="members" element={<Members />} />
     <Route path="member-profile/:memberId" element={<MemberProfilePage />} />
 
@@ -85,7 +102,7 @@ function App() {
 
     <Route path="share-capital" element={<ShareCapital />} />
     <Route path="regular-savings-deposit/:memberId" element={<TransactionForm />} />
-<Route path="regular-savings-withdrawal/:memberId" element={<TransactionForm />} />
+    <Route path="regular-savings-withdrawal/:memberId" element={<TransactionForm />} />
 
 
 
@@ -101,7 +118,6 @@ function App() {
     <Route path="regular-savings-info/:memberId" element={<RegularSavingsInfo />} />
 
     {/* Membership Registration */}
-    <Route path="register-member/*" element={<MembershipRegistration />} />
     <Route path="apply-loan/*" element={<ApplyForLoan />} />
     <Route path="borrower-loan-information/:id" element={<LoanDetailsPage />} />
 
@@ -114,6 +130,7 @@ function App() {
   {/* Member Routes (with Navbar & Sidebar) */}
   <Route element={<MemberLayout />}>
     <Route path="member-dashboard" element={<MemberDashboard />} />
+
     <Route path="member-transactions" element={<Transaction />} />
     <Route path="member-notification" element={<Notification />} />
     <Route path="member-profile" element={<MemberProfile />} />

@@ -56,7 +56,7 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
   const fetchMemberDetails = async (memberId) => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:3001/api/members/${memberId}`);
+      const response = await axios.get(`http://localhost:3001/api/member/${memberId}`);
       setMemberInfo(response.data);
     } catch (error) {
       console.error("Error fetching member details:", error);

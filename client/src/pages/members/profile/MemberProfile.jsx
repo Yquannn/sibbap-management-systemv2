@@ -23,7 +23,7 @@ const MemberProfile = () => {
           throw new Error("User email not found. Please log in again.");
         }
         const response = await axios.get(
-          `http://192.168.254.106:3001/api/member/email/${email}`
+          `http://192.168.254.100:3001/api/member/email/${email}`
         );
         setUser(response.data);
         setEditableData(response.data);
@@ -61,7 +61,7 @@ const MemberProfile = () => {
 
   const handleBlurOrEnter = async (field) => {
     try {
-      await axios.put(`http://192.168.254.106:3001/api/member/update`, {
+      await axios.put(`http://192.168.254.100:3001/api/member/update`, {
         email: user.email,
         [field]: editableData[field],
       });
@@ -101,7 +101,7 @@ const MemberProfile = () => {
 
     try {
       const response = await axios.post(
-        "http://192.168.254.106:3001/api/member/uploadPicture",
+        "http://192.168.254.100:3001/api/member/uploadPicture",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -140,7 +140,7 @@ const MemberProfile = () => {
             <img
               src={
                 imagePreview ||
-                `http://192.168.254.106:3001/uploads/${user.id_picture}`
+                `http://192.168.254.100:3001/uploads/${user.id_picture}`
               }
               alt="Profile"
               className="w-24 h-24 mx-auto rounded-full border-4 border-green-500 mt-2 cursor-pointer"

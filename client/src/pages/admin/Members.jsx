@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { FaEye, FaUsers, FaArrowDown, FaArrowUp, FaUserTie } from 'react-icons/fa';
 import MemberProfileModal from '../../components/modal/MemberProfileModal';
@@ -16,7 +16,7 @@ const Members = () => {
     viewOpen: false,
     selectedMember: null
   });
-  const [members, setMembers] = useState([]);
+  const [allMembers, setAllMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -49,25 +49,18 @@ const Members = () => {
     return bgColors[index];
   };
 
+  // Fetch all members without filtering.
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (searchTerm) params.name = searchTerm;
-      if (filterMemberType !== "All") params.member_type = filterMemberType;
-      if (filterStatus !== "All") params.status = filterStatus;
-      const response = await axios.get(`${apiBaseURL}/members`, { params });
-      // Sort members by memberCode (or id) in descending order
-      const sortedMembers = response.data.sort(
-        (a, b) => parseInt(b.memberCode) - parseInt(a.memberCode)
-      );
-      setMembers(sortedMembers);
+      const response = await axios.get(`${apiBaseURL}/members`);
+      setAllMembers(response.data);
     } catch (err) {
       setError('Error fetching members: ' + err.message);
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filterMemberType, filterStatus]);
+  }, []);
 
   const FetchTotalMember = async () => {
     try {
@@ -77,6 +70,29 @@ const Members = () => {
       console.error('Error fetching total members:', error);
     }
   };
+
+  // Apply frontend filtering using useMemo.
+  const filteredMembers = useMemo(() => {
+    return allMembers
+      .filter(member => {
+        const searchTermLower = searchTerm.toLowerCase();
+        const fullName = `${member.first_name} ${member.last_name}`.toLowerCase();
+        const memberCode = member.memberCode.toLowerCase();
+        const matchSearch = searchTerm
+          ? (fullName.includes(searchTermLower) || memberCode.includes(searchTermLower))
+          : true;
+        const matchMemberType = filterMemberType === "All" || member.member_type === filterMemberType;
+        // Ensure member.status is defined before checking.
+        const memberStatus = member.status ? member.status.toLowerCase() : "";
+        const matchStatus = filterStatus === "All" || memberStatus === filterStatus.toLowerCase();
+        return matchSearch && matchMemberType && matchStatus;
+      })
+      // Sort members by numeric part of memberCode in descending order.
+      .sort(
+        (a, b) =>
+          parseInt(b.memberCode.substring(3)) - parseInt(a.memberCode.substring(3))
+      );
+  }, [allMembers, searchTerm, filterMemberType, filterStatus]);
 
   useEffect(() => {
     fetchMembers();
@@ -131,7 +147,6 @@ const Members = () => {
       try {
         setLoading(true);
         await axios.delete(`${apiBaseURL}/members/${memberId}`);
-        setMembers((prev) => prev.filter((member) => member.memberId !== memberId));
         setMessage({ type: 'success', text: "Member deleted successfully!" });
         fetchMembers();
       } catch (error) {
@@ -145,7 +160,7 @@ const Members = () => {
   return (
     <div className="">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-white  text-black">
+        <div className="card bg-white text-black">
           <div className="card-body flex items-center">
             <MdPeople className="text-5xl mr-4 text-green-600" />
             <div>
@@ -155,7 +170,7 @@ const Members = () => {
           </div>
         </div>
         
-        <div className="card bg-white  text-black">
+        <div className="card bg-white text-black">
           <div className="card-body flex items-center">
             <MdCheckCircle className="text-5xl mr-4 text-blue-600" />
             <div>
@@ -186,7 +201,6 @@ const Members = () => {
         </div>
       </div>
 
-
       {/* Search & Filter Bar with Add Member Button */}
       <div className="flex flex-col sm:flex-row justify-end items-center bg-white p-4 rounded-lg mb-6 gap-4 mt-4">
         {message.text && (
@@ -201,8 +215,8 @@ const Members = () => {
             onChange={(e) => setFilterMemberType(e.target.value)}
           >
             <option>All</option>
-            <option>New</option>
-            <option>Transfer</option>
+            <option>Regular Member</option>
+            <option>Partial Member</option>
           </select>
           <select
             className="select select-bordered"
@@ -217,18 +231,11 @@ const Members = () => {
         <div className="flex items-center gap-4">
           <input
             type="text"
-            placeholder="Search member..."
+            placeholder="Search by name or code number..."
             className="input input-bordered w-full sm:w-80"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button
-            className="btn btn-success"
-            onClick={() => navigate("/register-member")}
-          >
-            <UserPlus className="mr-2" />
-            <span>Add Member</span>
-          </button>
         </div>
       </div>
 
@@ -243,17 +250,14 @@ const Members = () => {
               <th>Code Number</th>
               <th>Name</th>
               <th>Member Type</th>
-              <th>Date of Birth</th>
-              <th>Civil Status</th>
               <th>Contact Number</th>
               <th>Address</th>
-              <th>Shared Capital</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {members.map((member, index) => (
+            {filteredMembers.map((member, index) => (
               <tr key={`${member.memberId}-${index}`} className="hover">
                 <th>
                   <label>
@@ -288,17 +292,8 @@ const Members = () => {
                   </div>
                 </td>
                 <td>{member.member_type}</td>
-                <td>
-                  {new Date(member.date_of_birth).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric"
-                  })}
-                </td>
-                <td>{member.civil_status}</td>
                 <td>{member.contact_number}</td>
                 <td>{member.barangay}</td>
-                <td>{member.share_capital}</td>
                 <td>
                   <span className={`badge ${(!member.status || member.status.toLowerCase() === "active") ? 'badge-success' : 'badge-error'}`}>
                     {member.status}

@@ -33,17 +33,17 @@ ChartJS.register(
 // LoanDisbursementCard using count animation for disbursement amount
 const LoanDisbursementCard = () => {
   return (
-    <div className="max-w-sm w-full bg-white rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6">
+    <div className="max-w-sm w-full bg-white rounded-lg shadow-sm p-4 md:p-6">
       <div className="flex justify-between">
         <div>
-          <h5 className="leading-none text-3xl font-bold text-gray-900 dark:text-white pb-2">
+          <h5 className="leading-none text-3xl font-bold text-gray-900 pb-2">
             <CountUp start={0} end={750000} duration={2.5} separator="," prefix="₱" />
           </h5>
-          <p className="text-base font-normal text-gray-500 dark:text-gray-400">
+          <p className="text-base font-normal text-gray-700">
             Total disbursed this month
           </p>
         </div>
-        <div className="flex items-center px-2.5 py-0.5 text-base font-semibold text-green-500 dark:text-green-500 text-center">
+        <div className="flex items-center px-2.5 py-0.5 text-base font-semibold text-green-500 text-center">
           23%
           <svg
             className="w-3 h-3 ms-1"
@@ -62,7 +62,8 @@ const LoanDisbursementCard = () => {
           </svg>
         </div>
       </div>
-      {/* Chart Container */}
+
+      {/* Chart */}
       <div className="mt-4">
         <Line
           data={{
@@ -84,14 +85,15 @@ const LoanDisbursementCard = () => {
           height={80}
         />
       </div>
-      {/* Footer with dropdown and link */}
-      <div className="grid grid-cols-1 items-center border-t border-gray-200 dark:border-gray-700 justify-between mt-5">
+
+      {/* Footer */}
+      <div className="grid grid-cols-1 items-center border-t border-gray-200 justify-between mt-5">
         <div className="flex justify-between items-center pt-5">
           <button
             id="dropdownDefaultButton"
             data-dropdown-toggle="lastDaysdropdown"
             data-dropdown-placement="bottom"
-            className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 text-center inline-flex items-center dark:hover:text-white"
+            className="text-sm font-medium text-gray-500 hover:text-gray-900 text-center inline-flex items-center"
             type="button"
           >
             Last 7 days
@@ -111,44 +113,27 @@ const LoanDisbursementCard = () => {
               />
             </svg>
           </button>
+
+          {/* Dropdown */}
           <div
             id="lastDaysdropdown"
-            className="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700"
+            className="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44"
           >
-            <ul
-              className="py-2 text-sm text-gray-700 dark:text-gray-200"
-              aria-labelledby="dropdownDefaultButton"
-            >
-              <li>
-                <a href="#" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                  Yesterday
-                </a>
-              </li>
-              <li>
-                <a href="#" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                  Today
-                </a>
-              </li>
-              <li>
-                <a href="#" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                  Last 7 days
-                </a>
-              </li>
-              <li>
-                <a href="#" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                  Last 30 days
-                </a>
-              </li>
-              <li>
-                <a href="#" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                  Last 90 days
-                </a>
-              </li>
+            <ul className="py-2 text-sm text-gray-700" aria-labelledby="dropdownDefaultButton">
+              {["Yesterday", "Today", "Last 7 days", "Last 30 days", "Last 90 days"].map((text) => (
+                <li key={text}>
+                  <a href="#" className="block px-4 py-2 hover:bg-gray-100">
+                    {text}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
+
+          {/* Report Link */}
           <a
             href="#"
-            className="uppercase text-sm font-semibold inline-flex items-center rounded-lg text-blue-600 hover:text-blue-700 dark:hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700 px-3 py-2"
+            className="uppercase text-sm font-semibold inline-flex items-center rounded-lg text-blue-600 hover:text-blue-700 hover:bg-gray-100 px-3 py-2"
           >
             Report
             <svg
@@ -172,6 +157,7 @@ const LoanDisbursementCard = () => {
     </div>
   );
 };
+
 
 const Dashboard = () => {
   // Top stats data (using numbers for count animation)
@@ -348,45 +334,6 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="rounded-lg bg-white p-4 shadow">
-              <h2 className="mb-2 text-lg font-semibold text-gray-700">Recent Transactions</h2>
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead>
-                  <tr>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500">Transaction ID</th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500">Transaction Type</th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500">Member</th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500">Amount</th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {recentTransactions.map((txn) => (
-                    <tr key={txn.id}>
-                      <td className="whitespace-nowrap px-2 py-2">{txn.id}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{txn.transaction}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{txn.member}</td>
-                      <td className="whitespace-nowrap px-2 py-2">
-                        <CountUp start={0} end={txn.amount} duration={2.5} separator="," decimals={2} />
-                      </td>
-                      <td className="whitespace-nowrap px-2 py-2">
-                        <span
-                          className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${
-                            txn.status === 'Completed'
-                              ? 'bg-green-100 text-green-800'
-                              : txn.status === 'Pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {txn.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
 
           {/* Right Column */}

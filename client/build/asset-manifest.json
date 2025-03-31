@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/static/css/main.a7e3db92.css",
+    "main.js": "/static/js/main.c55754ce.js",
+    "static/media/logosibbap.png": "/static/media/logosibbap.14641106e97288f2373b.png",
+    "static/media/blankPicture.png": "/static/media/blankPicture.095de2657a3c6d22d251.png",
+    "index.html": "/index.html",
+    "main.a7e3db92.css.map": "/static/css/main.a7e3db92.css.map",
+    "main.c55754ce.js.map": "/static/js/main.c55754ce.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.a7e3db92.css",
+    "static/js/main.c55754ce.js"
+  ]
+}

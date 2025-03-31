@@ -51,7 +51,7 @@ const MemberProfileModal = ({ isOpen, onClose, member: initialMember }) => {
     const handleSave = async () => {
       try {
         const response = await axios.put(
-          `http://localhost:3001/api/members/${member.memberId}`,
+          `http://localhost:3001/api/member/${member.memberId}`,
           editedMember
         );
         setMember(response.data.updatedMember || editedMember);

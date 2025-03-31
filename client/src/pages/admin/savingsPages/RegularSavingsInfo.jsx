@@ -4,39 +4,10 @@ import axios from "axios";
 import {
   FaMoneyBillWave,
   FaHandHoldingUsd,
-  FaHistory,
   FaArrowUp,
   FaArrowDown
 } from "react-icons/fa";
 import defaultProfileImage from "./blankPicture.png";
-
-// Chart.js imports
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  LineElement,
-  PointElement
-} from "chart.js";
-import { Bar, Line } from "react-chartjs-2";
-
-// Register chart components
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  LineElement,
-  PointElement
-);
 
 const RegularSavingsInfo = () => {
   const { memberId } = useParams();
@@ -53,11 +24,6 @@ const RegularSavingsInfo = () => {
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
 
-  // Chart controls
-  const [selectedChartType, setSelectedChartType] = useState("bar");
-  const [selectedGraphFilter, setSelectedGraphFilter] = useState("all");
-  const [selectedTimeGroup, setSelectedTimeGroup] = useState("daily");
-
   // Fetch member data based on memberId
   useEffect(() => {
     if (!memberId) {
@@ -69,7 +35,7 @@ const RegularSavingsInfo = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://localhost:3001/api/members/savings/${memberId}`
+          `http://localhost:3001/api/member/savings/${memberId}`
         );
         setMemberData(response.data.data);
       } catch (err) {
@@ -145,7 +111,7 @@ const RegularSavingsInfo = () => {
     annual_income,
     highest_education_attainment,
     tin_number,
-    account_number  // Added here
+    account_number
   } = memberData;
 
   const availableBalance = amount || 0;
@@ -198,40 +164,17 @@ const RegularSavingsInfo = () => {
       : acc;
   }, 0);
 
-  // Helper to group transactions by a time period
-  function groupTransactionsByTime(data, timeGroup) {
+  // Helper to group transactions by "monthly" time period for analytics
+  function groupTransactionsByTime(data, timeGroup = "monthly") {
     const map = {};
     data.forEach((tx) => {
       const date = new Date(tx.transaction_date_time);
       let key;
-      switch (timeGroup) {
-        case "daily":
-          date.setHours(0, 0, 0, 0);
-          key = date.getTime();
-          break;
-        case "weekly": {
-          const firstDayOfWeek = new Date(date);
-          const diff =
-            firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
-          firstDayOfWeek.setDate(firstDayOfWeek.getDate() + diff);
-          firstDayOfWeek.setHours(0, 0, 0, 0);
-          key = firstDayOfWeek.getTime();
-          break;
-        }
-        case "monthly":
-          key = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
-          break;
-        case "quarterly": {
-          const quarter = Math.floor(date.getMonth() / 3);
-          key = new Date(date.getFullYear(), quarter * 3, 1).getTime();
-          break;
-        }
-        case "annually":
-          key = new Date(date.getFullYear(), 0, 1).getTime();
-          break;
-        default:
-          date.setHours(0, 0, 0, 0);
-          key = date.getTime();
+      if (timeGroup === "monthly") {
+        key = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
+      } else {
+        date.setHours(0, 0, 0, 0);
+        key = date.getTime();
       }
       if (!map[key]) {
         map[key] = { deposit: 0, withdraw: 0, interest: 0, timestamp: key };
@@ -278,301 +221,135 @@ const RegularSavingsInfo = () => {
   const withdrawChange = computeMonthlyChange("withdraw", monthlyGrouped);
   const interestChange = computeMonthlyChange("interest", monthlyGrouped);
 
-  // Prepare data for charts
-  function formatLabel(timestamp, timeGroup) {
-    const date = new Date(Number(timestamp));
-    switch (timeGroup) {
-      case "daily":
-        return date.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric"
-        });
-      case "weekly":
-        return "Week of " + date.toLocaleDateString("en-US");
-      case "monthly":
-        return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-      case "quarterly": {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        return "Q" + quarter + " " + date.getFullYear();
-      }
-      case "annually":
-        return date.getFullYear().toString();
-      default:
-        return date.toLocaleDateString("en-US");
-    }
-  }
-
-  const grouped = groupTransactionsByTime(filteredTransactions, selectedTimeGroup);
-  const sortedTimestamps = Object.keys(grouped)
-    .map(Number)
-    .sort((a, b) => a - b);
-  const labels = sortedTimestamps.map((ts) => formatLabel(ts, selectedTimeGroup));
-  const depositDataArr = sortedTimestamps.map((ts) => grouped[ts].deposit);
-  const withdrawDataArr = sortedTimestamps.map((ts) => grouped[ts].withdraw);
-  const interestDataArr = sortedTimestamps.map((ts) => grouped[ts].interest);
-
-  const chartDatasetsBar = [];
-  const chartDatasetsLine = [];
-  if (selectedGraphFilter === "all" || selectedGraphFilter === "deposit") {
-    chartDatasetsBar.push({
-      label: "Deposits",
-      data: depositDataArr,
-      backgroundColor: "#4ade80"
-    });
-    chartDatasetsLine.push({
-      label: "Deposits",
-      data: depositDataArr,
-      borderColor: "#4ade80",
-      backgroundColor: "#4ade80",
-      fill: false,
-      tension: 0.1,
-      pointRadius: 3
-    });
-  }
-  if (selectedGraphFilter === "all" || selectedGraphFilter === "withdrawal") {
-    chartDatasetsBar.push({
-      label: "Withdrawals",
-      data: withdrawDataArr,
-      backgroundColor: "#f87171"
-    });
-    chartDatasetsLine.push({
-      label: "Withdrawals",
-      data: withdrawDataArr,
-      borderColor: "#f87171",
-      backgroundColor: "#f87171",
-      fill: false,
-      tension: 0.1,
-      pointRadius: 3
-    });
-  }
-  if (selectedGraphFilter === "all" || selectedGraphFilter === "savings interest") {
-    chartDatasetsBar.push({
-      label: "Savings Interest",
-      data: interestDataArr,
-      backgroundColor: "#60a5fa"
-    });
-    chartDatasetsLine.push({
-      label: "Savings Interest",
-      data: interestDataArr,
-      borderColor: "#60a5fa",
-      backgroundColor: "#60a5fa",
-      fill: false,
-      tension: 0.1,
-      pointRadius: 3
-    });
-  }
-
-  const barData = { labels, datasets: chartDatasetsBar };
-  const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: `Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function (value) {
-            return value.toLocaleString("en-PH", {
-              style: "currency",
-              currency: "PHP"
-            });
-          }
-        }
-      }
-    }
-  };
-
-  const lineData = { labels, datasets: chartDatasetsLine };
-  const lineOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: `Transactions (${selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)})`
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function (value) {
-            return value.toLocaleString("en-PH", {
-              style: "currency",
-              currency: "PHP"
-            });
-          }
-        }
-      }
-    }
-  };
-
   return (
-    <div className="bg-gray-100 ">
+    <div className="bg-gray-100 min-h-screen p-6">
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Left Section: Balance, Analytics, Transactions Table */}
-        <div className="flex-1 space-y-4">
-          {/* Total Balance Section */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-wrap items-center justify-around">
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Current Balance</p>
-              <p className="font-semibold text-2xl">
+        {/* Left Section: Combined Card & Transactions */}
+        <div className="flex-1 space-y-6">
+          {/* Combined Card: Current Balance & Summary Totals */}
+          <div className="bg-white rounded-lg shadow-xl p-8">
+            {/* Current Balance Section */}
+            <div className="text-center">
+              <p className="text-lg uppercase tracking-wide text-gray-500">
+                Current Balance
+              </p>
+              <p className="mt-2 text-4xl font-bold text-gray-900">
                 {parseFloat(availableBalance).toLocaleString("en-PH", {
                   style: "currency",
                   currency: "PHP"
                 })}
               </p>
               {currentBalanceChange !== null && (
-                <div className="flex items-center">
+                <div className="flex items-center justify-center mt-3">
                   {currentBalanceChange >= 0 ? (
-                    <FaArrowUp className="text-green-500" size={14} />
+                    <FaArrowUp className="text-green-500" size={16} />
                   ) : (
-                    <FaArrowDown className="text-red-500" size={14} />
+                    <FaArrowDown className="text-red-500" size={16} />
                   )}
                   <span className={currentBalanceChange >= 0 ? "text-green-500" : "text-red-500"}>
                     {Math.abs(currentBalanceChange).toFixed(1)}%
                   </span>
                 </div>
               )}
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Total Deposited</p>
-              <p className="font-semibold text-2xl">
-                {totalDeposited.toLocaleString("en-PH", {
-                  style: "currency",
-                  currency: "PHP"
-                })}
-              </p>
-              {depositChange !== null && (
-                <div className="flex items-center">
-                  {depositChange >= 0 ? (
-                    <FaArrowUp className="text-green-500" size={14} />
-                  ) : (
-                    <FaArrowDown className="text-red-500" size={14} />
-                  )}
-                  <span className={depositChange >= 0 ? "text-green-500" : "text-red-500"}>
-                    {Math.abs(depositChange).toFixed(1)}%
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Total Withdrawn</p>
-              <p className="font-semibold text-2xl">
-                {totalWithdrawal.toLocaleString("en-PH", {
-                  style: "currency",
-                  currency: "PHP"
-                })}
-              </p>
-              {withdrawChange !== null && (
-                <div className="flex items-center">
-                  {withdrawChange >= 0 ? (
-                    <FaArrowUp className="text-green-500" size={14} />
-                  ) : (
-                    <FaArrowDown className="text-red-500" size={14} />
-                  )}
-                  <span className={withdrawChange >= 0 ? "text-green-500" : "text-red-500"}>
-                    {Math.abs(withdrawChange).toFixed(1)}%
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Total Interest</p>
-              <p className="font-semibold text-2xl">
-                {totalInterest.toLocaleString("en-PH", {
-                  style: "currency",
-                  currency: "PHP"
-                })}
-              </p>
-              {interestChange !== null && (
-                <div className="flex items-center">
-                  {interestChange >= 0 ? (
-                    <FaArrowUp className="text-green-500" size={14} />
-                  ) : (
-                    <FaArrowDown className="text-red-500" size={14} />
-                  )}
-                  <span className={interestChange >= 0 ? "text-green-500" : "text-red-500"}>
-                    {Math.abs(interestChange).toFixed(1)}%
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Analytics Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex flex-wrap items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Analytics Over Time</h3>
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center">
-                  <label htmlFor="chartTypeFilter" className="mr-2 font-semibold">
-                    Chart Type:
-                  </label>
-                  <select
-                    id="chartTypeFilter"
-                    className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                    value={selectedChartType}
-                    onChange={(e) => setSelectedChartType(e.target.value)}
-                  >
-                    <option value="bar">Bar Chart</option>
-                    <option value="line">Line Chart</option>
-                  </select>
-                </div>
-                <div className="flex items-center">
-                  <label htmlFor="graphDataFilter" className="mr-2 font-semibold">
-                    Graph Data:
-                  </label>
-                  <select
-                    id="graphDataFilter"
-                    className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                    value={selectedGraphFilter}
-                    onChange={(e) => setSelectedGraphFilter(e.target.value)}
-                  >
-                    <option value="all">All</option>
-                    <option value="deposit">Deposit Only</option>
-                    <option value="withdrawal">Withdrawal Only</option>
-                    <option value="savings interest">Savings Interest Only</option>
-                  </select>
-                </div>
-                <div className="flex items-center">
-                  <label htmlFor="timeGroupFilter" className="mr-2 font-semibold">
-                    Time Group:
-                  </label>
-                  <select
-                    id="timeGroupFilter"
-                    className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                    value={selectedTimeGroup}
-                    onChange={(e) => setSelectedTimeGroup(e.target.value)}
-                  >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="annually">Annually</option>
-                  </select>
-                </div>
+              <div className="mt-6 flex justify-center gap-4">
+                <button
+                  className="bg-white text-green-500 border border-green-500 hover:scale-105 transition px-4 py-2 rounded font-semibold flex items-center shadow"
+                  onClick={() =>
+                    navigate(`/regular-savings-deposit/${memberId}`, {
+                      state: { modalType: "deposit", member: memberData }
+                    })
+                  }
+                >
+                  <FaMoneyBillWave className="mr-2" />
+                  Deposit
+                </button>
+                <button
+                  className="bg-white text-red-500 border border-red-500 hover:scale-105 transition px-4 py-2 rounded font-semibold flex items-center shadow"
+                  onClick={() =>
+                    navigate(`/regular-savings-withdrawal/${memberId}`, {
+                      state: { modalType: "withdrawal", member: memberData }
+                    })
+                  }
+                >
+                  <FaHandHoldingUsd className="mr-2" />
+                  Withdraw
+                </button>
               </div>
             </div>
-            <div className="relative w-full h-72">
-              {selectedChartType === "bar" ? (
-                <Bar data={barData} options={barOptions} />
-              ) : (
-                <Line data={lineData} options={lineOptions} />
-              )}
+
+            {/* Divider */}
+            <hr className="my-8 border-gray-200" />
+
+            {/* Summary Totals Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+              <div>
+                <p className="text-sm text-gray-500">Total Deposited</p>
+                <p className="font-bold text-2xl text-green-500">
+                  {totalDeposited.toLocaleString("en-PH", {
+                    style: "currency",
+                    currency: "PHP"
+                  })}
+                </p>
+                {depositChange !== null && (
+                  <div className="flex items-center justify-center">
+                    {depositChange >= 0 ? (
+                      <FaArrowUp className="text-green-500" size={16} />
+                    ) : (
+                      <FaArrowDown className="text-red-500" size={16} />
+                    )}
+                    <span className={depositChange >= 0 ? "text-green-500" : "text-red-500"}>
+                      {Math.abs(depositChange).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Withdrawn</p>
+                <p className="font-bold text-2xl text-red-500">
+                  {totalWithdrawal.toLocaleString("en-PH", {
+                    style: "currency",
+                    currency: "PHP"
+                  })}
+                </p>
+                {withdrawChange !== null && (
+                  <div className="flex items-center justify-center">
+                    {withdrawChange >= 0 ? (
+                      <FaArrowUp className="text-green-500" size={16} />
+                    ) : (
+                      <FaArrowDown className="text-red-500" size={16} />
+                    )}
+                    <span className={withdrawChange >= 0 ? "text-green-500" : "text-red-500"}>
+                      {Math.abs(withdrawChange).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Interest</p>
+                <p className="font-bold text-2xl text-blue-500">
+                  {totalInterest.toLocaleString("en-PH", {
+                    style: "currency",
+                    currency: "PHP"
+                  })}
+                </p>
+                {interestChange !== null && (
+                  <div className="flex items-center justify-center">
+                    {interestChange >= 0 ? (
+                      <FaArrowUp className="text-green-500" size={16} />
+                    ) : (
+                      <FaArrowDown className="text-red-500" size={16} />
+                    )}
+                    <span className={interestChange >= 0 ? "text-green-500" : "text-red-500"}>
+                      {Math.abs(interestChange).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Transactions Table */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-xl p-6">
             <div className="flex flex-wrap items-center gap-4 mb-4">
               <div className="flex items-center">
                 <label htmlFor="txNumberFilter" className="mr-2 font-semibold text-gray-700">
@@ -581,7 +358,7 @@ const RegularSavingsInfo = () => {
                 <input
                   id="txNumberFilter"
                   type="text"
-                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   placeholder="e.g., TXN12345"
                   value={transactionNumberFilter}
                   onChange={(e) => setTransactionNumberFilter(e.target.value)}
@@ -593,7 +370,7 @@ const RegularSavingsInfo = () => {
                 </label>
                 <select
                   id="txTypeFilter"
-                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   value={transactionTypeFilter}
                   onChange={(e) => setTransactionTypeFilter(e.target.value)}
                 >
@@ -610,7 +387,7 @@ const RegularSavingsInfo = () => {
                 <input
                   id="startDateFilter"
                   type="date"
-                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   value={startDateFilter}
                   onChange={(e) => setStartDateFilter(e.target.value)}
                 />
@@ -622,14 +399,14 @@ const RegularSavingsInfo = () => {
                 <input
                   id="endDateFilter"
                   type="date"
-                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   value={endDateFilter}
                   onChange={(e) => setEndDateFilter(e.target.value)}
                 />
               </div>
             </div>
-            <div className="overflow-y-auto max-h-64">
-              <table className="w-full text-sm text-left">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left">
                 <thead className="bg-green-100">
                   <tr>
                     <th className="py-3 px-4">Txn No</th>
@@ -668,19 +445,19 @@ const RegularSavingsInfo = () => {
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           {tx.transaction_type?.toLowerCase() === "deposit" ? (
-                            <span className="flex items-center">
-                              <FaMoneyBillWave className="mr-1 text-green-500" size={16} />
-                              <span className="text-green-500 font-semibold">Deposit</span>
+                            <span className="flex items-center gap-1">
+                              <FaMoneyBillWave className="text-green-500" size={16} />
+                              <span className="font-semibold text-green-500">Deposit</span>
                             </span>
                           ) : tx.transaction_type?.toLowerCase() === "withdrawal" ? (
-                            <span className="flex items-center">
-                              <FaHandHoldingUsd className="mr-1 text-red-500" size={16} />
-                              <span className="text-red-500 font-semibold">Withdrawal</span>
+                            <span className="flex items-center gap-1">
+                              <FaHandHoldingUsd className="text-red-500" size={16} />
+                              <span className="font-semibold text-red-500">Withdrawal</span>
                             </span>
                           ) : tx.transaction_type?.toLowerCase() === "savings interest" ? (
-                            <span className="flex items-center">
-                              <FaMoneyBillWave className="mr-1 text-blue-500" size={16} />
-                              <span className="text-blue-500 font-semibold">Savings Interest</span>
+                            <span className="flex items-center gap-1">
+                              <FaMoneyBillWave className="text-blue-500" size={16} />
+                              <span className="font-semibold text-blue-500">Savings Interest</span>
                             </span>
                           ) : (
                             tx.transaction_type || "N/A"
@@ -709,17 +486,16 @@ const RegularSavingsInfo = () => {
           </div>
         </div>
 
-        {/* Right Section: Profile & Actions */}
-        <div className="w-full md:w-96 bg-white p-6 border-l border-gray-200 space-y-6 rounded-lg shadow-lg">
-          {/* Profile */}
-          <div className="flex items-center space-x-4">
+        {/* Right Section: Profile */}
+        <div className="w-full md:w-96 bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+          <div className="flex items-center space-x-4 mb-6">
             <img
               src={id_picture ? imageUrl(id_picture) : defaultProfileImage}
               alt="Profile"
               className="w-16 h-16 object-cover rounded-full border-2 border-gray-300"
             />
             <div>
-              <h2 className="text-lg font-semibold">
+              <h2 className="text-xl font-bold text-gray-800">
                 {last_name} {first_name}
               </h2>
               <p className="text-gray-500 text-sm">{email || "No Email"}</p>
@@ -729,10 +505,9 @@ const RegularSavingsInfo = () => {
             </div>
           </div>
 
-          {/* Personal Information */}
-          <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-3 text-gray-700">Personal Information</h3>
-            <div className="space-y-2 text-sm text-gray-600">
+          <div className="bg-gray-50 rounded-md p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h3>
+            <div className="space-y-3 text-gray-700 text-sm">
               {[
                 {
                   label: "Date of Birth",
@@ -765,38 +540,12 @@ const RegularSavingsInfo = () => {
                 { label: "Highest Education", value: highest_education_attainment },
                 { label: "TIN Number", value: tin_number }
               ].map((item, index) => (
-                <div key={index} className="flex justify-between border-b py-2 last:border-b-0">
-                  <span className="font-medium text-gray-700">{item.label}:</span>
-                  <span className="text-gray-900">{item.value || "N/A"}</span>
+                <div key={index} className="flex justify-between border-b border-gray-200 py-1">
+                  <span className="font-medium">{item.label}:</span>
+                  <span>{item.value || "N/A"}</span>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Deposit / Withdraw Buttons */}
-          <div className="flex flex-col space-y-2">
-            <button
-              className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded flex items-center justify-center"
-              onClick={() =>
-                navigate(`/regular-savings-deposit/${memberId}`, {
-                  state: { modalType: "deposit", member: memberData }
-                })
-              }
-            >
-              <FaMoneyBillWave className="mr-2" />
-              Deposit
-            </button>
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded flex items-center justify-center"
-              onClick={() =>
-                navigate(`/regular-savings-withdrawal/${memberId}`, {
-                  state: { modalType: "withdrawal", member: memberData }
-                })
-              }
-            >
-              <FaHandHoldingUsd className="mr-2" />
-              Withdraw
-            </button>
           </div>
         </div>
       </div>

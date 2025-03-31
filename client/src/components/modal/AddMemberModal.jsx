@@ -61,7 +61,7 @@ const AddMemberModal = ({ isOpen, onClose, onSave, memberIdToEdit }) => {
 
   const fetchMemberDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:3001/api/members/${memberIdToEdit}`);
+      const response = await axios.get(`http://localhost:3001/api/member/${memberIdToEdit}`);
       setMemberData(response.data);
     } catch (error) {
       console.error("Failed to fetch member data", error);
@@ -106,7 +106,7 @@ const AddMemberModal = ({ isOpen, onClose, onSave, memberIdToEdit }) => {
         }
       });
 
-      const response = await axios.post("http://localhost:3001/api/members", formData, {
+      const response = await axios.post("http://localhost:3001/api/member", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

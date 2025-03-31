@@ -42,7 +42,7 @@ const ApplyForLoan = () => {
   useEffect(() => {
     if (memberId) {
       axios
-        .get(`http://localhost:3001/api/members/${memberId}`)
+        .get(`http://localhost:3001/api/member/${memberId}`)
         .then((response) => {
           console.log("Fetched data:", response.data);
           setFetchedData(response.data);

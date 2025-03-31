@@ -169,7 +169,9 @@ const UserModal = ({ onClose, user, onSave }) => {
                 <option value="System Admin">System Admin</option>
                 <option value="General Manager">General Manager</option>
                 <option value="Loan Officer">Loan Officer</option>
-                <option value="Teller">Teller</option>
+                <option value="Account Officer">Account Officer</option>
+                <option value="Clerk">Clerk</option>
+
                 {/* <option value="Member">Member</option> */}
 
               </select>

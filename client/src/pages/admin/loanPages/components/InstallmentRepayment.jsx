@@ -24,7 +24,7 @@ const InstallmentRepayment = () => {
     const fetchAmountToPay = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.254.106:3001/api/installment/${id}`
+          `http://192.168.254.100:3001/api/installment/${id}`
         );
         if (Array.isArray(response.data) && response.data.length > 0) {
           setAmountToPay(response.data[0].amortization);
@@ -50,7 +50,7 @@ const InstallmentRepayment = () => {
     setAuthorized(currentAuthorized);
 
     try {
-      await axios.post(`http://192.168.254.106:3001/api/installment/${id}/repay`, {
+      await axios.post(`http://192.168.254.100:3001/api/installment/${id}/repay`, {
         amount_paid: parseFloat(amountToPay),
         method,
         authorized: currentAuthorized,

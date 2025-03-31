@@ -1,22 +1,50 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+
+// 1) IMPORT THE CHART COMPONENTS (if you still need them elsewhere)
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+// REGISTER CHART.JS COMPONENTS
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const MemberProfilePage = () => {
   const { memberId } = useParams();
+  const navigate = useNavigate();
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Tab navigation
-  const [activeTab, setActiveTab] = useState("personal");
-
-  // Activation/loading and message states
+  // Notification states
   const [activationLoading, setActivationLoading] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [messageType, setMessageType] = useState(""); // "success" or "error"
   const [message, setMessage] = useState("");
 
-  // Define an array of background color classes for fallback
+  // Modal control for "View All Information"
+  const [showAllInfoModal, setShowAllInfoModal] = useState(false);
+
+  // State for tabs – one of: Documents, Beneficiaries, Account Info, Loan History, Initial Contribution
+  const [activeTab, setActiveTab] = useState("Documents");
+
+  // Define an array of background color classes for fallback avatar
   const bgColors = [
     "bg-red-500",
     "bg-blue-500",
@@ -29,12 +57,14 @@ const MemberProfilePage = () => {
   ];
 
   // Helper to compute a consistent background color based on member's unique id
-  const getMemberFallbackColor = (member) => {
-    // Use memberId if available; otherwise, fall back to name concatenation
-    let id = member.memberId ? String(member.memberId) : `${member.first_name || ""}${member.last_name || ""}`;
+  const getMemberFallbackColor = (m) => {
+    const idString = m?.memberId
+      ? String(m.memberId)
+      : `${m.first_name || ""}${m.last_name || ""}`;
+
     let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < idString.length; i++) {
+      hash = idString.charCodeAt(i) + ((hash << 5) - hash);
     }
     const index = Math.abs(hash) % bgColors.length;
     return bgColors[index];
@@ -60,7 +90,7 @@ const MemberProfilePage = () => {
     const fetchMember = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3001/api/members/${memberId}`
+          `http://localhost:3001/api/member/${memberId}`
         );
         setMember(response.data);
       } catch (error) {
@@ -82,655 +112,227 @@ const MemberProfilePage = () => {
   if (loading) return <p className="p-8 text-xl">Loading...</p>;
   if (!member) return <p className="p-8 text-xl">{message}</p>;
 
-  // ------------------ PERSONAL INFO (3-COLUMN LAYOUT) ------------------
-  const PersonalInfo = () => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedMember, setEditedMember] = useState(member);
+  // For showing messages from modal updates
+  const handleModalMessage = (type, text) => {
+    setMessageType(type);
+    setMessage(text);
+    setShowMessage(true);
+  };
 
-    const handleChange = (e) => {
-      const { name, value } = e.target;
-      setEditedMember((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    };
+  // When the modal saves updated data, update our main "member" state
+  const handleUpdateMember = (updated) => {
+    setMember(updated);
+  };
 
-    const handleCancel = () => {
-      setEditedMember(member); // revert changes
-      setIsEditing(false);
-    };
-
-    const handleSave = async () => {
-      try {
-        const response = await axios.put(
-          `http://localhost:3001/api/members/${memberId}`,
-          editedMember
-        );
-        setMember(response.data.updatedMember || editedMember);
-        setIsEditing(false);
-        setMessageType("success");
-        setMessage("Profile updated successfully!");
-        setShowMessage(true);
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        setMessageType("error");
-        setMessage("Error updating profile.");
-        setShowMessage(true);
-      }
-    };
-
+  // ------------------ BASIC INFO SECTION ------------------
+  const BasicInfoSection = () => {
     return (
-      <div className="bg-white shadow-lg rounded-lg p-8">
-        <div className="flex flex-col md:flex-row md:items-center mb-8">
-          {/* Profile Picture */}
-          <div className="flex-shrink-0 flex items-center">
-            {imageUrl(member.id_picture) ? (
-              <img
-                src={imageUrl(member.id_picture)}
-                alt="Profile"
-                className="w-32 h-32 rounded-full object-cover border-4 border-gray-400 shadow-md"
-              />
-            ) : (
-              <div
-                className={`w-32 h-32 rounded-full flex items-center justify-center border-4 border-gray-400 shadow-md ${getMemberFallbackColor(
-                  member
-                )}`}
-              >
-                <span className="text-3xl font-bold text-white">
-                  {`${member.first_name?.charAt(0) || ""}${member.last_name?.charAt(0) || ""}`}
-                </span>
-              </div>
-            )}
-            <div className="ml-6">
-              <h2 className="text-3xl font-bold">
-                {member.first_name} {member.last_name}
-              </h2>
-              <p className="text-lg text-gray-600">{member.member_type}</p>
+      <div className="flex items-start rounded-xl shadow-md p-4 bg-white">
+        {/* Left: Avatar */}
+        <div className="w-56 h-56 mr-4">
+          {member.id_picture ? (
+            <img
+              src={imageUrl(member.id_picture)}
+              alt="Profile"
+              className="w-full h-full object-cover rounded-lg"
+            />
+          ) : (
+            <div
+              className={`w-full h-full rounded-full flex items-center justify-center ${getMemberFallbackColor(
+                member
+              )}`}
+            >
+              <span className="text-white text-6xl font-bold">
+                {member.first_name?.charAt(0)}
+                {member.last_name?.charAt(0)}
+              </span>
             </div>
-          </div>
-          {/* Quick info on the right (e.g., date of birth) */}
-          <div className="mt-6 md:mt-0 md:ml-auto text-lg text-gray-700">
-            <strong>DOB:</strong>{" "}
-            {member.date_of_birth ? formatDate(member.date_of_birth) : "N/A"}
-          </div>
+          )}
         </div>
 
-        <hr className="my-6" />
-
-        {/* "Basic Information" in 3 columns */}
-        <h3 className="text-2xl font-bold mb-4">Basic Information</h3>
-        {isEditing ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {/* Column 1 */}
-            <div className="space-y-4">
-              <label className="block text-base font-medium">
-                First Name
-                <input
-                  type="text"
-                  name="first_name"
-                  value={editedMember.first_name || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Middle Name
-                <input
-                  type="text"
-                  name="middle_name"
-                  value={editedMember.middle_name || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Last Name
-                <input
-                  type="text"
-                  name="last_name"
-                  value={editedMember.last_name || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Extension Name
-                <input
-                  type="text"
-                  name="extension_name"
-                  value={editedMember.extension_name || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Maiden Name
-                <input
-                  type="text"
-                  name="maiden_name"
-                  value={editedMember.maiden_name || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-            </div>
-
-            {/* Column 2 */}
-            <div className="space-y-4">
-              <label className="block text-base font-medium">
-                Sex
-                <input
-                  type="text"
-                  name="sex"
-                  value={editedMember.sex || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Age
-                <input
-                  type="number"
-                  name="age"
-                  value={editedMember.age || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Civil Status
-                <input
-                  type="text"
-                  name="civil_status"
-                  value={editedMember.civil_status || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Religion
-                <input
-                  type="text"
-                  name="religion"
-                  value={editedMember.religion || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Birthplace Province
-                <input
-                  type="text"
-                  name="birthplace_province"
-                  value={editedMember.birthplace_province || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-            </div>
-
-            {/* Column 3 */}
-            <div className="space-y-4">
-              <label className="block text-base font-medium">
-                Registration Type
-                <input
-                  type="text"
-                  name="registration_type"
-                  value={editedMember.registration_type || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Registration Date
-                <input
-                  type="date"
-                  name="registration_date"
-                  value={
-                    editedMember.registration_date
-                      ? editedMember.registration_date.slice(0, 10)
-                      : ""
-                  }
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Member Type
-                <input
-                  type="text"
-                  name="member_type"
-                  value={editedMember.member_type || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Status
-                <input
-                  type="text"
-                  name="status"
-                  value={editedMember.status || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Is Borrower
-                <input
-                  type="number"
-                  name="is_borrower"
-                  value={editedMember.is_borrower || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-            </div>
+        {/* Right: Details */}
+        <div className="flex-1 leading-relaxed">
+          {/* Top Row: Badge and Name */}
+          <div className="mb-2">
+            <span className="bg-green-800 text-white text-xs px-2 py-1 rounded-full">
+              {member.member_type}
+            </span>
+            <h2 className="text-xl font-bold text-gray-800 mt-1">
+              {member.first_name} {member.last_name} {member.middle_name}
+            </h2>
+            <h4 className="text-lg font-bold text-gray-600 mt-1">
+              {member.memberCode}
+            </h4>
           </div>
-        ) : (
-          // READ-ONLY 3-COLUMN LAYOUT
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 text-lg">
-            {/* Column 1 */}
-            <div>
+
+          {/* Two-Column Grid for Additional Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="text-sm text-gray-600">
               <p>
-                <strong>First Name:</strong> {member.first_name || "N/A"}
+                <span className="font-semibold">Address:</span>{" "}
+                <span className="max-w-xs break-words">
+                  {member.house_no_street} {member.barangay}, {member.city}
+                </span>
               </p>
               <p>
-                <strong>Middle Name:</strong> {member.middle_name || "N/A"}
+                <span className="font-semibold">Age:</span>{" "}
+                {member.age || "N/A"}
               </p>
               <p>
-                <strong>Last Name:</strong> {member.last_name || "N/A"}
-              </p>
-              <p>
-                <strong>Extension Name:</strong> {member.extension_name || "N/A"}
-              </p>
-              <p>
-                <strong>Maiden Name:</strong> {member.maiden_name || "N/A"}
+                <span className="font-semibold">DOB:</span>{" "}
+                {member.date_of_birth ? formatDate(member.date_of_birth) : "N/A"}
               </p>
             </div>
-
-            {/* Column 2 */}
-            <div>
+            <div className="text-sm text-gray-600">
               <p>
-                <strong>Sex:</strong> {member.sex || "N/A"}
+                <span className="font-semibold">Contact Number:</span>{" "}
+                {member.contact_number || "N/A"}
               </p>
               <p>
-                <strong>Age:</strong> {member.age || "N/A"}
+                <span className="font-semibold">Civil Status:</span>{" "}
+                {member.civil_status || "N/A"}
               </p>
               <p>
-                <strong>Civil Status:</strong> {member.civil_status || "N/A"}
-              </p>
-              <p>
-                <strong>Religion:</strong> {member.religion || "N/A"}
-              </p>
-              <p>
-                <strong>Birthplace Province:</strong>{" "}
-                {member.birthplace_province || "N/A"}
-              </p>
-            </div>
-
-            {/* Column 3 */}
-            <div>
-              <p>
-                <strong>Registration Type:</strong>{" "}
-                {member.registration_type || "N/A"}
-              </p>
-              <p>
-                <strong>Registration Date:</strong>{" "}
+                <span className="font-semibold">Registered on:</span>{" "}
                 {member.registration_date
                   ? formatDate(member.registration_date)
                   : "N/A"}
               </p>
-              <p>
-                <strong>Member Type:</strong> {member.member_type || "N/A"}
-              </p>
-              <p>
-                <strong>Status:</strong> {member.status || "N/A"}
-              </p>
-              <p>
-                <strong>Is Borrower:</strong> {member.is_borrower || 0}
-              </p>
             </div>
           </div>
-        )}
 
-        {/* Additional Details Section */}
-        <h3 className="text-2xl font-bold mb-4">Additional Details</h3>
-        {isEditing ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 text-lg">
-            {/* Column for Finances */}
-            <div className="space-y-4">
-              <label className="block text-base font-medium">
-                Annual Income
-                <input
-                  type="number"
-                  name="annual_income"
-                  value={editedMember.annual_income || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Number of Dependents
-                <input
-                  type="text"
-                  name="number_of_dependents"
-                  value={editedMember.number_of_dependents || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Share Capital
-                <input
-                  type="text"
-                  name="share_capital"
-                  value={editedMember.share_capital || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Membership Fee
-                <input
-                  type="number"
-                  name="membership_fee"
-                  value={editedMember.membership_fee || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Initial Savings
-                <input
-                  type="number"
-                  name="initial_savings"
-                  value={editedMember.initial_savings || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-            </div>
-
-            {/* Column for Spouse & Occupation */}
-            <div className="space-y-4">
-              <label className="block text-base font-medium">
-                Occupation
-                <input
-                  type="text"
-                  name="occupation_source_of_income"
-                  value={editedMember.occupation_source_of_income || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Spouse Name
-                <input
-                  type="text"
-                  name="spouse_name"
-                  value={editedMember.spouse_name || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Spouse Occupation
-                <input
-                  type="text"
-                  name="spouse_occupation_source_of_income"
-                  value={editedMember.spouse_occupation_source_of_income || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-            </div>
-
-            {/* Column for Address & Contact */}
-            <div className="space-y-4">
-              <label className="block text-base font-medium">
-                House No/Street
-                <input
-                  type="text"
-                  name="house_no_street"
-                  value={editedMember.house_no_street || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Barangay
-                <input
-                  type="text"
-                  name="barangay"
-                  value={editedMember.barangay || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                City
-                <input
-                  type="text"
-                  name="city"
-                  value={editedMember.city || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                Contact Number
-                <input
-                  type="text"
-                  name="contact_number"
-                  value={editedMember.contact_number || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-              <label className="block text-base font-medium">
-                TIN Number
-                <input
-                  type="text"
-                  name="tin_number"
-                  value={editedMember.tin_number || ""}
-                  onChange={handleChange}
-                  className="border rounded px-4 py-2 w-full text-lg"
-                />
-              </label>
-            </div>
-          </div>
-        ) : (
-          // READ-ONLY for Additional Details
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 text-lg">
-            {/* Column 1: Finances */}
-            <div>
-              <p>
-                <strong>Annual Income:</strong> {member.annual_income || "N/A"}
-              </p>
-              <p>
-                <strong>Number of Dependents:</strong>{" "}
-                {member.number_of_dependents || "N/A"}
-              </p>
-              <p>
-                <strong>Share Capital:</strong> {member.share_capital || "N/A"}
-              </p>
-              <p>
-                <strong>Membership Fee:</strong> {member.membership_fee || "N/A"}
-              </p>
-              <p>
-                <strong>Initial Savings:</strong> {member.initial_savings || "N/A"}
-              </p>
-            </div>
-
-            {/* Column 2: Spouse & Occupation */}
-            <div>
-              <p>
-                <strong>Occupation:</strong>{" "}
-                {member.occupation_source_of_income || "N/A"}
-              </p>
-              <p>
-                <strong>Spouse Name:</strong> {member.spouse_name || "N/A"}
-              </p>
-              <p>
-                <strong>Spouse Occupation:</strong>{" "}
-                {member.spouse_occupation_source_of_income || "N/A"}
-              </p>
-            </div>
-
-            {/* Column 3: Address & Contact */}
-            <div>
-              <p>
-                <strong>House No/Street:</strong> {member.house_no_street || "N/A"}
-              </p>
-              <p>
-                <strong>Barangay:</strong> {member.barangay || "N/A"}
-              </p>
-              <p>
-                <strong>City:</strong> {member.city || "N/A"}
-              </p>
-              <p>
-                <strong>Contact Number:</strong> {member.contact_number || "N/A"}
-              </p>
-              <p>
-                <strong>TIN Number:</strong> {member.tin_number || "N/A"}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Edit / Save / Cancel Buttons */}
-        <div className="mt-8">
-          {isEditing ? (
-            <div className="flex gap-6">
-              <button
-                onClick={handleCancel}
-                className="px-6 py-3 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 text-xl"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700 text-xl"
-              >
-                Save
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 text-xl"
-            >
-              Edit Profile
-            </button>
-          )}
+          {/* Button to open the modal with full profile */}
+          <button
+            className="mt-3 border border-green-600 text-green-600 px-4 py-1 rounded-full hover:bg-green-50 text-sm"
+            onClick={() => setShowAllInfoModal(true)}
+          >
+            Edit profile
+          </button>
         </div>
       </div>
     );
   };
 
-  // ------------------ DOCUMENTS TAB ------------------
-  const DocumentsTab = () => (
-    <div className="bg-white shadow-lg rounded-lg p-8">
-      <h3 className="text-3xl font-bold mb-6">Documents</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
-        {member.id_picture && (
-          <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">ID Picture</p>
-            <a
-              href={imageUrl(member.id_picture)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src={imageUrl(member.id_picture)}
-                alt="ID"
-                className="w-40 h-40 object-cover rounded shadow-lg hover:opacity-80 transition"
-              />
-            </a>
-          </div>
-        )}
-        {member.barangay_clearance && (
-          <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">
-              Barangay Clearance
-            </p>
-            <a
-              href={imageUrl(member.barangay_clearance)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src={imageUrl(member.barangay_clearance)}
-                alt="Barangay Clearance"
-                className="w-40 h-40 object-cover rounded shadow-lg hover:opacity-80 transition"
-              />
-            </a>
-          </div>
-        )}
-        {member.tax_identification_id && (
-          <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">
-              TIN Document
-            </p>
-            <a
-              href={imageUrl(member.tax_identification_id)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src={imageUrl(member.tax_identification_id)}
-                alt="TIN"
-                className="w-40 h-40 object-cover rounded shadow-lg hover:opacity-80 transition"
-              />
-            </a>
-          </div>
-        )}
-        {member.valid_id && (
-          <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">Valid ID</p>
-            <a
-              href={imageUrl(member.valid_id)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src={imageUrl(member.valid_id)}
-                alt="Valid ID"
-                className="w-40 h-40 object-cover rounded shadow-lg hover:opacity-80 transition"
-              />
-            </a>
-          </div>
-        )}
-        {member.membership_agreement && (
-          <div className="flex flex-col items-center">
-            <p className="text-xl font-semibold text-gray-600 mb-2">
-              Membership Agreement
-            </p>
-            <a
-              href={imageUrl(member.membership_agreement)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src={imageUrl(member.membership_agreement)}
-                alt="Membership Agreement"
-                className="w-40 h-40 object-cover rounded shadow-lg hover:opacity-80 transition"
-              />
-            </a>
+  // ------------------ DOCUMENTS SECTION ------------------
+  const DocumentsSection = () => {
+    const [showDocs, setShowDocs] = useState(false);
+
+    return (
+      <div className="p-6">
+        <h3 className="text-xl font-bold mb-4 text-gray-800">Documents</h3>
+        <button
+          onClick={() => setShowDocs(!showDocs)}
+          className="mb-4 px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 text-sm"
+        >
+          {showDocs ? "Hide Documents" : "View Documents"}
+        </button>
+        {showDocs && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+            {member.id_picture && (
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-semibold text-gray-600 mb-1">
+                  ID Picture
+                </p>
+                <a
+                  href={imageUrl(member.id_picture)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={imageUrl(member.id_picture)}
+                    alt="ID"
+                    className="w-32 h-32 object-cover rounded shadow hover:opacity-80 transition"
+                  />
+                </a>
+              </div>
+            )}
+            {member.barangay_clearance && (
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-semibold text-gray-600 mb-1">
+                  Barangay Clearance
+                </p>
+                <a
+                  href={imageUrl(member.barangay_clearance)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={imageUrl(member.barangay_clearance)}
+                    alt="Barangay Clearance"
+                    className="w-32 h-32 object-cover rounded shadow hover:opacity-80 transition"
+                  />
+                </a>
+              </div>
+            )}
+            {member.tax_identification_id && (
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-semibold text-gray-600 mb-1">
+                  TIN Document
+                </p>
+                <a
+                  href={imageUrl(member.tax_identification_id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={imageUrl(member.tax_identification_id)}
+                    alt="TIN"
+                    className="w-32 h-32 object-cover rounded shadow hover:opacity-80 transition"
+                  />
+                </a>
+              </div>
+            )}
+            {member.valid_id && (
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-semibold text-gray-600 mb-1">
+                  Valid ID
+                </p>
+                <a
+                  href={imageUrl(member.valid_id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={imageUrl(member.valid_id)}
+                    alt="Valid ID"
+                    className="w-32 h-32 object-cover rounded shadow hover:opacity-80 transition"
+                  />
+                </a>
+              </div>
+            )}
+            {member.membership_agreement && (
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-semibold text-gray-600 mb-1">
+                  Membership Agreement
+                </p>
+                <a
+                  href={imageUrl(member.membership_agreement)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={imageUrl(member.membership_agreement)}
+                    alt="Membership Agreement"
+                    className="w-32 h-32 object-cover rounded shadow hover:opacity-80 transition"
+                  />
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>
-    </div>
-  );
+    );
+  };
 
-  // ------------------ BENEFICIARIES & REFERENCES TAB ------------------
-  const BeneficiariesReferences = () => (
-    <div className="bg-white shadow-lg rounded-lg p-8">
-      <h3 className="text-3xl font-bold mb-6">Beneficiaries & References</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-gray-700 text-xl">
+  // ------------------ BENEFICIARIES SECTION ------------------
+  const BeneficiariesSection = () => (
+    <div className="p-6">
+      <h3 className="text-xl font-bold mb-4 text-gray-800">
+        Beneficiaries & References
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-gray-700">
         <div>
-          <h4 className="text-2xl font-semibold mb-4">Beneficiaries</h4>
+          <h4 className="text-lg font-semibold mb-2">Beneficiaries</h4>
           <p>
             <strong>Name:</strong> {member.beneficiaryName || "N/A"}
           </p>
@@ -738,14 +340,11 @@ const MemberProfilePage = () => {
             <strong>Relationship:</strong> {member.relationship || "N/A"}
           </p>
           <p>
-            <strong>Contact:</strong>{" "}
-            {member.beneficiary_contactNumber || "N/A"}
+            <strong>Contact:</strong> {member.beneficiary_contactNumber || "N/A"}
           </p>
         </div>
         <div>
-          <h4 className="text-2xl font-semibold mb-4">
-            Character Reference
-          </h4>
+          <h4 className="text-lg font-semibold mb-2">Character Reference</h4>
           <p>
             <strong>Name:</strong> {member.referenceName || "N/A"}
           </p>
@@ -753,32 +352,32 @@ const MemberProfilePage = () => {
             <strong>Position:</strong> {member.position || "N/A"}
           </p>
           <p>
-            <strong>Contact:</strong>{" "}
-            {member.reference_contactNumber || "N/A"}
+            <strong>Contact:</strong> {member.reference_contactNumber || "N/A"}
           </p>
         </div>
       </div>
     </div>
   );
 
-  // ------------------ ACCOUNT INFO TAB ------------------
-  const AccountInfo = () => (
-    <div className="bg-white shadow-lg rounded-lg p-8 space-y-6 text-gray-700 text-xl">
-      <h3 className="text-3xl font-bold mb-6">Account Info</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+  // ------------------ ACCOUNT INFO SECTION ------------------
+  const AccountInfoSection = () => (
+    <div className="p-6">
+      <h3 className="text-xl font-bold mb-4 text-gray-800">Account Info</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-gray-700">
         <div>
-          <p className="font-bold">Email:</p>
+          <p className="font-semibold">Username:</p>
           <p>{member.email}</p>
         </div>
         <div>
-          <p className="font-bold">Password:</p>
+          <p className="font-semibold">Password:</p>
           <p>{member.password}</p>
         </div>
         <div>
-          <p className="font-bold">Account Status:</p>
+          <p className="font-semibold">Account Status:</p>
           <p>{member.accountStatus}</p>
         </div>
       </div>
+
       {member.accountStatus &&
         member.accountStatus.toUpperCase() !== "ACTIVATED" && (
           <button
@@ -801,7 +400,7 @@ const MemberProfilePage = () => {
                 setActivationLoading(false);
               }
             }}
-            className="mt-6 px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700 transition text-xl"
+            className="mt-4 px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
             disabled={activationLoading}
           >
             {activationLoading ? "Activating..." : "Activate Account"}
@@ -810,61 +409,72 @@ const MemberProfilePage = () => {
     </div>
   );
 
-  // ------------------ LOAN HISTORY TAB ------------------
-  const LoanHistory = () => {
+  // ------------------ LOAN HISTORY SECTION ------------------
+  const LoanHistorySection = () => {
     if (!member.loan_history || member.loan_history.length === 0) {
       return (
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <p className="text-gray-600 text-xl">No loan history available.</p>
+        <div className="p-6">
+          <p className="text-gray-600 text-base">No loan history available.</p>
         </div>
       );
     }
 
     return (
-      <div className="bg-white shadow-lg rounded-lg p-8 space-y-6">
-        <h3 className="text-3xl font-bold mb-6">Loan History</h3>
-        {member.loan_history.map((loan, index) => (
-          <div key={index} className="border p-6 rounded-lg shadow-sm bg-gray-50">
-            <p className="text-xl">
-              <strong>Loan Type:</strong> {loan.loan_type}
-            </p>
-            <p className="text-xl">
-              <strong>Amount:</strong> ₱{loan.loan_amount}
-            </p>
-            <p className="text-xl">
-              <strong>Term:</strong> {loan.terms} months
-            </p>
-            <p className="text-xl">
-              <strong>Status:</strong> {loan.status}
-            </p>
-            <p className="text-lg text-gray-500">
-              Applied on: {formatDate(loan.application_date)}
-            </p>
-          </div>
-        ))}
+      <div className="p-6">
+        <h3 className="text-xl font-bold mb-4 text-gray-800">Loan History</h3>
+        <div className="space-y-4">
+          {member.loan_history.map((loan, index) => (
+            <div
+              key={index}
+              className="border border-gray-200 p-4 rounded-md bg-gray-50"
+            >
+              <p>
+                <strong>Loan Type:</strong> {loan.loan_type}
+              </p>
+              <p>
+                <strong>Amount:</strong> ₱{loan.loan_amount}
+              </p>
+              <p>
+                <strong>Term:</strong> {loan.terms} months
+              </p>
+              <p>
+                <strong>Status:</strong> {loan.status}
+              </p>
+              <p className="text-sm text-gray-500">
+                Applied on: {formatDate(loan.application_date)}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
 
-  // ------------------ INITIAL CONTRIBUTION TAB ------------------
-  const InitialContribution = () => {
+  // ------------------ INITIAL CONTRIBUTION SECTION ------------------
+  const InitialContributionSection = () => {
     if (!member.initial_contribution) {
       return (
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <p className="text-gray-600 text-xl">No initial contribution data.</p>
+        <div className="p-6">
+          <p className="text-gray-600 text-base">
+            No initial contribution data.
+          </p>
         </div>
       );
     }
 
     const contrib = member.initial_contribution;
     return (
-      <div className="bg-white shadow-lg rounded-lg p-8 space-y-4 text-gray-700 text-xl">
-        <h3 className="text-3xl font-bold mb-6">Initial Contribution</h3>
+      <div className="p-6">
+        <h3 className="text-xl font-bold mb-4 text-gray-800">
+          Initial Contribution
+        </h3>
         <p>
-          <strong>Share Capital Contribution Amount:</strong> ₱{contrib.share_capital}
+          <strong>Share Capital Contribution Amount:</strong> ₱
+          {contrib.share_capital}
         </p>
         <p>
-          <strong>Identification Card Fee:</strong> ₱{contrib.identification_card_fee}
+          <strong>Identification Card Fee:</strong> ₱
+          {contrib.identification_card_fee}
         </p>
         <p>
           <strong>Membership Fee:</strong> ₱{contrib.membership_fee}
@@ -879,56 +489,442 @@ const MemberProfilePage = () => {
     );
   };
 
-  // ----------------- TAB HEADERS -----------------
-  const tabs = [
-    { id: "personal", label: "Personal Info" },
-    { id: "documents", label: "Documents" },
-    { id: "beneficiaries", label: "Beneficiaries" },
-    { id: "account", label: "Account Info" },
-    { id: "loan", label: "Loan History" },
-    { id: "contribution", label: "Initial Contribution" },
-  ];
+  // ------------------ ALL INFO MODAL (EDITABLE) ------------------
+  const AllInfoModal = ({
+    member,
+    memberId,
+    onClose,
+    onUpdateMember,
+    onMessage,
+  }) => {
+    const [formData, setFormData] = useState({ ...member });
+    const [saving, setSaving] = useState(false);
 
-  const renderTabHeaders = () => (
-    <div className="border-b border-gray-300 mb-8">
-      <ul className="flex space-x-8">
-        {tabs.map((tab) => (
-          <li key={tab.id}>
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleSave = async () => {
+      setSaving(true);
+      try {
+        const response = await axios.put(
+          `http://localhost:3001/api/member/${memberId}`,
+          formData
+        );
+        onUpdateMember(response.data.updatedMember || formData);
+        onMessage("success", "Profile updated successfully!");
+        onClose();
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        onMessage("error", "Error updating profile.");
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="bg-white w-full max-w-3xl rounded shadow-lg p-6 relative">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">
+            All Information
+          </h2>
+
+          <div className="max-h-[70vh] overflow-y-auto pr-2">
+            {/* BASIC FIELDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+              <div className="flex flex-col">
+                <label className="font-medium">First Name</label>
+                <input
+                  type="text"
+                  name="first_name"
+                  value={formData.first_name || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Middle Name</label>
+                <input
+                  type="text"
+                  name="middle_name"
+                  value={formData.middle_name || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Last Name</label>
+                <input
+                  type="text"
+                  name="last_name"
+                  value={formData.last_name || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Extension Name</label>
+                <input
+                  type="text"
+                  name="extension_name"
+                  value={formData.extension_name || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Maiden Name</label>
+                <input
+                  type="text"
+                  name="maiden_name"
+                  value={formData.maiden_name || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Sex</label>
+                <input
+                  type="text"
+                  name="sex"
+                  value={formData.sex || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Age</label>
+                <input
+                  type="number"
+                  name="age"
+                  value={formData.age || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Civil Status</label>
+                <input
+                  type="text"
+                  name="civil_status"
+                  value={formData.civil_status || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Religion</label>
+                <input
+                  type="text"
+                  name="religion"
+                  value={formData.religion || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Birthplace Province</label>
+                <input
+                  type="text"
+                  name="birthplace_province"
+                  value={formData.birthplace_province || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Registration Type</label>
+                <input
+                  type="text"
+                  name="registration_type"
+                  value={formData.registration_type || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Registration Date</label>
+                <input
+                  type="date"
+                  name="registration_date"
+                  value={
+                    formData.registration_date
+                      ? formData.registration_date.slice(0, 10)
+                      : ""
+                  }
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Member Type</label>
+                <input
+                  type="text"
+                  name="member_type"
+                  value={formData.member_type || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Status</label>
+                <input
+                  type="text"
+                  name="status"
+                  value={formData.status || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="font-medium">Is Borrower</label>
+                <input
+                  type="number"
+                  name="is_borrower"
+                  value={formData.is_borrower || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <hr className="my-4" />
+
+            {/* ADDITIONAL DETAILS */}
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              Additional Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+              {/* Column 1 */}
+              <div>
+                <label className="font-medium">Annual Income</label>
+                <input
+                  type="number"
+                  name="annual_income"
+                  value={formData.annual_income || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Number of Dependents</label>
+                <input
+                  type="text"
+                  name="number_of_dependents"
+                  value={formData.number_of_dependents || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Share Capital</label>
+                <input
+                  type="text"
+                  name="share_capital"
+                  value={formData.share_capital || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Membership Fee</label>
+                <input
+                  type="number"
+                  name="membership_fee"
+                  value={formData.membership_fee || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Initial Savings</label>
+                <input
+                  type="number"
+                  name="initial_savings"
+                  value={formData.initial_savings || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+              </div>
+
+              {/* Column 2 */}
+              <div>
+                <label className="font-medium">Occupation</label>
+                <input
+                  type="text"
+                  name="occupation_source_of_income"
+                  value={formData.occupation_source_of_income || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Spouse Name</label>
+                <input
+                  type="text"
+                  name="spouse_name"
+                  value={formData.spouse_name || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Spouse Occupation</label>
+                <input
+                  type="text"
+                  name="spouse_occupation_source_of_income"
+                  value={formData.spouse_occupation_source_of_income || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">House No/Street</label>
+                <input
+                  type="text"
+                  name="house_no_street"
+                  value={formData.house_no_street || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Barangay</label>
+                <input
+                  type="text"
+                  name="barangay"
+                  value={formData.barangay || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+              </div>
+
+              {/* Column 3 */}
+              <div>
+                <label className="font-medium">City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">Contact Number</label>
+                <input
+                  type="text"
+                  name="contact_number"
+                  value={formData.contact_number || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+                <label className="font-medium">TIN Number</label>
+                <input
+                  type="text"
+                  name="tin_number"
+                  value={formData.tin_number || ""}
+                  onChange={handleChange}
+                  className="border rounded px-3 py-2 w-full mb-3"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* BUTTONS */}
+          <div className="mt-6 flex justify-end space-x-3">
             <button
-              onClick={() => setActiveTab(tab.id)}
-              className={`pb-2 text-xl font-semibold tracking-wide ${
-                activeTab === tab.id
-                  ? "text-blue-600 border-b-4 border-blue-600"
-                  : "text-gray-600 hover:text-blue-600"
-              }`}
+              onClick={onClose}
+              className="px-5 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 text-sm"
             >
-              {tab.label}
+              Cancel
             </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-  // ----------------- RENDER PAGE -----------------
+  // ------------------ MAIN RENDER ------------------
   return (
     <div className="">
-      {/* Page Title / Subtitle */}
-      <div className="mb-10">
-        <h1 className="text-2xl font-bold text-gray-800">Profile Settings</h1>
-        <p className="text-xl text-gray-500">Manage Account Settings</p>
+      {/* Back/Exit Button */}
+      
+
+      {/* Notification Banner */}
+      {showMessage && (
+        <div
+          className={`mb-4 p-4 rounded ${
+            messageType === "success"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {message}
+        </div>
+      )}
+
+{/* Title / Subtitle */}
+<div className="flex justify-between items-center mb-6">
+  <div>
+    <h1 className="text-2xl font-bold text-gray-800">
+      Member Profile Overview
+    </h1>
+    <p className="text-base text-gray-500">
+      Manage and review member details
+    </p>
+  </div>
+  <button
+    onClick={() => navigate(-1)}
+    className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+</div>
+
+      {/* Basic Info Section */}
+      <BasicInfoSection />
+
+      {/* Tabs Container */}
+      <div className="bg-white rounded-xl shadow-md mt-6">
+        {/* Tabs Navigation */}
+        <div className="border-b">
+          <nav className="flex space-x-4">
+            {["Documents", "Beneficiaries", "Account Info", "Loan History", "Initial Contribution"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-2 px-4 font-semibold ${
+                  activeTab === tab
+                    ? "border-b-2 border-blue-600 text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-4">
+          {activeTab === "Documents" && <DocumentsSection />}
+          {activeTab === "Beneficiaries" && <BeneficiariesSection />}
+          {activeTab === "Account Info" && <AccountInfoSection />}
+          {activeTab === "Loan History" && <LoanHistorySection />}
+          {activeTab === "Initial Contribution" && <InitialContributionSection />}
+        </div>
       </div>
 
-      {/* Tab Navigation */}
-      {renderTabHeaders()}
-
-      {/* Tab Content */}
-      {activeTab === "personal" && <PersonalInfo />}
-      {activeTab === "documents" && <DocumentsTab />}
-      {activeTab === "beneficiaries" && <BeneficiariesReferences />}
-      {activeTab === "account" && <AccountInfo />}
-      {activeTab === "loan" && <LoanHistory />}
-      {activeTab === "contribution" && <InitialContribution />}
+      {/* All Info Modal */}
+      {showAllInfoModal && (
+        <AllInfoModal
+          member={member}
+          memberId={memberId}
+          onClose={() => setShowAllInfoModal(false)}
+          onUpdateMember={handleUpdateMember}
+          onMessage={handleModalMessage}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,7 @@
+// models/memberModel.js
+
 const db = require('../config/db'); // Import your DB configuration
+const { generateUniqueMemberCode } = require('../utils/databaseHelper'); // Import the helper
 
 exports.activateAccount = async (memberId) => {
   try {
@@ -15,21 +18,20 @@ exports.activateAccount = async (memberId) => {
 
     const memberCode = memberResult[0].memberCode; // Get the memberCode
 
-    // Now, update the accountStatus, email (set to memberCode), and password (set to a default password)
+    // Update the member_account table with default credentials using the memberCode
     const [result] = await db.query(
       'UPDATE member_account SET accountStatus = ?, email = ?, password = ? WHERE memberId = ?',
-      ['ACTIVATED', memberCode, memberCode, memberId]  // Default password set as an example
+      ['ACTIVATED', memberCode, memberCode, memberId]
     );
 
-    return result; // Return the result to check if the update was successful
+    return result;
   } catch (error) {
-    throw error; // Throw the error to be handled in the controller
+    throw error;
   }
 };
 
 exports.getMemberByEmail = async (email) => {
   try {
-    // Fetch member details along with savings and deposits
     const [members] = await db.query(
       `SELECT 
         ma.*, 
@@ -54,13 +56,11 @@ exports.getMemberByEmail = async (email) => {
 
     const memberData = members[0];
 
-    // Ensure the member has a savings account before fetching transactions
     if (!memberData.regular_savings_id) {
       console.log("No savings account found for this member.");
       return { ...memberData, transactions: [] };
     }
 
-    // Fetch all transactions for the member's savings account
     const [transactions] = await db.query(
       `SELECT * FROM regular_savings_transaction WHERE regular_savings_id = ?`,
       [memberData.regular_savings_id]
@@ -68,10 +68,70 @@ exports.getMemberByEmail = async (email) => {
   
     return {
       ...memberData,
-      transactions, // Attach all transactions related to the savings account
+      transactions,
     };
   } catch (error) {
     console.error("Error fetching member by email:", error.message);
     throw new Error("Error fetching member data from the database.");
+  }
+};
+
+
+exports.updateMemberFinancials = async (memberId, financialData) => {
+  const connection = await db.getConnection();
+
+  const {
+    share_capital,
+    identification_card_fee,
+    membership_fee,
+    kalinga_fund_fee,
+    initial_savings
+  } = financialData;
+
+  console.log(
+    "INPUT VALUES BEFORE QUERY EXECUTION:",
+    financialData,
+    "MEMBER ID:",
+    memberId
+  );
+
+  try {
+    await connection.beginTransaction();
+
+    const query = `
+      UPDATE members SET
+        share_capital = ?,
+        identification_card_fee = ?,
+        membership_fee = ?,
+        kalinga_fund_fee = ?,
+        initial_savings = ?
+      WHERE memberId = ?
+    `;
+
+    const [result] = await connection.execute(query, [
+      share_capital,
+      identification_card_fee,
+      membership_fee,
+      kalinga_fund_fee,
+      initial_savings,
+      memberId
+    ]);
+
+    console.log("ROWS AFFECTED BY QUERY:", result.affectedRows);
+
+    if (result.affectedRows === 0) {
+      throw new Error("No rows updated. Check that the memberId exists.");
+    }
+
+    await connection.commit();
+
+    return { success: true, message: "Simplified update success." };
+
+  } catch (err) {
+    await connection.rollback();
+    console.error("Simplified transaction error:", err.message);
+    throw err;
+  } finally {
+    connection.release();
   }
 };

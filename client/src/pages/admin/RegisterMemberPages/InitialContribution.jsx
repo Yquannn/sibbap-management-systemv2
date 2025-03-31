@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useParams } from "react-router-dom";
 
 const InitialContribution = ({
   handleNext,
@@ -6,7 +7,6 @@ const InitialContribution = ({
   formData,
   setFormData,
 }) => {
-  // Default structure for initial contribution data using snake_case keys
   const defaultInitialContribution = {
     share_capital: "",
     membership_fee: "",
@@ -15,22 +15,25 @@ const InitialContribution = ({
     initial_savings: "",
   };
 
-  // Merge parent's data with default values to ensure all keys exist
-  const initialContribution = {
-    ...defaultInitialContribution,
-    ...formData.initialContribution,
-  };
+  const { memberId } = useParams();
+  if (!memberId) {
+    console.error("Member ID is missing");
+    return <div>Error: Member ID is missing.</div>;
+  }
 
-  // Handler to update parent's state on input change
+  // Use local state to ensure input fields start empty (ignoring any fetched values)
+  const [localContribution, setLocalContribution] = useState(defaultInitialContribution);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      initialContribution: {
-        ...initialContribution,
-        [name]: value,
-      },
-    }));
+    setLocalContribution((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = () => {
+    // Update the parent's formData with the local state before submitting
+    setFormData((prev) => ({ ...prev, initialContribution: localContribution }));
+    // Call the parent's submission function (which could perform an API call)
+    handleNext();
   };
 
   return (
@@ -46,64 +49,62 @@ const InitialContribution = ({
               type="number"
               name="share_capital"
               className="border p-2 rounded-lg w-full"
-              placeholder="Share capital contribution amount"
-              value={initialContribution.share_capital}
+              value={localContribution.share_capital}
               onChange={handleChange}
             />
+
             <label>Membership fee:</label>
             <input
               type="number"
               name="membership_fee"
               className="border p-2 rounded-lg w-full"
-              placeholder="Membership fee"
-              value={initialContribution.membership_fee}
+              value={localContribution.membership_fee}
               onChange={handleChange}
             />
+
             <label>Identification Card fee:</label>
             <input
               type="number"
               name="identification_card_fee"
               className="border p-2 rounded-lg w-full"
-              placeholder="Identification Card fee"
-              value={initialContribution.identification_card_fee}
+              value={localContribution.identification_card_fee}
               onChange={handleChange}
             />
+
             <label>Kalinga fund fee:</label>
             <input
               type="number"
               name="kalinga_fund_fee"
               className="border p-2 rounded-lg w-full"
-              placeholder="Kalinga fund fee"
-              value={initialContribution.kalinga_fund_fee}
+              value={localContribution.kalinga_fund_fee}
               onChange={handleChange}
             />
+
             <label>Initial savings:</label>
             <input
               type="number"
               name="initial_savings"
               className="border p-2 rounded-lg w-full"
-              placeholder="Initial savings"
-              value={initialContribution.initial_savings}
+              value={localContribution.initial_savings}
               onChange={handleChange}
             />
           </div>
         </div>
 
-        {/* Navigation Buttons */}
         <div className="flex justify-end mt-6">
           <button
-            className="bg-red-700 text-white text-lg px-8 py-3 rounded-lg flex items-center gap-3 shadow-md hover:bg-red-800 transition-all mr-4"
+            className="bg-red-700 text-white text-lg px-8 py-3 rounded-lg shadow-md hover:bg-red-800 transition-all mr-4"
             onClick={handlePrevious}
             type="button"
           >
-            <span className="text-2xl">&#187;&#187;</span> Previous
+            Previous
           </button>
           <button
-            className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg flex items-center gap-3 shadow-md hover:bg-green-800 transition-all"
-            onClick={handleNext}
+            className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg shadow-md hover:bg-green-800 transition-all"
+            onClick={handleSubmit}
             type="button"
           >
-            <span className="text-2xl">&#187;&#187;</span> Next
+            Submit
           </button>
         </div>
       </div>

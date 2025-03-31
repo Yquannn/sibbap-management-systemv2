@@ -11,26 +11,31 @@ const queryDatabase = async (query, params) => {
     connection.release();
   }
 };
+const generateUniqueMemberCode = async () => {
+  // Use a two-digit year prefix (e.g., "25" for 2025)
+  const currentYear = String(new Date().getFullYear()).slice(2);
 
-// Generate a unique member ID
-const generateUniqueMemberId = async () => {
-  const currentYear = new Date().getFullYear() % 100; 
-  let uniqueId = `${currentYear}`; 
-
-  const query = 'SELECT MAX(CAST(memberCode AS UNSIGNED)) AS maxId FROM members WHERE memberCode LIKE ?';
-  const queryParams = [`${currentYear}%`]; 
+  // Query to get the maximum memberCode that starts with the current year
+  const query = 'SELECT MAX(memberCode) AS maxCode FROM members WHERE memberCode LIKE ?';
+  const queryParams = [`${currentYear}%`];
 
   try {
     const results = await queryDatabase(query, queryParams);
-    const maxId = results[0]?.maxId; 
-    const newId = maxId ? parseInt(maxId.toString().slice(2)) + 1 : 1;
-    uniqueId += String(newId).padStart(4, '0'); 
-    return uniqueId;
+    const maxCode = results[0]?.maxCode;
+    
+    // If a member code exists, remove the first two characters (the year prefix)
+    // and increment the numeric part; otherwise, start at 1.
+    const newNumericPart = maxCode ? parseInt(maxCode.slice(2), 10) + 1 : 1;
+    
+    // Pad the numeric part with zeros to ensure it is always 4 digits.
+    const newMemberCode = currentYear + String(newNumericPart).padStart(4, '0');
+    return newMemberCode;
   } catch (error) {
     console.error('Error generating unique member ID:', error);
     throw new Error('Error generating unique member ID');
   }
 };
+
 
 // Format a date as YYYY-MM-DD
 const formatDate = (date) => {
@@ -40,4 +45,4 @@ const formatDate = (date) => {
   return `${year}-${month}-${day}`; 
 };
 
-module.exports = { queryDatabase, generateUniqueMemberId, formatDate };
+module.exports = { queryDatabase, generateUniqueMemberCode, formatDate };

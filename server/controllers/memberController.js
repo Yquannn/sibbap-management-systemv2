@@ -2,6 +2,7 @@ const db = require('../config/db');
 const memberModel= require('../models/memberModel')
 
 const { queryDatabase, generateUniqueMemberId, formatDate } = require('../utils/databaseHelper');
+const { updateMemberFinancials } = require('../models/memberModel');
 
 
 
@@ -27,6 +28,7 @@ exports.getMembers = async (req, res) => {
     LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
     LEFT JOIN character_references c ON mi.memberId = c.memberId
     LEFT JOIN regular_savings s ON mi.memberId = s.memberId
+    WHERE mi.status = 'Active'
     `;
 
     const queryParams = [];
@@ -176,12 +178,12 @@ const generateUniqueAccountNumber = async () => {
   return `${timestampPart}${randomPart}`;
 };
 
+
 exports.addMember = async (req, res) => {
   const {
     registration_type,
     member_type,
     registration_date,
-    share_capital,
     annual_income,
     number_of_dependents,
     last_name,
@@ -215,103 +217,105 @@ exports.addMember = async (req, res) => {
     reference_contact,
     email,
     password,
-    savings,
-    identification_card_fee,
-    membership_fee,
-    kalinga_fund_fee,
-    initial_savings
+    savings
   } = req.body;
 
-  // Convert numeric fields (they come as strings from FormData)
-  const share_capitalNum = Number(share_capital) || 0;
-  const annual_incomeNum = Number(annual_income) || 0;
-  const number_of_dependentsNum = Number(number_of_dependents) || 0;
-  const ageNum = Number(age) || null;
-  const identification_card_fee_num = Number(identification_card_fee) || 0;
-  const membership_fee_num = Number(membership_fee) || 0;
-  const kalinga_fund_fee_num = Number(kalinga_fund_fee) || 0;
-  const initial_savings_num = Number(initial_savings) || 0;
+  // Helper function to convert numeric fields; returns null if empty
+  const toNumberOrNull = (val) =>
+    val !== undefined && val !== "" && !isNaN(val) ? Number(val) : null;
 
-  // Retrieve file names from req.files (since you're using multiUpload)
+  const annual_incomeNum = toNumberOrNull(annual_income);
+  const number_of_dependentsNum = toNumberOrNull(number_of_dependents);
+  const ageNum = toNumberOrNull(age);
+  const savingsNum = toNumberOrNull(savings);
+
+  // Retrieve file names from req.files (using multiUpload middleware)
   const id_picture =
-    req.files && req.files.id_picture
+    req.files && req.files.id_picture && req.files.id_picture[0]
       ? req.files.id_picture[0].filename
       : null;
   const barangayClearance =
-    req.files && req.files.barangay_clearance
+    req.files && req.files.barangay_clearance && req.files.barangay_clearance[0]
       ? req.files.barangay_clearance[0].filename
       : null;
   const taxIdentificationId =
-    req.files && req.files.tax_identification
+    req.files && req.files.tax_identification && req.files.tax_identification[0]
       ? req.files.tax_identification[0].filename
       : null;
   const validId =
-    req.files && req.files.valid_id
+    req.files && req.files.valid_id && req.files.valid_id[0]
       ? req.files.valid_id[0].filename
       : null;
   const membershipAgreement =
-    req.files && req.files.membership_agreement
+    req.files && req.files.membership_agreement && req.files.membership_agreement[0]
       ? req.files.membership_agreement[0].filename
       : null;
 
+  // Format registration date (default to current date if not provided)
   const formattedRegistrationDate = registration_date
     ? formatDate(new Date(registration_date))
     : formatDate(new Date());
 
-  // Adjust share capital and additional savings (example logic)
-  const adjustedShareCapital = Math.max(0, share_capitalNum - 100);
-  const additionalSavings = share_capitalNum >= 100 ? 100 : 0;
-
-  // Build sanitized data object
+  // Build sanitized data object ensuring missing values are set to null.
+  // Note: We also trim string inputs to remove extra whitespace.
   const sanitizedData = {
-    registration_type: registration_type || null,
-    member_type: member_type || "Regular member",
+    registration_type: registration_type !== undefined ? registration_type : null,
+    member_type: member_type !== undefined ? member_type : "Regular member",
     registration_date: formattedRegistrationDate,
-    share_capital: adjustedShareCapital,
     annual_income: annual_incomeNum,
     number_of_dependents: number_of_dependentsNum,
-    last_name: last_name || null,
-    first_name: first_name || null,
-    middle_name: middle_name || null,
-    maiden_name: maiden_name || null,
-    extension_name: extension_name || null,
-    religion: religion || null,
-    tin_number: tin_number || null,
-    date_of_birth: date_of_birth || null,
-    birthplace_province: birthplace_province || null,
+    last_name: last_name !== undefined ? last_name.trim() : null,
+    first_name: first_name !== undefined ? first_name.trim() : null,
+    middle_name: middle_name !== undefined ? middle_name.trim() : null,
+    maiden_name: maiden_name !== undefined ? maiden_name.trim() : null,
+    extension_name: extension_name !== undefined ? extension_name.trim() : null,
+    religion: religion !== undefined ? religion.trim() : null,
+    tin_number: tin_number !== undefined ? tin_number.trim() : null,
+    date_of_birth: date_of_birth !== undefined ? date_of_birth : null,
+    birthplace_province: birthplace_province !== undefined ? birthplace_province.trim() : null,
     age: ageNum,
-    sex: sex || null,
-    civil_status: civil_status || null,
-    highest_educational_attainment: highest_educational_attainment || null,
-    occupation_source_of_income: occupation_source_of_income || null,
-    spouse_name: spouse_name || null,
-    spouse_occupation_source_of_income: spouse_occupation_source_of_income || null,
-    primary_beneficiary_name: primary_beneficiary_name || null,
-    primary_beneficiary_relationship: primary_beneficiary_relationship || null,
-    primary_beneficiary_contact: primary_beneficiary_contact || null,
-    secondary_beneficiary_name: secondary_beneficiary_name || null,
-    secondary_beneficiary_relationship: secondary_beneficiary_relationship || null,
-    secondary_beneficiary_contact: secondary_beneficiary_contact || null,
-    contact_number: contact_number || null,
-    house_no_street: house_no_street || null,
-    barangay: barangay || null,
-    city: city || null,
-    reference_name: reference_name || null,
-    position: position || null,
-    reference_contact: reference_contact || null,
-    email: email || null,
-    password: password || null,
-    id_picture: id_picture || null,
-    barangay_clearance: barangayClearance || null,
-    tax_identification_id: taxIdentificationId || null,
-    valid_id: validId || null,
-    membership_agreement: membershipAgreement || null,
-    // Use additionalSavings for savings field as per example logic.
-    savings: additionalSavings,
-    identification_card_fee: identification_card_fee_num,
-    membership_fee: membership_fee_num,
-    kalinga_fund_fee: kalinga_fund_fee_num,
-    initial_savings: initial_savings_num
+    sex: sex !== undefined ? sex.trim() : null,
+    civil_status: civil_status !== undefined ? civil_status.trim() : null,
+    highest_educational_attainment:
+      highest_educational_attainment !== undefined
+        ? highest_educational_attainment.trim()
+        : null,
+    occupation_source_of_income:
+      occupation_source_of_income !== undefined
+        ? occupation_source_of_income.trim()
+        : null,
+    spouse_name: spouse_name !== undefined ? spouse_name.trim() : null,
+    spouse_occupation_source_of_income:
+      spouse_occupation_source_of_income !== undefined
+        ? spouse_occupation_source_of_income.trim()
+        : null,
+    primary_beneficiary_name:
+      primary_beneficiary_name !== undefined ? primary_beneficiary_name.trim() : null,
+    primary_beneficiary_relationship:
+      primary_beneficiary_relationship !== undefined ? primary_beneficiary_relationship.trim() : null,
+    primary_beneficiary_contact:
+      primary_beneficiary_contact !== undefined ? primary_beneficiary_contact.trim() : null,
+    secondary_beneficiary_name:
+      secondary_beneficiary_name !== undefined ? secondary_beneficiary_name.trim() : null,
+    secondary_beneficiary_relationship:
+      secondary_beneficiary_relationship !== undefined ? secondary_beneficiary_relationship.trim() : null,
+    secondary_beneficiary_contact:
+      secondary_beneficiary_contact !== undefined ? secondary_beneficiary_contact.trim() : null,
+    contact_number: contact_number !== undefined ? contact_number.trim() : null,
+    house_no_street: house_no_street !== undefined ? house_no_street.trim() : null,
+    barangay: barangay !== undefined ? barangay.trim() : null,
+    city: city !== undefined ? city.trim() : null,
+    reference_name: reference_name !== undefined ? reference_name.trim() : null,
+    position: position !== undefined ? position.trim() : null,
+    reference_contact: reference_contact !== undefined ? reference_contact.trim() : null,
+    email: email !== undefined ? email.trim() : null,
+    password: password !== undefined ? password.trim() : null,
+    id_picture: id_picture,
+    barangay_clearance: barangayClearance,
+    tax_identification_id: taxIdentificationId,
+    valid_id: validId,
+    membership_agreement: membershipAgreement,
+    savings: savingsNum
   };
 
   const connection = await db.getConnection();
@@ -319,28 +323,25 @@ exports.addMember = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Generate unique member code
-    const memberCode = await generateUniqueMemberId(); // Assuming this function exists
+    // Generate unique member code (assuming this function exists)
+    // const memberCode = await generateUniqueMemberId();
 
-    // Insert into members table (include new document fields)
+    // Insert into members table
     const memberQuery = `
       INSERT INTO members 
-        (memberCode, registration_type, member_type, registration_date, share_capital,
-         annual_income, number_of_dependents, last_name, first_name, middle_name,
+        (registration_type, member_type, registration_date, annual_income,
+         number_of_dependents, last_name, first_name, middle_name,
          maiden_name, extension_name, religion, tin_number, date_of_birth,
          birthplace_province, age, sex, civil_status, highest_educational_attainment,
          occupation_source_of_income, spouse_name, spouse_occupation_source_of_income,
          contact_number, house_no_street, barangay, city, id_picture,
-         barangay_clearance, tax_identification_id, valid_id, membership_agreement,
-         identification_card_fee, membership_fee, kalinga_fund_fee, initial_savings)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         barangay_clearance, tax_identification_id, valid_id, membership_agreement)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const memberParams = [
-      memberCode,
       sanitizedData.registration_type,
       sanitizedData.member_type,
       sanitizedData.registration_date,
-      sanitizedData.share_capital,
       sanitizedData.annual_income,
       sanitizedData.number_of_dependents,
       sanitizedData.last_name,
@@ -367,11 +368,7 @@ exports.addMember = async (req, res) => {
       sanitizedData.barangay_clearance,
       sanitizedData.tax_identification_id,
       sanitizedData.valid_id,
-      sanitizedData.membership_agreement,
-      sanitizedData.identification_card_fee,
-      sanitizedData.membership_fee,
-      sanitizedData.kalinga_fund_fee,
-      sanitizedData.initial_savings
+      sanitizedData.membership_agreement
     ];
     const [memberResult] = await connection.execute(memberQuery, memberParams);
 
@@ -381,7 +378,7 @@ exports.addMember = async (req, res) => {
 
     const memberId = memberResult.insertId;
 
-    // Insert into member_account table
+    // Insert into member_account table (using actual email and password if provided)
     const accountStatus = email && password ? "NOT ACTIVATED" : "NOT ACTIVATED";
     const accountQuery = `
       INSERT INTO member_account
@@ -390,14 +387,14 @@ exports.addMember = async (req, res) => {
     `;
     const accountParams = [
       memberId,
-      memberCode, // Using memberCode as email placeholder
-      memberCode, // Using memberCode as password placeholder
+      sanitizedData.email ||  "", // fallback to memberCode if email not provided
+      sanitizedData.password || "", // fallback to memberCode if password not provided
       accountStatus
     ];
     await connection.execute(accountQuery, accountParams);
 
-    // INSERT primary beneficiary if provided
-    if (sanitizedData.primary_beneficiary_name) {
+    // INSERT primary beneficiary if provided (non-empty after trimming)
+    if (sanitizedData.primary_beneficiary_name && sanitizedData.primary_beneficiary_name !== "") {
       const primaryBeneficiaryQuery = `
         INSERT INTO beneficiaries 
           (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
@@ -412,8 +409,8 @@ exports.addMember = async (req, res) => {
       await connection.execute(primaryBeneficiaryQuery, primaryBeneficiaryParams);
     }
 
-    // INSERT secondary beneficiary if provided
-    if (sanitizedData.secondary_beneficiary_name) {
+    // INSERT secondary beneficiary if provided (non-empty after trimming)
+    if (sanitizedData.secondary_beneficiary_name && sanitizedData.secondary_beneficiary_name !== "") {
       const secondaryBeneficiaryQuery = `
         INSERT INTO beneficiaries 
           (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
@@ -428,11 +425,11 @@ exports.addMember = async (req, res) => {
       await connection.execute(secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
     }
 
-    // INSERT character reference if provided
-    if (sanitizedData.reference_name) {
+    // INSERT character reference if provided (non-empty after trimming)
+    if (sanitizedData.reference_name && sanitizedData.reference_name !== "") {
       const characterReferencesQuery = `
         INSERT INTO character_references 
-          (memberId, referenceName, position, referenceContactNumber)
+          (memberId, referenceName, \`position\`, referenceContactNumber)
         VALUES (?, ?, ?, ?)
       `;
       const characterReferencesParams = [
@@ -446,20 +443,20 @@ exports.addMember = async (req, res) => {
 
     // INSERT into regular_savings if applicable
     if (sanitizedData.savings > 0) {
-      // Generate unique regular savings account number.
+      // Generate unique regular savings account number (assuming function exists)
       const accountNumber = await generateUniqueAccountNumber();
       const savingsQuery = `
         INSERT INTO regular_savings 
           (memberId, account_number, amount)
         VALUES (?, ?, ?)
       `;
-      const savingsParams = [memberId, accountNumber, sanitizedData.initial_savings];
+      const savingsParams = [memberId, accountNumber, sanitizedData.savings];
       await connection.execute(savingsQuery, savingsParams);
     }
 
     await connection.commit();
     res.status(201).json({
-      message: "Member added successfully",
+      message: "Application successfully submitted",
       id_picture: sanitizedData.id_picture
     });
   } catch (error) {
@@ -470,6 +467,7 @@ exports.addMember = async (req, res) => {
     connection.release();
   }
 };
+
 
 
 
@@ -631,6 +629,41 @@ exports.activateAccount = async (req, res) => {
   }
 };
 
+exports.getAllMemberApplicants = async (req, res) => {
+  let connection;
+  try {
+    connection = await db.getConnection();
+
+    const query = `
+      SELECT 
+        m.*, 
+        ma.email, 
+        ma.password, 
+        ma.accountStatus, 
+        b.beneficiaryName, 
+        b.relationship, 
+        b.beneficiaryContactNumber, 
+        c.referenceName, 
+        c.position, 
+        c.referenceContactNumber,
+        s.amount AS savingsAmount
+      FROM members m
+      LEFT JOIN member_account ma ON m.memberId = ma.memberId
+      LEFT JOIN beneficiaries b ON m.memberId = b.memberId
+      LEFT JOIN character_references c ON m.memberId = c.memberId
+      LEFT JOIN regular_savings s ON m.memberId = s.memberId
+      WHERE m.status = 'Provisional Member'
+    `;
+
+    const rows = await connection.execute(query);
+    res.status(200).json({ message: "Member applicants retrieved successfully", data: rows });
+  } catch (error) {
+    console.error("Error retrieving member applicants:", error);
+    res.status(500).json({ message: "Error retrieving member applicants", error: error.message });
+  } finally {
+    if (connection) connection.release();
+  }
+};
 
 
 
@@ -652,5 +685,19 @@ exports.getMemberByEmail = async (req, res) => {
   } catch (error) {
     console.error('Error fetching member by email:', error.message);
     res.status(500).json({ error: 'Failed to fetch member data' });
+  }
+};
+
+
+// controllers/memberController.js
+
+exports.updateFinancials = async (req, res) => {
+  try {
+    const memberId = req.params.memberId; // Expecting memberId in the route parameters
+    const result = await updateMemberFinancials(memberId, req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error updating member financials:", error);
+    res.status(500).json({ message: error.message });
   }
 };
