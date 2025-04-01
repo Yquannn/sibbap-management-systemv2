@@ -80,7 +80,6 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                 "Date of birth",
                 "Age",
                 "Contact Number",
-                "Balance",
                 "Account Status",
                 "Actions"
               ].map((heading) => (
@@ -124,9 +123,9 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                   <td className="py-3 px-4 border-b border-gray-300">
                     {member.contact_number}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300">
+                  {/* <td className="py-3 px-4 border-b border-gray-300">
                     {member.savingsAmount}
-                  </td>
+                  </td> */}
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <span className="badge badge-sm bg-green-100 text-green-700">
                       {member.savingsStatus || "Active"}

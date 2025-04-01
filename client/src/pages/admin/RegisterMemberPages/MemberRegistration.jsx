@@ -1,45 +1,53 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import PersonalInformation from "./PersonalInformation";
+import PersonalInformationReg from "./PersonalInformationReg";
 import LegalAndDocuments from "./LegalBeneficiaries";
 import InitialContribution from "./InitialContribution";
 import MobilePortal from "./MemberPortal";
 import Success from "./Success";
 import { useParams } from "react-router-dom";
 
+// Default values for initial contribution to ensure all keys exist.
+const defaultInitialContribution = {
+  share_capital: "",
+  membership_fee: "",
+  identification_card_fee: "",
+  kalinga_fund_fee: "",
+  initial_savings: "",
+};
+
 const MemberRegistration = () => {
-  // Track the active tab index (step)
+  // Track the active step index.
   const [activeTab, setActiveTab] = useState(0);
 
-  // Shared state for all multi-step form data
+  // Shared state for multi-step form data.
   const [formData, setFormData] = useState({
     personalInfo: {},
     contactInfo: {},
     legalBeneficiaries: {},
-    initialContribution: {},
+    initialContribution: { ...defaultInitialContribution },
     documents: {},
     mobilePortal: {},
   });
 
-  // State to mark fields as read-only once the data is fetched
+  // Flag for setting inputs to read-only after fetching member data.
   const [isReadOnly, setIsReadOnly] = useState(false);
 
-  // State for controlling the success modal
+  // State for controlling the success modal.
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Destructure the member id from route parameters
   const { memberId } = useParams();
 
-  // Titles for each step (used for display)
+  // Titles for each step.
   const tabs = [
     "PERSONAL INFORMATION",
     "LEGAL BENEFICIARIES & DOCUMENTS",
     "INITIAL CONTRIBUTION",
-    // "MOBILE PORTAL",
+    "MOBILE PORTAL",
   ];
 
-  // Fetch member data and set it to state when component mounts or when memberId changes
+  // Fetch member data on mount or when memberId changes.
   useEffect(() => {
     const fetchMemberData = async () => {
       try {
@@ -47,7 +55,7 @@ const MemberRegistration = () => {
           `http://localhost:3001/api/member/${memberId}`
         );
         const fetchedData = response.data;
-        // Map the response data to the formData structure
+        // Map fetched data into the formData structure.
         setFormData({
           personalInfo: {
             first_name: fetchedData.first_name || "",
@@ -88,7 +96,8 @@ const MemberRegistration = () => {
             barangay_clearance: fetchedData.barangay_clearance || "",
             tax_identification_id: fetchedData.tax_identification_id || "",
             valid_id: fetchedData.valid_id || "",
-            primary_beneficiary_name: fetchedData.primary_beneficiary_name || "",
+            primary_beneficiary_name:
+              fetchedData.primary_beneficiary_name || "",
             primary_beneficiary_relationship:
               fetchedData.primary_beneficiary_relationship || "",
             primary_beneficiary_contact:
@@ -101,7 +110,6 @@ const MemberRegistration = () => {
               fetchedData.secondary_beneficiary_contact || "",
           },
           initialContribution: {
-            // Make sure the key here matches what your back-end expects.
             share_capital: fetchedData.share_capital || "",
             membership_fee: fetchedData.membership_fee || "",
             identification_card_fee: fetchedData.identification_card_fee || "",
@@ -112,10 +120,9 @@ const MemberRegistration = () => {
             portalUsername: fetchedData.portalUsername || "",
             portalPassword: fetchedData.portalPassword || "",
           },
-          // Other sections can be mapped similarly
         });
 
-        // Set fields as read-only once data is fetched
+        // Once the data is fetched, set fields to read-only if needed.
         setIsReadOnly(true);
       } catch (error) {
         console.error("Error fetching member data:", error);
@@ -128,50 +135,45 @@ const MemberRegistration = () => {
     }
   }, [memberId]);
 
-  // Navigate back one step
+  // Navigate to the previous step.
   const handlePrevious = () => {
     if (activeTab > 0) {
       setActiveTab(activeTab - 1);
     }
   };
 
-  // Navigate forward one step
+  // Navigate to the next step.
   const handleNext = () => {
     if (activeTab < tabs.length - 1) {
       setActiveTab(activeTab + 1);
     }
   };
 
-  // Save form data to the API (only called on final step)
-  const handleSave = async () => {
+  const handleSave = async (contributionData) => {
     try {
-      // Create a FormData object and flatten the nested formData
-      const formDataObj = new FormData();
-
-      // Loop over each section (personalInfo, contactInfo, etc.)
-      Object.entries(formData).forEach(([section, sectionData]) => {
-        Object.entries(sectionData).forEach(([key, value]) => {
-          // If value is a File, append it; otherwise, append a string value.
-          if (value instanceof File) {
-            formDataObj.append(key, value);
-          } else {
-            formDataObj.append(
-              key,
-              value !== undefined && value !== null ? value : ""
-            );
-          }
-        });
-      });
-
-      // Use the memberId from useParams in the endpoint URL
+      // Use the contributionData provided by the child, or fallback to the parent's initialContribution.
+      const dataToSend = contributionData || formData.initialContribution;
+      
+      // Construct the JSON payload explicitly,
+      // ensuring each field is a number.
+      const jsonData = {
+        share_capital: Number(dataToSend.share_capital),
+        identification_card_fee: Number(dataToSend.identification_card_fee),
+        membership_fee: Number(dataToSend.membership_fee),
+        kalinga_fund_fee: Number(dataToSend.kalinga_fund_fee),
+        initial_savings: Number(dataToSend.initial_savings),
+      };
+  
+      console.log("Sending financial data:", jsonData);
+  
       const response = await axios.patch(
         `http://localhost:3001/api/members/${memberId}/financials`,
-        formDataObj,
+        jsonData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": "application/json" },
         }
       );
-
+  
       console.log("Registration successful", response.data);
       setSuccessMessage(
         response.data.message || "Member Registration successfully!"
@@ -185,6 +187,7 @@ const MemberRegistration = () => {
       alert(`Error adding member: ${errorMessage}`);
     }
   };
+  
 
   return (
     <div className="flex items-center justify-center w-full h-full">
@@ -209,7 +212,7 @@ const MemberRegistration = () => {
         {/* Step Content */}
         <div className="mt-4">
           {activeTab === 0 && (
-            <PersonalInformation
+            <PersonalInformationReg
               handleNext={handleNext}
               formData={formData}
               setFormData={setFormData}
@@ -230,14 +233,17 @@ const MemberRegistration = () => {
           {activeTab === 2 && (
             <InitialContribution
               handlePrevious={handlePrevious}
-              handleNext={handleNext}
+              // For the Initial Contribution step, when the user submits,
+              // the child passes the contribution data to handleSave.
+              handleNext={handleSave}
               formData={formData}
               setFormData={setFormData}
               isReadOnly={isReadOnly}
             />
           )}
 
-          {activeTab === 3 && (
+          {/* Uncomment if you are using MobilePortal */}
+          {/* {activeTab === 3 && (
             <MobilePortal
               handlePrevious={handlePrevious}
               handleSave={handleSave}
@@ -245,7 +251,7 @@ const MemberRegistration = () => {
               setFormData={setFormData}
               isReadOnly={isReadOnly}
             />
-          )}
+          )} */}
         </div>
       </div>
 
@@ -255,7 +261,7 @@ const MemberRegistration = () => {
           message={successMessage}
           onClose={() => {
             setShowSuccessModal(false);
-            // Optionally, reset form or navigate away after success
+            // Optionally, reset the form or navigate away after success.
           }}
         />
       )}

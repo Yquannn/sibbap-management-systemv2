@@ -77,6 +77,20 @@ exports.getMemberByEmail = async (email) => {
 };
 
 
+
+// Generate a unique regular savings account number.
+const generateUniqueAccountNumber = async () => {
+  // For example, prefix "RS", then use the last 8 digits of Date.now()
+  // and two random digits (zero-padded) to increase uniqueness.
+  const timestampPart = Date.now().toString().slice(-6);
+  const randomPart = Math.floor(Math.random() * 100)
+    .toString()
+    .padStart(2, "0");
+  return `${timestampPart}${randomPart}`;
+};
+
+
+
 exports.updateMemberFinancials = async (memberId, financialData) => {
   const connection = await db.getConnection();
 
@@ -85,12 +99,25 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
     identification_card_fee,
     membership_fee,
     kalinga_fund_fee,
-    initial_savings
+    initial_savings,
+    email,    // optional field
+    password  // optional field
   } = financialData;
+
+  // Ensure no financial fields are null or undefined.
+  if (
+    share_capital == null ||
+    identification_card_fee == null ||
+    membership_fee == null ||
+    kalinga_fund_fee == null ||
+    initial_savings == null
+  ) {
+    throw new Error("All financial data fields must be provided and cannot be null.");
+  }
 
   console.log(
     "INPUT VALUES BEFORE QUERY EXECUTION:",
-    financialData,
+    { share_capital, identification_card_fee, membership_fee, kalinga_fund_fee, initial_savings },
     "MEMBER ID:",
     memberId
   );
@@ -98,34 +125,85 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
   try {
     await connection.beginTransaction();
 
-    const query = `
+    // Determine member type and prefix based on share_capital
+    let memberType, codePrefix;
+    if (share_capital < 6000) {
+      memberType = "Partial Member";
+      codePrefix = "PM-";
+    } else {
+      memberType = "Regular Member";
+      codePrefix = "RM-";
+    }
+
+    // Generate a unique member code suffix using the helper and prepend the prefix
+    const uniqueSuffix = await generateUniqueMemberCode();
+    const memberCode = uniqueSuffix;
+
+    // Update the members table with financials, memberCode, and member type
+    const updateQuery = `
       UPDATE members SET
         share_capital = ?,
         identification_card_fee = ?,
         membership_fee = ?,
         kalinga_fund_fee = ?,
-        initial_savings = ?
+        initial_savings = ?,
+        memberCode = ?,
+        member_type = ?,
+        status = 'Active'
       WHERE memberId = ?
     `;
-
-    const [result] = await connection.execute(query, [
+    const [result] = await connection.execute(updateQuery, [
       share_capital,
       identification_card_fee,
       membership_fee,
       kalinga_fund_fee,
       initial_savings,
+      memberCode,
+      memberType,
       memberId
     ]);
 
     console.log("ROWS AFFECTED BY QUERY:", result.affectedRows);
-
     if (result.affectedRows === 0) {
       throw new Error("No rows updated. Check that the memberId exists.");
     }
 
+    // Set default email and password to memberCode if not provided
+    const defaultEmail = email ? email : memberCode;
+    const defaultPassword = password ? password : memberCode;
+    const accountStatus = "NOT ACTIVATED";
+
+    // Insert or update the member_account record
+    // Using ON DUPLICATE KEY UPDATE to handle cases where the account already exists
+    const accountQuery = `
+      INSERT INTO member_account (memberId, email, password, accountStatus)
+      VALUES (?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE 
+        email = VALUES(email), 
+        password = VALUES(password), 
+        accountStatus = VALUES(accountStatus)
+    `;
+    await connection.execute(accountQuery, [
+      memberId,
+      defaultEmail,
+      defaultPassword,
+      accountStatus
+    ]);
+
+    // If the initial savings amount is greater than zero, create a regular savings record
+    if (initial_savings > 0) {
+      // Generate a unique account number for the regular savings account
+      const accountNumber = await generateUniqueAccountNumber();
+      const savingsQuery = `
+        INSERT INTO regular_savings (memberId, account_number, amount)
+        VALUES (?, ?, ?)
+      `;
+      await connection.execute(savingsQuery, [memberId, accountNumber, initial_savings]);
+    }
+
     await connection.commit();
 
-    return { success: true, message: "Simplified update success." };
+    return { success: true, message: "Membership Successfully updated." };
 
   } catch (err) {
     await connection.rollback();

@@ -167,17 +167,6 @@ exports.getMemberById = async (req, res) => {
 
 
 
-// Generate a unique regular savings account number.
-const generateUniqueAccountNumber = async () => {
-  // For example, prefix "RS", then use the last 8 digits of Date.now()
-  // and two random digits (zero-padded) to increase uniqueness.
-  const timestampPart = Date.now().toString().slice(-6);
-  const randomPart = Math.floor(Math.random() * 100)
-    .toString()
-    .padStart(2, "0");
-  return `${timestampPart}${randomPart}`;
-};
-
 
 exports.addMember = async (req, res) => {
   const {
@@ -323,9 +312,6 @@ exports.addMember = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Generate unique member code (assuming this function exists)
-    // const memberCode = await generateUniqueMemberId();
-
     // Insert into members table
     const memberQuery = `
       INSERT INTO members 
@@ -378,21 +364,6 @@ exports.addMember = async (req, res) => {
 
     const memberId = memberResult.insertId;
 
-    // Insert into member_account table (using actual email and password if provided)
-    const accountStatus = email && password ? "NOT ACTIVATED" : "NOT ACTIVATED";
-    const accountQuery = `
-      INSERT INTO member_account
-        (memberId, email, password, accountStatus)
-      VALUES (?, ?, ?, ?)
-    `;
-    const accountParams = [
-      memberId,
-      sanitizedData.email ||  "", // fallback to memberCode if email not provided
-      sanitizedData.password || "", // fallback to memberCode if password not provided
-      accountStatus
-    ];
-    await connection.execute(accountQuery, accountParams);
-
     // INSERT primary beneficiary if provided (non-empty after trimming)
     if (sanitizedData.primary_beneficiary_name && sanitizedData.primary_beneficiary_name !== "") {
       const primaryBeneficiaryQuery = `
@@ -441,19 +412,6 @@ exports.addMember = async (req, res) => {
       await connection.execute(characterReferencesQuery, characterReferencesParams);
     }
 
-    // INSERT into regular_savings if applicable
-    if (sanitizedData.savings > 0) {
-      // Generate unique regular savings account number (assuming function exists)
-      const accountNumber = await generateUniqueAccountNumber();
-      const savingsQuery = `
-        INSERT INTO regular_savings 
-          (memberId, account_number, amount)
-        VALUES (?, ?, ?)
-      `;
-      const savingsParams = [memberId, accountNumber, sanitizedData.savings];
-      await connection.execute(savingsQuery, savingsParams);
-    }
-
     await connection.commit();
     res.status(201).json({
       message: "Application successfully submitted",
@@ -467,9 +425,6 @@ exports.addMember = async (req, res) => {
     connection.release();
   }
 };
-
-
-
 
 
 exports.getMemberSavings = async (req, res) => {
