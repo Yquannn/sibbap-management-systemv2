@@ -21,24 +21,24 @@ const Members = () => {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterMemberType, setFilterMemberType] = useState("All");
+  const [filterCompletion, setFilterCompletion] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [totalMember, setTotalMember] = useState(0);
 
   const navigate = useNavigate();
 
-  // Function to generate image URL if available
+  // Helper function to generate image URL if available
   const imageUrl = (filename) =>
     filename ? `http://localhost:3001/uploads/${filename}` : "";
 
-  // Define an array of background color classes
+  // Array of background color classes for avatar fallback
   const bgColors = [
     "bg-red-500", "bg-blue-500", "bg-green-500",
     "bg-yellow-500", "bg-purple-500", "bg-indigo-500",
     "bg-pink-500", "bg-orange-500"
   ];
 
-  // Helper to compute a consistent background color based on the member's unique id
+  // Compute a consistent background color based on the member's unique id or name
   const getMemberFallbackColor = (member) => {
     const id = member.memberId
       ? String(member.memberId)
@@ -51,26 +51,34 @@ const Members = () => {
     return bgColors[index];
   };
 
+  // Fetch members with filters
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
-      // Initialize params object and add filters if applicable
       const params = {};
-      if (searchTerm) params.name = searchTerm;
-      if (filterMemberType !== "All") params.member_type = filterMemberType;
-      if (filterStatus !== "All") params.status = filterStatus;
+
+      // Trim searchTerm to avoid sending unnecessary spaces
+      if (searchTerm.trim()) {
+        params.name = searchTerm.trim();
+      }
+
+      // Normalize filterCompletion value to match API expectations
+      if (filterCompletion !== "All") {
+        params.status = filterCompletion.toLowerCase() === "complete" ? "completed" : "incomplete";
+      }
+
+      // Normalize filterStatus value to lowercase (if API expects lowercase)
+      if (filterStatus !== "All") {
+        params.accountStatus = filterStatus.toLowerCase();
+      }
   
-      // Get the response from the API
       const response = await axios.get(`${apiBaseURL}/members/applicant`, { params });
-  
-      // The response is structured as { message, data }
-      // Check if the data is nested (an array within an array) and flatten it
       const apiData = response.data.data;
       const membersData = Array.isArray(apiData[0]) ? apiData[0] : apiData;
   
-      // Sort members by memberCode (or id) in descending order
+      // Sort by memberCode in descending order (assuming memberCode is numeric)
       const sortedMembers = membersData.sort(
-        (a, b) => parseInt(b.memberCode) - parseInt(a.memberCode)
+        (a, b) => parseInt(b.memberCode, 10) - parseInt(a.memberCode, 10)
       );
   
       setMembers(sortedMembers);
@@ -79,9 +87,10 @@ const Members = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filterMemberType, filterStatus]);
+  }, [searchTerm, filterCompletion, filterStatus]);
   
 
+  // Fetch total member count
   const FetchTotalMember = async () => {
     try {
       const response = await axios.get(`${apiBaseURL}/total`);
@@ -93,10 +102,10 @@ const Members = () => {
 
   useEffect(() => {
     fetchMembers();
-    console.log(members)
     FetchTotalMember();
   }, [fetchMembers]);
 
+  // Modal control functions
   const openModal = (type, member = null) => {
     setModalState({
       addOpen: type === 'addOpen',
@@ -115,6 +124,7 @@ const Members = () => {
     });
   };
 
+  // Update member details
   const updateMember = async (member) => {
     try {
       setLoading(true);
@@ -133,6 +143,7 @@ const Members = () => {
     }
   };
 
+  // Save changes depending on modal state
   const handleSave = async (member) => {
     if (modalState.editOpen) {
       await updateMember(member);
@@ -140,6 +151,7 @@ const Members = () => {
     fetchMembers();
   };
 
+  // Delete a member
   const handleDelete = async (memberId) => {
     if (window.confirm('Are you sure you want to delete this member?')) {
       try {
@@ -158,8 +170,9 @@ const Members = () => {
 
   return (
     <div className="">
+      {/* Dashboard Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-white  text-black">
+        <div className="card bg-white text-black">
           <div className="card-body flex items-center">
             <MdPeople className="text-5xl mr-4 text-green-600" />
             <div>
@@ -168,8 +181,7 @@ const Members = () => {
             </div>
           </div>
         </div>
-        
-        <div className="card bg-white  text-black">
+        <div className="card bg-white text-black">
           <div className="card-body flex items-center">
             <MdCheckCircle className="text-5xl mr-4 text-blue-600" />
             <div>
@@ -178,7 +190,6 @@ const Members = () => {
             </div>
           </div>
         </div>
-        
         <div className="card bg-white text-black">
           <div className="card-body flex items-center">
             <MdRemoveCircleOutline className="text-5xl mr-4 text-red-600" />
@@ -188,7 +199,6 @@ const Members = () => {
             </div>
           </div>
         </div>
-        
         <div className="card bg-white text-black">
           <div className="card-body flex items-center">
             <MdAttachMoney className="text-5xl mr-4 text-purple-600" />
@@ -200,7 +210,7 @@ const Members = () => {
         </div>
       </div>
 
-      {/* Search & Filter Bar with Add Member Button */}
+      {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row justify-end items-center bg-white p-4 rounded-lg mb-6 gap-4 mt-4">
         {message.text && (
           <div className={`font-medium mr-auto ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
@@ -210,21 +220,21 @@ const Members = () => {
         <div className="flex items-center gap-4">
           <select
             className="select select-bordered"
-            value={filterMemberType}
-            onChange={(e) => setFilterMemberType(e.target.value)}
+            value={filterCompletion}
+            onChange={(e) => setFilterCompletion(e.target.value)}
           >
-            <option>All</option>
-            <option>New</option>
-            <option>Transfer</option>
+            <option value="All">All</option>
+            <option value="Complete">Complete</option>
+            <option value="Incomplete">Incomplete</option>
           </select>
           <select
             className="select select-bordered"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
-            <option>All</option>
-            <option>Active</option>
-            <option>Inactive</option>
+            <option value="All">All</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
           </select>
         </div>
         <div className="flex items-center gap-4">
@@ -238,7 +248,7 @@ const Members = () => {
         </div>
       </div>
 
-      {/* Members Table with vertical scrolling */}
+      {/* Members Table */}
       <div className="overflow-y-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
         <table className="table w-full">
           <thead>
@@ -248,7 +258,6 @@ const Members = () => {
               </th>
               <th>Application Number</th>
               <th>Name</th>
-              <th>Member Type</th>
               <th>Contact Number</th>
               <th>Address</th>
               <th>Status</th>
@@ -269,10 +278,7 @@ const Members = () => {
                     <div className="avatar">
                       <div className="mask mask-squircle h-12 w-12">
                         {imageUrl(member.id_picture) ? (
-                          <img
-                            src={imageUrl(member.id_picture)}
-                            alt="Avatar"
-                          />
+                          <img src={imageUrl(member.id_picture)} alt="Avatar" />
                         ) : (
                           <div className={`flex items-center justify-center h-full w-full ${getMemberFallbackColor(member)}`}>
                             <span className="text-lg font-bold text-white">
@@ -283,28 +289,42 @@ const Members = () => {
                       </div>
                     </div>
                     <div>
-                      <div className="font-bold">
-                        {member.last_name} {member.first_name}
-                      </div>
+                      <div className="font-bold">{member.last_name} {member.first_name}</div>
                       <div className="text-sm opacity-50">{member.country || ""}</div>
                     </div>
                   </div>
                 </td>
-                <td>{member.member_type}</td>
                 <td>{member.contact_number}</td>
                 <td>{member.barangay}</td>
                 <td>
-                  <span className={`badge ${(!member.status || member.status.toLowerCase() === "active") ? 'badge-success' : 'badge-error'}`}>
+                  <span className={`badge ${member.status?.toLowerCase() === "completed" ? 'badge-success' : 'badge-error'}`}>
                     {member.status}
                   </span>
                 </td>
                 <td>
-                  <button 
-                    className="btn btn-gray" 
-                    onClick={() => navigate(`/member-registration/${member.memberId}`)}
-                  >
-                    Register
-                  </button>
+                  {member.status && member.status.toLowerCase() === "incomplete" ? (
+                    <div className="flex gap-2">
+                      <button 
+                        className="btn btn-warning" 
+                        onClick={() => openModal('addOpen', member)}
+                      >
+                        Add
+                      </button>
+                      <button 
+                        className="btn btn-info" 
+                        onClick={() => openModal('editOpen', member)}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      className="btn btn-success" 
+                      onClick={() => navigate(`/member-registration/${member.memberId}`)}
+                    >
+                      Register
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -312,7 +332,7 @@ const Members = () => {
         </table>
       </div>
 
-      {/* Modals */}
+      {/* Modals (if used) */}
       {/* {(modalState.addOpen || modalState.editOpen) && (
         <AddMemberModal
           isOpen={modalState.addOpen || modalState.editOpen}

@@ -38,7 +38,7 @@ router.patch('/members/:memberId/financials', memberController.updateFinancials)
 router.get('/members/applicant', memberController.getAllMemberApplicants);
 
 // Use multiUpload middleware for routes that require file uploads.
-router.post('/register-member', multiUpload, memberController.addMember);
+router.post('/register-member', multiUpload, memberController.memberApplication);
 router.put('/members/:id', multiUpload, memberController.updateMember); 
 router.delete('/members/:id', memberController.deleteMember); 
 router.put('/activate/:memberId', memberController.activateAccount);

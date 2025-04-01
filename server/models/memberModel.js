@@ -91,6 +91,7 @@ const generateUniqueAccountNumber = async () => {
 
 
 
+
 exports.updateMemberFinancials = async (memberId, financialData) => {
   const connection = await db.getConnection();
 
@@ -115,9 +116,12 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
     throw new Error("All financial data fields must be provided and cannot be null.");
   }
 
+  // Fix: Set the initial_shared_capital equal to share_capital
+  const initial_shared_capital = share_capital;
+
   console.log(
     "INPUT VALUES BEFORE QUERY EXECUTION:",
-    { share_capital, identification_card_fee, membership_fee, kalinga_fund_fee, initial_savings },
+    { share_capital, initial_shared_capital, identification_card_fee, membership_fee, kalinga_fund_fee, initial_savings },
     "MEMBER ID:",
     memberId
   );
@@ -135,14 +139,15 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
       codePrefix = "RM-";
     }
 
-    // Generate a unique member code suffix using the helper and prepend the prefix
+    // Generate a unique member code suffix using the helper and prepend the prefix if needed
     const uniqueSuffix = await generateUniqueMemberCode();
-    const memberCode = uniqueSuffix;
+    const memberCode = uniqueSuffix; // Alternatively, you might want: codePrefix + uniqueSuffix
 
     // Update the members table with financials, memberCode, and member type
     const updateQuery = `
       UPDATE members SET
         share_capital = ?,
+        initial_shared_capital = ?,
         identification_card_fee = ?,
         membership_fee = ?,
         kalinga_fund_fee = ?,
@@ -154,6 +159,7 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
     `;
     const [result] = await connection.execute(updateQuery, [
       share_capital,
+      initial_shared_capital,
       identification_card_fee,
       membership_fee,
       kalinga_fund_fee,

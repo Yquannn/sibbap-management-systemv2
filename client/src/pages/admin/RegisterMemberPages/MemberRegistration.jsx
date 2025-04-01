@@ -44,7 +44,7 @@ const MemberRegistration = () => {
     "PERSONAL INFORMATION",
     "LEGAL BENEFICIARIES & DOCUMENTS",
     "INITIAL CONTRIBUTION",
-    "MOBILE PORTAL",
+    // "MOBILE PORTAL",
   ];
 
   // Fetch member data on mount or when memberId changes.

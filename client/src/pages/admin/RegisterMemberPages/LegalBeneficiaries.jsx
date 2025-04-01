@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 const LegalAndDocuments = ({
   handlePrevious,
@@ -6,6 +6,7 @@ const LegalAndDocuments = ({
   formData,
   setFormData,
   isReadOnly,
+  fetchedData, // new prop to pass fetched legal beneficiaries and documents data
 }) => {
   // ------------------ LEGAL BENEFICIARIES SETUP ------------------
   const defaultLegalBeneficiaries = {
@@ -18,6 +19,55 @@ const LegalAndDocuments = ({
     ],
   };
 
+  // ------------------ DOCUMENTS UPLOAD SETUP ------------------
+  const defaultDocuments = {
+    id_picture: null,
+    barangay_clearance: null,
+    tax_identification: null,
+    valid_id: null,
+    membership_agreement: null,
+  };
+
+  // When fetchedData is available, merge its legalBeneficiaries and documents into formData
+  useEffect(() => {
+    if (fetchedData) {
+      if (fetchedData.legalBeneficiaries) {
+        setFormData((prev) => ({
+          ...prev,
+          legalBeneficiaries: {
+            ...defaultLegalBeneficiaries,
+            ...fetchedData.legalBeneficiaries,
+            primary: {
+              ...defaultLegalBeneficiaries.primary,
+              ...(fetchedData.legalBeneficiaries.primary || {}),
+            },
+            secondary: {
+              ...defaultLegalBeneficiaries.secondary,
+              ...(fetchedData.legalBeneficiaries.secondary || {}),
+            },
+            additional:
+              fetchedData.legalBeneficiaries.additional ||
+              defaultLegalBeneficiaries.additional,
+            characterReferences:
+              (fetchedData.legalBeneficiaries.characterReferences &&
+                fetchedData.legalBeneficiaries.characterReferences.length > 0) ||
+              defaultLegalBeneficiaries.characterReferences,
+          },
+        }));
+      }
+      if (fetchedData.documents) {
+        setFormData((prev) => ({
+          ...prev,
+          documents: {
+            ...defaultDocuments,
+            ...fetchedData.documents,
+          },
+        }));
+      }
+    }
+  }, [fetchedData, setFormData]);
+
+  // Merge legal beneficiaries from formData with defaults
   const legalBeneficiaries = {
     ...defaultLegalBeneficiaries,
     ...formData.legalBeneficiaries,
@@ -109,15 +159,7 @@ const LegalAndDocuments = ({
     }));
   };
 
-  // ------------------ DOCUMENTS UPLOAD SETUP ------------------
-  const defaultDocuments = {
-    id_picture: null,
-    barangay_clearance: null,
-    tax_identification: null,
-    valid_id: null,
-    membership_agreement: null,
-  };
-
+  // Merge documents from formData with defaults
   const documents = { ...defaultDocuments, ...formData.documents };
 
   const handleFileChange = (e) => {
@@ -398,7 +440,7 @@ const LegalAndDocuments = ({
           &#171;&#171; Previous
         </button>
         <button
-          onClick={handleNext} // Using handleNext instead of handleSave
+          onClick={handleNext}
           type="button"
           className="bg-green-700 text-white px-8 py-3 rounded-lg"
         >

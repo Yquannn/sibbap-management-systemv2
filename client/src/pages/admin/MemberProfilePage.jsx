@@ -93,6 +93,7 @@ const MemberProfilePage = () => {
           `http://localhost:3001/api/member/${memberId}`
         );
         setMember(response.data);
+        console.log(response.data)
       } catch (error) {
         console.error("Error fetching member data:", error);
         setMessage("Error fetching member data.");
@@ -452,40 +453,64 @@ const MemberProfilePage = () => {
 
   // ------------------ INITIAL CONTRIBUTION SECTION ------------------
   const InitialContributionSection = () => {
-    if (!member.initial_contribution) {
-      return (
-        <div className="p-6">
-          <p className="text-gray-600 text-base">
-            No initial contribution data.
-          </p>
-        </div>
-      );
-    }
+    // if (!member.initial_contribution) {
+    //   return (
+    //     <div className="p-6">
+    //       <p className="text-gray-600 text-base">
+    //         No Share Capital data.
+    //       </p>
+    //     </div>
+    //   );
+    // }
 
-    const contrib = member.initial_contribution;
     return (
-      <div className="p-6">
-        <h3 className="text-xl font-bold mb-4 text-gray-800">
-          Initial Contribution
-        </h3>
-        <p>
-          <strong>Share Capital Contribution Amount:</strong> ₱
-          {contrib.share_capital}
+<div className="p-6">
+  <h3 className="text-3xl font-bold text-gray-900 border-b pb-3 mb-5">
+    Current Contributions
+  </h3>
+
+  <div className="grid grid-cols-1 gap-4 text-gray-700">
+    {/* Share Capital Section */}
+    <div className="border-b border-gray-300 pb-4">
+      <h4 className="text-xl font-semibold text-gray-900 mb-3">Share Capital</h4>
+      <p className="flex justify-between items-center group transition-all">
+        <span>Current Share Capital:</span>
+        <span className="font-medium text-blue-500 group-hover:text-blue-600">
+          ₱{member.share_capital}
+        </span>
+      </p>
+    </div>
+
+    {/* Fees Section */}
+    <div className="border-b border-gray-300 pb-4">
+      <h4 className="text-xl font-semibold text-gray-900 mb-3">Fees</h4>
+      {[
+        { label: "Initial Shared Capital", value: member.initial_shared_capital },
+        { label: "Identification Card Fee", value: member.identification_card_fee },
+        { label: "Membership Fee", value: member.membership_fee },
+        { label: "Kalinga Fund Fee", value: member.kalinga_fund_fee },
+      ].map((item, index) => (
+        <p
+          key={index}
+          className="flex justify-between items-center hover:text-blue-600 transition-all"
+        >
+          <span>{item.label}:</span>
+          <span className="font-medium text-blue-500">₱{item.value}</span>
         </p>
-        <p>
-          <strong>Identification Card Fee:</strong> ₱
-          {contrib.identification_card_fee}
-        </p>
-        <p>
-          <strong>Membership Fee:</strong> ₱{contrib.membership_fee}
-        </p>
-        <p>
-          <strong>Kalinga Fund Fee:</strong> ₱{contrib.kalinga_fund_fee}
-        </p>
-        <p>
-          <strong>Initial Savings:</strong> ₱{contrib.initial_savings}
-        </p>
-      </div>
+      ))}
+    </div>
+
+    {/* Savings Section */}
+    <div>
+      <h4 className="text-xl font-semibold text-gray-900 mb-3">Savings</h4>
+      <p className="flex justify-between items-center hover:text-blue-600 transition-all">
+        <span>Initial Savings:</span>
+        <span className="font-medium text-blue-500">₱{member.initial_savings}</span>
+      </p>
+    </div>
+  </div>
+</div>
+
     );
   };
 
@@ -889,7 +914,7 @@ const MemberProfilePage = () => {
         {/* Tabs Navigation */}
         <div className="border-b">
           <nav className="flex space-x-4">
-            {["Documents", "Beneficiaries", "Account Info", "Loan History", "Initial Contribution"].map((tab) => (
+            {["Documents", "Beneficiaries", "Account Info", "Loan History", "Share Capital"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -911,7 +936,8 @@ const MemberProfilePage = () => {
           {activeTab === "Beneficiaries" && <BeneficiariesSection />}
           {activeTab === "Account Info" && <AccountInfoSection />}
           {activeTab === "Loan History" && <LoanHistorySection />}
-          {activeTab === "Initial Contribution" && <InitialContributionSection />}
+          {activeTab === "Share Capital" && <InitialContributionSection />}
+          
         </div>
       </div>
 

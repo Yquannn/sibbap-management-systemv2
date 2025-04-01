@@ -10,10 +10,10 @@ const InitialContribution = ({
   // Default initial values that the user can override by typing.
   const defaultInitialContribution = {
     share_capital: null,
-    membership_fee: null,
-    identification_card_fee: null,
-    kalinga_fund_fee: null,
-    initial_savings: null,
+    membership_fee: 300,
+    identification_card_fee: 150,
+    kalinga_fund_fee: 100,
+    initial_savings: 100,
   };
 
   const { memberId } = useParams();

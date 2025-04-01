@@ -3,7 +3,7 @@ const memberModel= require('../models/memberModel')
 
 const { queryDatabase, generateUniqueMemberId, formatDate } = require('../utils/databaseHelper');
 const { updateMemberFinancials } = require('../models/memberModel');
-
+const { isApplicationComplete } = require('../utils/valiidateApplication');
 
 
 exports.getMembers = async (req, res) => {
@@ -167,11 +167,9 @@ exports.getMemberById = async (req, res) => {
 
 
 
-
-exports.addMember = async (req, res) => {
+exports.memberApplication = async (req, res) => {
   const {
     registration_type,
-    member_type,
     registration_date,
     annual_income,
     number_of_dependents,
@@ -246,60 +244,62 @@ exports.addMember = async (req, res) => {
     : formatDate(new Date());
 
   // Build sanitized data object ensuring missing values are set to null.
-  // Note: We also trim string inputs to remove extra whitespace.
+  // Note: We trim string inputs to remove extra whitespace.
   const sanitizedData = {
     registration_type: registration_type !== undefined ? registration_type : null,
-    member_type: member_type !== undefined ? member_type : "Regular member",
     registration_date: formattedRegistrationDate,
     annual_income: annual_incomeNum,
     number_of_dependents: number_of_dependentsNum,
-    last_name: last_name !== undefined ? last_name.trim() : null,
-    first_name: first_name !== undefined ? first_name.trim() : null,
-    middle_name: middle_name !== undefined ? middle_name.trim() : null,
-    maiden_name: maiden_name !== undefined ? maiden_name.trim() : null,
-    extension_name: extension_name !== undefined ? extension_name.trim() : null,
-    religion: religion !== undefined ? religion.trim() : null,
-    tin_number: tin_number !== undefined ? tin_number.trim() : null,
-    date_of_birth: date_of_birth !== undefined ? date_of_birth : null,
-    birthplace_province: birthplace_province !== undefined ? birthplace_province.trim() : null,
+    last_name: last_name ? last_name.trim() : null,
+    first_name: first_name ? first_name.trim() : null,
+    middle_name: middle_name ? middle_name.trim() : null,
+    maiden_name: maiden_name ? maiden_name.trim() : null,
+    extension_name: extension_name ? extension_name.trim() : null,
+    religion: religion ? religion.trim() : null,
+    tin_number: tin_number ? tin_number.trim() : null,
+    date_of_birth: date_of_birth ? date_of_birth : null,
+    birthplace_province: birthplace_province ? birthplace_province.trim() : null,
     age: ageNum,
-    sex: sex !== undefined ? sex.trim() : null,
-    civil_status: civil_status !== undefined ? civil_status.trim() : null,
-    highest_educational_attainment:
-      highest_educational_attainment !== undefined
-        ? highest_educational_attainment.trim()
-        : null,
-    occupation_source_of_income:
-      occupation_source_of_income !== undefined
-        ? occupation_source_of_income.trim()
-        : null,
-    spouse_name: spouse_name !== undefined ? spouse_name.trim() : null,
-    spouse_occupation_source_of_income:
-      spouse_occupation_source_of_income !== undefined
-        ? spouse_occupation_source_of_income.trim()
-        : null,
-    primary_beneficiary_name:
-      primary_beneficiary_name !== undefined ? primary_beneficiary_name.trim() : null,
-    primary_beneficiary_relationship:
-      primary_beneficiary_relationship !== undefined ? primary_beneficiary_relationship.trim() : null,
-    primary_beneficiary_contact:
-      primary_beneficiary_contact !== undefined ? primary_beneficiary_contact.trim() : null,
-    secondary_beneficiary_name:
-      secondary_beneficiary_name !== undefined ? secondary_beneficiary_name.trim() : null,
-    secondary_beneficiary_relationship:
-      secondary_beneficiary_relationship !== undefined ? secondary_beneficiary_relationship.trim() : null,
-    secondary_beneficiary_contact:
-      secondary_beneficiary_contact !== undefined ? secondary_beneficiary_contact.trim() : null,
-    contact_number: contact_number !== undefined ? contact_number.trim() : null,
-    house_no_street: house_no_street !== undefined ? house_no_street.trim() : null,
-    barangay: barangay !== undefined ? barangay.trim() : null,
-    city: city !== undefined ? city.trim() : null,
-    reference_name: reference_name !== undefined ? reference_name.trim() : null,
-    position: position !== undefined ? position.trim() : null,
-    reference_contact: reference_contact !== undefined ? reference_contact.trim() : null,
-    email: email !== undefined ? email.trim() : null,
-    password: password !== undefined ? password.trim() : null,
-    id_picture: id_picture,
+    sex: sex ? sex.trim() : null,
+    civil_status: civil_status ? civil_status.trim() : null,
+    highest_educational_attainment: highest_educational_attainment
+      ? highest_educational_attainment.trim()
+      : null,
+    occupation_source_of_income: occupation_source_of_income
+      ? occupation_source_of_income.trim()
+      : null,
+    spouse_name: spouse_name ? spouse_name.trim() : null,
+    spouse_occupation_source_of_income: spouse_occupation_source_of_income
+      ? spouse_occupation_source_of_income.trim()
+      : null,
+    primary_beneficiary_name: primary_beneficiary_name
+      ? primary_beneficiary_name.trim()
+      : null,
+    primary_beneficiary_relationship: primary_beneficiary_relationship
+      ? primary_beneficiary_relationship.trim()
+      : null,
+    primary_beneficiary_contact: primary_beneficiary_contact
+      ? primary_beneficiary_contact.trim()
+      : null,
+    secondary_beneficiary_name: secondary_beneficiary_name
+      ? secondary_beneficiary_name.trim()
+      : null,
+    secondary_beneficiary_relationship: secondary_beneficiary_relationship
+      ? secondary_beneficiary_relationship.trim()
+      : null,
+    secondary_beneficiary_contact: secondary_beneficiary_contact
+      ? secondary_beneficiary_contact.trim()
+      : null,
+    contact_number: contact_number ? contact_number.trim() : null,
+    house_no_street: house_no_street ? house_no_street.trim() : null,
+    barangay: barangay ? barangay.trim() : null,
+    city: city ? city.trim() : null,
+    reference_name: reference_name ? reference_name.trim() : null,
+    position: position ? position.trim() : null,
+    reference_contact: reference_contact ? reference_contact.trim() : null,
+    email: email ? email.trim() : null,
+    password: password ? password.trim() : null,
+    id_picture,
     barangay_clearance: barangayClearance,
     tax_identification_id: taxIdentificationId,
     valid_id: validId,
@@ -307,26 +307,32 @@ exports.addMember = async (req, res) => {
     savings: savingsNum
   };
 
+  // For testing, we use the helper to check if the application is complete.
+  // Here, only "last_name" is required.
+  const status = isApplicationComplete(sanitizedData) ? "Completed" : "Incomplete";
+  // Attach status to our data object.
+  sanitizedData.status = status;
+
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    // Insert into members table
+    // Insert into members table.
+    // Note: We now include the "status" column in the query.
     const memberQuery = `
       INSERT INTO members 
-        (registration_type, member_type, registration_date, annual_income,
+        (registration_type, registration_date, annual_income,
          number_of_dependents, last_name, first_name, middle_name,
          maiden_name, extension_name, religion, tin_number, date_of_birth,
          birthplace_province, age, sex, civil_status, highest_educational_attainment,
          occupation_source_of_income, spouse_name, spouse_occupation_source_of_income,
          contact_number, house_no_street, barangay, city, id_picture,
-         barangay_clearance, tax_identification_id, valid_id, membership_agreement)
+         barangay_clearance, tax_identification_id, valid_id, membership_agreement, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const memberParams = [
       sanitizedData.registration_type,
-      sanitizedData.member_type,
       sanitizedData.registration_date,
       sanitizedData.annual_income,
       sanitizedData.number_of_dependents,
@@ -354,7 +360,8 @@ exports.addMember = async (req, res) => {
       sanitizedData.barangay_clearance,
       sanitizedData.tax_identification_id,
       sanitizedData.valid_id,
-      sanitizedData.membership_agreement
+      sanitizedData.membership_agreement,
+      sanitizedData.status
     ];
     const [memberResult] = await connection.execute(memberQuery, memberParams);
 
@@ -362,17 +369,18 @@ exports.addMember = async (req, res) => {
       throw new Error("Failed to insert member information");
     }
 
-    const memberId = memberResult.insertId;
+    // Use a new variable name for the generated member id.
+    const newMemberId = memberResult.insertId;
 
-    // INSERT primary beneficiary if provided (non-empty after trimming)
-    if (sanitizedData.primary_beneficiary_name && sanitizedData.primary_beneficiary_name !== "") {
+    // INSERT primary beneficiary if provided.
+    if (sanitizedData.primary_beneficiary_name) {
       const primaryBeneficiaryQuery = `
         INSERT INTO beneficiaries 
           (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
         VALUES (?, ?, ?, ?)
       `;
       const primaryBeneficiaryParams = [
-        memberId,
+        newMemberId,
         sanitizedData.primary_beneficiary_name,
         sanitizedData.primary_beneficiary_relationship,
         sanitizedData.primary_beneficiary_contact
@@ -380,15 +388,15 @@ exports.addMember = async (req, res) => {
       await connection.execute(primaryBeneficiaryQuery, primaryBeneficiaryParams);
     }
 
-    // INSERT secondary beneficiary if provided (non-empty after trimming)
-    if (sanitizedData.secondary_beneficiary_name && sanitizedData.secondary_beneficiary_name !== "") {
+    // INSERT secondary beneficiary if provided.
+    if (sanitizedData.secondary_beneficiary_name) {
       const secondaryBeneficiaryQuery = `
         INSERT INTO beneficiaries 
           (memberId, beneficiaryName, relationship, beneficiaryContactNumber)
         VALUES (?, ?, ?, ?)
       `;
       const secondaryBeneficiaryParams = [
-        memberId,
+        newMemberId,
         sanitizedData.secondary_beneficiary_name,
         sanitizedData.secondary_beneficiary_relationship,
         sanitizedData.secondary_beneficiary_contact
@@ -396,15 +404,15 @@ exports.addMember = async (req, res) => {
       await connection.execute(secondaryBeneficiaryQuery, secondaryBeneficiaryParams);
     }
 
-    // INSERT character reference if provided (non-empty after trimming)
-    if (sanitizedData.reference_name && sanitizedData.reference_name !== "") {
+    // INSERT character reference if provided.
+    if (sanitizedData.reference_name) {
       const characterReferencesQuery = `
         INSERT INTO character_references 
           (memberId, referenceName, \`position\`, referenceContactNumber)
         VALUES (?, ?, ?, ?)
       `;
       const characterReferencesParams = [
-        memberId,
+        newMemberId,
         sanitizedData.reference_name,
         sanitizedData.position,
         sanitizedData.reference_contact
@@ -415,6 +423,7 @@ exports.addMember = async (req, res) => {
     await connection.commit();
     res.status(201).json({
       message: "Application successfully submitted",
+      status: sanitizedData.status,
       id_picture: sanitizedData.id_picture
     });
   } catch (error) {
@@ -607,7 +616,7 @@ exports.getAllMemberApplicants = async (req, res) => {
       LEFT JOIN beneficiaries b ON m.memberId = b.memberId
       LEFT JOIN character_references c ON m.memberId = c.memberId
       LEFT JOIN regular_savings s ON m.memberId = s.memberId
-      WHERE m.status = 'Provisional Member'
+      WHERE m.status IN ('Incomplete', 'Completed')
     `;
 
     const rows = await connection.execute(query);
