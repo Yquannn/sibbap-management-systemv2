@@ -1,50 +1,26 @@
 import React, { useEffect } from "react";
+import { useParams } from "react-router-dom"; // <-- Import useParams
 
-const PersonalInformation = ({
+const PersonalInformationReg = ({
   handleNext,
   formData,
-  setFormData,
-  fetchedData,
-  mode = "application",
-  isReadOnly = false, // new prop to set the form read-only
+  setFormData
 }) => {
+  const { mode } = useParams(); // <-- Get mode from URL
   const [errors, setErrors] = React.useState({});
 
-  // If fetchedData is provided, merge it into personalInfo.
-  useEffect(() => {
-    if (fetchedData && Object.keys(fetchedData).length > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        personalInfo: { ...prev.personalInfo, ...fetchedData },
-      }));
-    }
-  }, [fetchedData, setFormData]);
+  const isReadOnly = mode === "add" || "register"; // Disable fields if mode is "add"
 
-  // onChange handler updates state only if not read-only
   const handleChange = (e) => {
-    if (isReadOnly) return;
     const { name, value } = e.target;
-    const contactKeys = [
-      "house_no_street",
-      "barangay",
-      "city",
-      "province",
-      "contact_number",
-    ];
-    if (contactKeys.includes(name)) {
-      setFormData((prev) => ({
-        ...prev,
-        contactInfo: { ...prev.contactInfo, [name]: value },
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        personalInfo: { ...prev.personalInfo, [name]: value },
-      }));
-    }
+    if (isReadOnly) return; // Prevent edits in add mode
+    setFormData((prev) => ({
+      ...prev,
+      personalInfo: { ...prev.personalInfo, [name]: value },
+      contactInfo: { ...prev.contactInfo, [name]: value },
+    }));
   };
 
-  // Validate age and clear maiden_name if civil_status is "Single"
   useEffect(() => {
     const current = formData.personalInfo || {};
     const ageValue = parseInt(current.age || "", 10);
@@ -65,11 +41,7 @@ const PersonalInformation = ({
         personalInfo: { ...prev.personalInfo, maiden_name: "" },
       }));
     }
-  }, [
-    formData.personalInfo.age,
-    formData.personalInfo.civil_status,
-    setFormData,
-  ]);
+  }, [formData.personalInfo.age, formData.personalInfo.civil_status, setFormData]);
 
   const validateForm = () => {
     let isValid = true;
@@ -89,8 +61,9 @@ const PersonalInformation = ({
 
   const handleNextClick = (e) => {
     e.preventDefault();
+    if (validateForm()) {
       handleNext();
-    
+    }
   };
 
   const textInputs = [
@@ -102,9 +75,7 @@ const PersonalInformation = ({
     { label: "Age", name: "age", type: "number", required: true },
     { label: "Birthplace Province", name: "birthplace_province", type: "text" },
     { label: "Religion", name: "religion", type: "text" },
-    mode === "loan"
-      ? { label: "Monthly Income (PHP)", name: "monthly_income", type: "number" }
-      : { label: "Annual Income (PHP)", name: "annual_income", type: "number" },
+    { label: "Annual Income (PHP)", name: "annual_income", type: "number" },
     { label: "TIN Number", name: "tin_number", type: "text" },
     { label: "Number of Dependents", name: "number_of_dependents", type: "number" },
     { label: "Name of Spouse", name: "spouse_name", type: "text" },
@@ -150,15 +121,13 @@ const PersonalInformation = ({
             <label key={index} className="block">
               {input.label} {input.required && <span className="text-red-500">*</span>}
               <input
-                className={`border p-3 rounded-lg w-full ${
-                  errors[input.name] ? "border-red-500" : ""
-                }`}
+                className={`border p-3 rounded-lg w-full ${errors[input.name] ? "border-red-500" : ""}`}
                 name={input.name}
                 type={input.type}
                 value={formData.personalInfo[input.name] || ""}
                 onChange={handleChange}
                 placeholder={input.label}
-                disabled={isReadOnly} // disable input if read-only
+                readOnly={isReadOnly}
               />
               {errors[input.name] && (
                 <p className="text-red-500 text-sm">{errors[input.name]}</p>
@@ -170,12 +139,10 @@ const PersonalInformation = ({
               {dropdown.label} {dropdown.required && <span className="text-red-500">*</span>}
               <select
                 name={dropdown.name}
-                className={`border p-3 rounded-lg w-full ${
-                  errors[dropdown.name] ? "border-red-500" : ""
-                }`}
+                className={`border p-3 rounded-lg w-full ${errors[dropdown.name] ? "border-red-500" : ""}`}
                 value={formData.personalInfo[dropdown.name] || ""}
                 onChange={handleChange}
-                disabled={isReadOnly} // disable dropdown if read-only
+                disabled={isReadOnly}
               >
                 <option value="">Select {dropdown.label}</option>
                 {dropdown.options.map((option) => (
@@ -202,7 +169,7 @@ const PersonalInformation = ({
                   value={formData.contactInfo[key] || ""}
                   onChange={handleChange}
                   placeholder={`Enter ${key.replace(/_/g, " ")}`}
-                  disabled={isReadOnly} // disable input if read-only
+                  readOnly={isReadOnly}
                 />
               </label>
             )
@@ -222,4 +189,4 @@ const PersonalInformation = ({
   );
 };
 
-export default PersonalInformation;
+export default PersonalInformationReg;

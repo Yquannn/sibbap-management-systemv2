@@ -24,10 +24,8 @@ const InitialContribution = ({
     }
   }, [memberId]);
 
-  // Initialize with default values only.
-  const [localContribution, setLocalContribution] = useState(
-    defaultInitialContribution
-  );
+  // Initialize with default values.
+  const [localContribution, setLocalContribution] = useState(defaultInitialContribution);
 
   // Handle user input updates.
   const handleChange = (e) => {
@@ -60,15 +58,9 @@ const InitialContribution = ({
         <div className="grid grid-cols-1 gap-4">
           <div className="grid grid-cols-4 items-center gap-4">
             {[
-              {
-                label: "Share capital contribution amount",
-                name: "share_capital",
-              },
+              { label: "Share capital contribution amount", name: "share_capital" },
               { label: "Membership fee", name: "membership_fee" },
-              {
-                label: "Identification Card fee",
-                name: "identification_card_fee",
-              },
+              { label: "Identification Card fee", name: "identification_card_fee" },
               { label: "Kalinga fund fee", name: "kalinga_fund_fee" },
               { label: "Initial savings", name: "initial_savings" },
             ].map(({ label, name }) => (
@@ -80,7 +72,7 @@ const InitialContribution = ({
                   className="border p-2 rounded-lg w-full"
                   value={localContribution[name]}
                   onChange={handleChange}
-                  // Remove disabled or ensure isReadOnly is false to allow typing
+                  disabled={isReadOnly} // Disable input if read-only
                 />
               </React.Fragment>
             ))}
@@ -91,6 +83,7 @@ const InitialContribution = ({
             className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg shadow-md hover:bg-green-800 transition-all"
             onClick={handleSubmit}
             type="button"
+            disabled={isReadOnly} // Disable the button if read-only
           >
             Submit
           </button>

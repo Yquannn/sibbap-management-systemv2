@@ -79,6 +79,9 @@ function App() {
 
 
     <Route path="member-registration/:memberId" element={<MemberRegistration />} />
+    <Route path="member-registration/:mode/:memberId" element={<MemberRegistration />} />
+
+
 
 
     <Route path="members" element={<Members />} />

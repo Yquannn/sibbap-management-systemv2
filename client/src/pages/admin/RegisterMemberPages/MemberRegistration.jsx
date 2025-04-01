@@ -30,20 +30,22 @@ const MemberRegistration = () => {
     mobilePortal: {},
   });
 
-  // Flag for setting inputs to read-only after fetching member data.
-  const [isReadOnly, setIsReadOnly] = useState(false);
-
   // State for controlling the success modal.
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const { memberId } = useParams();
+  // Read memberId and mode from URL parameters.
+  // The mode will be "add" or "edit" if the user clicked the corresponding button.
+  const { mode, memberId } = useParams();
 
-  // Titles for each step.
+  // Determine if the Initial Contribution step should be removed.
+  const removeInitialContribution = mode === "add" || mode === "edit";
+
+  // Build the tabs array conditionally.
   const tabs = [
     "PERSONAL INFORMATION",
     "LEGAL BENEFICIARIES & DOCUMENTS",
-    "INITIAL CONTRIBUTION",
+    ...(!removeInitialContribution ? ["INITIAL CONTRIBUTION"] : []),
     // "MOBILE PORTAL",
   ];
 
@@ -96,8 +98,7 @@ const MemberRegistration = () => {
             barangay_clearance: fetchedData.barangay_clearance || "",
             tax_identification_id: fetchedData.tax_identification_id || "",
             valid_id: fetchedData.valid_id || "",
-            primary_beneficiary_name:
-              fetchedData.primary_beneficiary_name || "",
+            primary_beneficiary_name: fetchedData.primary_beneficiary_name || "",
             primary_beneficiary_relationship:
               fetchedData.primary_beneficiary_relationship || "",
             primary_beneficiary_contact:
@@ -121,9 +122,6 @@ const MemberRegistration = () => {
             portalPassword: fetchedData.portalPassword || "",
           },
         });
-
-        // Once the data is fetched, set fields to read-only if needed.
-        setIsReadOnly(true);
       } catch (error) {
         console.error("Error fetching member data:", error);
         alert("Failed to fetch data from API");
@@ -135,59 +133,67 @@ const MemberRegistration = () => {
     }
   }, [memberId]);
 
-  // Navigate to the previous step.
+  // Navigation functions for step tabs.
   const handlePrevious = () => {
     if (activeTab > 0) {
       setActiveTab(activeTab - 1);
     }
   };
 
-  // Navigate to the next step.
   const handleNext = () => {
     if (activeTab < tabs.length - 1) {
       setActiveTab(activeTab + 1);
     }
   };
 
-  const handleSave = async (contributionData) => {
-    try {
-      // Use the contributionData provided by the child, or fallback to the parent's initialContribution.
-      const dataToSend = contributionData || formData.initialContribution;
-      
-      // Construct the JSON payload explicitly,
-      // ensuring each field is a number.
-      const jsonData = {
-        share_capital: Number(dataToSend.share_capital),
-        identification_card_fee: Number(dataToSend.identification_card_fee),
-        membership_fee: Number(dataToSend.membership_fee),
-        kalinga_fund_fee: Number(dataToSend.kalinga_fund_fee),
-        initial_savings: Number(dataToSend.initial_savings),
-      };
-  
-      console.log("Sending financial data:", jsonData);
-  
-      const response = await axios.patch(
-        `http://localhost:3001/api/members/${memberId}/financials`,
-        jsonData,
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-  
-      console.log("Registration successful", response.data);
-      setSuccessMessage(
-        response.data.message || "Member Registration successfully!"
-      );
-      setShowSuccessModal(true);
-    } catch (error) {
-      console.error("Error during registration:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        "Registration error! Please try again later.";
-      alert(`Error adding member: ${errorMessage}`);
+  // Save function for final submission.
+  const handleSave = async (memberData) => {
+    if (removeInitialContribution) {
+      // In add or edit mode, skip updating initial contribution.
+      try {
+        // For example, update personal/legal data.
+        await axios.put(
+          `http://localhost:3001/api/members/${memberId}`,
+          memberData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+        setSuccessMessage("Member updated successfully!");
+        setShowSuccessModal(true);
+      } catch (error) {
+        console.error("Error updating member:", error);
+        alert("Error updating member: " + error.message);
+      }
+    } else {
+      // In register mode, process initial contribution.
+      try {
+        const dataToSend = memberData || formData.initialContribution;
+        const jsonData = {
+          share_capital: Number(dataToSend.share_capital),
+          identification_card_fee: Number(dataToSend.identification_card_fee),
+          membership_fee: Number(dataToSend.membership_fee),
+          kalinga_fund_fee: Number(dataToSend.kalinga_fund_fee),
+          initial_savings: Number(dataToSend.initial_savings),
+        };
+        const response = await axios.patch(
+          `http://localhost:3001/api/members/${memberId}/financials`,
+          jsonData,
+          { headers: { "Content-Type": "application/json" } }
+        );
+        setSuccessMessage(
+          response.data.message || "Member Registration successfully!"
+        );
+        setShowSuccessModal(true);
+      } catch (error) {
+        console.error("Error during registration:", error);
+        const errorMessage =
+          error.response?.data?.message ||
+          "Registration error! Please try again later.";
+        alert(`Error adding member: ${errorMessage}`);
+      }
     }
   };
-  
 
   return (
     <div className="flex items-center justify-center w-full h-full">
@@ -216,42 +222,31 @@ const MemberRegistration = () => {
               handleNext={handleNext}
               formData={formData}
               setFormData={setFormData}
-              isReadOnly={isReadOnly}
+              isReadOnly={false} // Personal information remains editable
             />
           )}
 
           {activeTab === 1 && (
             <LegalAndDocuments
               handlePrevious={handlePrevious}
-              handleNext={handleNext}
+              // If this is the last step (when initial contribution is removed), trigger save.
+              handleNext={activeTab === tabs.length - 1 ? handleSave : handleNext}
               formData={formData}
               setFormData={setFormData}
-              isReadOnly={isReadOnly}
+              isReadOnly={false} // Legal & Documents remains editable
             />
           )}
 
-          {activeTab === 2 && (
-            <InitialContribution
-              handlePrevious={handlePrevious}
-              // For the Initial Contribution step, when the user submits,
-              // the child passes the contribution data to handleSave.
-              handleNext={handleSave}
-              formData={formData}
-              setFormData={setFormData}
-              isReadOnly={isReadOnly}
-            />
-          )}
-
-          {/* Uncomment if you are using MobilePortal */}
-          {/* {activeTab === 3 && (
-            <MobilePortal
-              handlePrevious={handlePrevious}
-              handleSave={handleSave}
-              formData={formData}
-              setFormData={setFormData}
-              isReadOnly={isReadOnly}
-            />
-          )} */}
+          {!removeInitialContribution &&
+            activeTab === 2 && (
+              <InitialContribution
+                handlePrevious={handlePrevious}
+                handleNext={handleSave}
+                formData={formData}
+                setFormData={setFormData}
+                isReadOnly={false}
+              />
+            )}
         </div>
       </div>
 
@@ -261,7 +256,6 @@ const MemberRegistration = () => {
           message={successMessage}
           onClose={() => {
             setShowSuccessModal(false);
-            // Optionally, reset the form or navigate away after success.
           }}
         />
       )}

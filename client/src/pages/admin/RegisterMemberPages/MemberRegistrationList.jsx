@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { FaEye, FaUsers, FaArrowDown, FaArrowUp, FaUserTie } from 'react-icons/fa';
-// import MemberProfileModal from '../../components/modal/MemberProfileModal';
-// import AddMemberModal from '../../components/modal/AddMemberModal';
 import { UserPlus } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdAttachMoney } from 'react-icons/md';
@@ -10,12 +8,6 @@ import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdAttachMoney } from 'r
 const apiBaseURL = 'http://localhost:3001/api';
 
 const Members = () => {
-  const [modalState, setModalState] = useState({
-    addOpen: false,
-    editOpen: false,
-    viewOpen: false,
-    selectedMember: null
-  });
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,18 +19,18 @@ const Members = () => {
 
   const navigate = useNavigate();
 
-  // Helper function to generate image URL if available
+  // Helper to generate image URL if available
   const imageUrl = (filename) =>
     filename ? `http://localhost:3001/uploads/${filename}` : "";
 
-  // Array of background color classes for avatar fallback
+  // Background colors for avatar fallback
   const bgColors = [
     "bg-red-500", "bg-blue-500", "bg-green-500",
     "bg-yellow-500", "bg-purple-500", "bg-indigo-500",
     "bg-pink-500", "bg-orange-500"
   ];
 
-  // Compute a consistent background color based on the member's unique id or name
+  // Compute a consistent background color based on member data
   const getMemberFallbackColor = (member) => {
     const id = member.memberId
       ? String(member.memberId)
@@ -56,18 +48,12 @@ const Members = () => {
     setLoading(true);
     try {
       const params = {};
-
-      // Trim searchTerm to avoid sending unnecessary spaces
       if (searchTerm.trim()) {
         params.name = searchTerm.trim();
       }
-
-      // Normalize filterCompletion value to match API expectations
       if (filterCompletion !== "All") {
         params.status = filterCompletion.toLowerCase() === "complete" ? "completed" : "incomplete";
       }
-
-      // Normalize filterStatus value to lowercase (if API expects lowercase)
       if (filterStatus !== "All") {
         params.accountStatus = filterStatus.toLowerCase();
       }
@@ -75,12 +61,9 @@ const Members = () => {
       const response = await axios.get(`${apiBaseURL}/members/applicant`, { params });
       const apiData = response.data.data;
       const membersData = Array.isArray(apiData[0]) ? apiData[0] : apiData;
-  
-      // Sort by memberCode in descending order (assuming memberCode is numeric)
       const sortedMembers = membersData.sort(
         (a, b) => parseInt(b.memberCode, 10) - parseInt(a.memberCode, 10)
       );
-  
       setMembers(sortedMembers);
     } catch (err) {
       setError("Error fetching members: " + err.message);
@@ -89,9 +72,8 @@ const Members = () => {
     }
   }, [searchTerm, filterCompletion, filterStatus]);
   
-
   // Fetch total member count
-  const FetchTotalMember = async () => {
+  const fetchTotalMember = async () => {
     try {
       const response = await axios.get(`${apiBaseURL}/total`);
       setTotalMember(response.data.totalMembers);
@@ -102,71 +84,8 @@ const Members = () => {
 
   useEffect(() => {
     fetchMembers();
-    FetchTotalMember();
+    fetchTotalMember();
   }, [fetchMembers]);
-
-  // Modal control functions
-  const openModal = (type, member = null) => {
-    setModalState({
-      addOpen: type === 'addOpen',
-      editOpen: type === 'editOpen',
-      viewOpen: type === 'viewOpen',
-      selectedMember: member
-    });
-  };
-
-  const closeModal = () => {
-    setModalState({
-      addOpen: false,
-      editOpen: false,
-      viewOpen: false,
-      selectedMember: null
-    });
-  };
-
-  // Update member details
-  const updateMember = async (member) => {
-    try {
-      setLoading(true);
-      await axios.put(
-        `${apiBaseURL}/members/${member.memberId}`,
-        member,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      setMessage({ type: "success", text: "Member updated successfully!" });
-      fetchMembers();
-      closeModal();
-    } catch (error) {
-      setMessage({ type: "error", text: "Error updating member: " + error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Save changes depending on modal state
-  const handleSave = async (member) => {
-    if (modalState.editOpen) {
-      await updateMember(member);
-    }
-    fetchMembers();
-  };
-
-  // Delete a member
-  const handleDelete = async (memberId) => {
-    if (window.confirm('Are you sure you want to delete this member?')) {
-      try {
-        setLoading(true);
-        await axios.delete(`${apiBaseURL}/members/${memberId}`);
-        setMembers((prev) => prev.filter((member) => member.memberId !== memberId));
-        setMessage({ type: 'success', text: "Member deleted successfully!" });
-        fetchMembers();
-      } catch (error) {
-        setMessage({ type: 'error', text: 'Error deleting member: ' + error.message });
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
 
   return (
     <div className="">
@@ -302,52 +221,33 @@ const Members = () => {
                   </span>
                 </td>
                 <td>
-                  {member.status && member.status.toLowerCase() === "incomplete" ? (
-                    <div className="flex gap-2">
-                      <button 
-                        className="btn btn-warning" 
-                        onClick={() => openModal('addOpen', member)}
-                      >
-                        Add
-                      </button>
-                      <button 
-                        className="btn btn-info" 
-                        onClick={() => openModal('editOpen', member)}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                  ) : (
+                  <div className="flex gap-2">
+                    <button 
+                      className="btn btn-warning" 
+                      onClick={() => navigate(`/member-registration/add/${member.memberId}`)}
+                    >
+                      Add
+                    </button>
+                    <button 
+                      className="btn btn-info" 
+                      onClick={() => navigate(`/member-registration/edit/${member.memberId}`)}
+                    >
+                      Edit
+                    </button>
                     <button 
                       className="btn btn-success" 
-                      onClick={() => navigate(`/member-registration/${member.memberId}`)}
+                      onClick={() => navigate(`/member-registration/register/${member.memberId}`)}
+                      disabled={member.status.toLowerCase() === "incomplete"}
                     >
                       Register
                     </button>
-                  )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
-      {/* Modals (if used) */}
-      {/* {(modalState.addOpen || modalState.editOpen) && (
-        <AddMemberModal
-          isOpen={modalState.addOpen || modalState.editOpen}
-          onClose={closeModal}
-          onSave={handleSave}
-          memberIdToEdit={modalState.editOpen ? modalState.selectedMember.memberId : null}
-        />
-      )}
-      {modalState.viewOpen && (
-        <MemberProfileModal
-          isOpen={modalState.viewOpen}
-          onClose={closeModal}
-          member={modalState.selectedMember}
-        />
-      )} */}
     </div>
   );
 };
