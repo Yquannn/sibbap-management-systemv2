@@ -1,5 +1,3 @@
-// src/components/Bills.jsx
-
 import React, { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +8,6 @@ const Bills = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const navigate = useNavigate();
   const memberId = sessionStorage.getItem("memberId");
 
@@ -97,17 +94,21 @@ const Bills = () => {
 
   return (
     <div className="max-w-md mx-auto font-sans relative">
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 bg-white  p-4 z-50">
-        <button
-          className="flex items-center text-gray-700 hover:text-black mb-2"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft size={20} className="mr-2" /> Back
-        </button>
-        <h1 className="text-2xl text-center font-bold mb-2">My Bills</h1>
+      {/* Fixed Header & Tabs */}
+      <div className="fixed top-0 left-0 right-0 bg-white z-50 shadow-md mt-10">
+        {/* Header */}
+        <div className="flex items-center justify-center p-4 relative">
+          <button
+            className="absolute left-4 flex items-center text-gray-700 hover:text-black"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={20} className="mr-2" />
+            Back
+          </button>
+          <h1 className="text-2xl font-bold">My Bills</h1>
+        </div>
         {/* Tabs */}
-        <div className="flex justify-around border-b border-gray-200">
+        <div className="flex justify-around border-t border-gray-200">
           <button
             className={`pb-2 transition-colors ${
               activeTab === "unpaid"
@@ -130,6 +131,7 @@ const Bills = () => {
           </button>
         </div>
       </div>
+
       {/* Content Padding to prevent overlap with fixed header */}
       <div className="pt-32">
         {activeTab === "unpaid" && (

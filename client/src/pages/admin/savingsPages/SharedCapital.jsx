@@ -1,7 +1,30 @@
 import React from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
 
-const ShareCapital = ({ members, openModal, handleDelete }) => {
+const ShareCapital = () => {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+
+  async function fetchMembers() {
+    try {
+      const response = await axios.get("http://localhost:3001/api/members"); 
+      setLoading(false);
+      if (response.status !== 200) {
+        throw new Error("Failed to fetch members");
+      }
+      setMembers(response.data);
+    } catch (error) {
+      console.error("Error fetching members:", error);
+    }
+  }
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+
   return (
     <div className="p-0">
       <h4 className="text-xl font-bold mb-4">Share Capital</h4>
@@ -9,7 +32,7 @@ const ShareCapital = ({ members, openModal, handleDelete }) => {
         <table className="table w-full">
           <thead className="text-center">
             <tr>
-              {["Member Code", "Last Name", "First Name", "Contact Number", "Address", "Shared Capital", "Actions"].map((heading) => (
+              {["Member Code", "Name", "Contact Number", "Address", "Actions"].map((heading) => (
                 <th key={heading} className="py-3 px-4 border-b border-gray-300">
                   {heading}
                 </th>
@@ -24,28 +47,21 @@ const ShareCapital = ({ members, openModal, handleDelete }) => {
                   className="text-center hover:bg-gray-100 cursor-pointer"
                 >
                   <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.lastName}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.firstName}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.contactNumber}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.address}</td>
-                  <td className="py-3 px-4 border-b border-gray-300">{member.shareCapital}</td>
+                  <td className="py-3 px-4 border-b border-gray-300">{member.first_name} {member.last_name}</td>
+                  <td className="py-3 px-4 border-b border-gray-300">{member.contact_number}</td>
+                  <td className="py-3 px-4 border-b border-gray-300">{member.house_no_street} {member.barangay} {member.city}</td>
+                  {/* <td className="py-3 px-4 border-b border-gray-300">{member.shareCapital}</td> */}
                   <td className="py-3 px-4 border-b border-gray-300">
                     <div className="flex justify-center space-x-3">
                       <button
-                        onClick={() => openModal("editOpen", member)}
-                        className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
+                        // onClick={() => openModal("editOpen", member)}
+                        // className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
                       >
                         <FaEdit className="mr-1" /> Update
                       </button>
                       <button
-                        onClick={() => handleDelete(member.memberId)}
-                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center"
-                      >
-                        <FaTrash className="mr-1" /> Delete
-                      </button>
-                      <button
-                        onClick={() => openModal("viewOpen", member)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+                        // onClick={() => openModal("viewOpen", member)}
+                        // className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
                       >
                         <FaEye className="mr-1" /> View
                       </button>

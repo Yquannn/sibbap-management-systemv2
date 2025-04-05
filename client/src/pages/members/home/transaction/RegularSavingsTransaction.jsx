@@ -52,61 +52,66 @@ const RegularSavingsTransactionHistory = () => {
   const filteredTransactions =
     filter === "All"
       ? transactions
-      : transactions.filter((txn) => txn.transaction_type === filterMapping[filter]);
+      : transactions.filter(
+          (txn) => txn.transaction_type === filterMapping[filter]
+        );
 
   // Sort transactions by date (newest first)
   const sortedTransactions = [...filteredTransactions].sort(
-    (a, b) => new Date(b.transaction_date_time) - new Date(a.transaction_date_time)
+    (a, b) =>
+      new Date(b.transaction_date_time) - new Date(a.transaction_date_time)
   );
 
   return (
-    <div className="max-w-lg mx-auto pt-20">
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 bg-white p-3 z-50">
-        <button
-          className="flex items-center text-gray-700 hover:text-black mb-4"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft size={20} className="mr-2" /> Back
-        </button>
-        <h1 className="text-2xl text-center font-bold">Transaction Details</h1>
-          {/* Filter Tabs */}
-      <div className="flex justify-center space-x-2 mt-6">
-        {Object.keys(filterMapping).map((category) => (
+    <div className="max-w-lg mx-auto relative">
+      {/* Fixed Header with Back Button, Title and Filter Tabs */}
+      <div className="fixed top-0 left-0 right-0 bg-white z-50 shadow-md mt-10">
+        <div className="flex items-center justify-center p-4 relative">
           <button
-            key={category}
-            className={`px-3 py-1 rounded-lg text-sm transition ${
-              filter === category
-                ? "bg-green-600 text-white"
-                : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-            }`}
-            onClick={() => setFilter(category)}
+            className="absolute left-4 flex items-center text-gray-700 hover:text-black"
+            onClick={() => navigate(-1)}
           >
-            {category}
+            <ArrowLeft size={20} className="mr-2" />
+            Back
           </button>
-        ))}
+          <h1 className="text-xl font-semibold">Transaction Details</h1>
+        </div>
+        <div className="flex justify-center space-x-2 pb-2 border-t border-gray-200">
+          {Object.keys(filterMapping).map((category) => (
+            <button
+              key={category}
+              className={`px-3 py-1 rounded-lg  mt-2 text-sm transition ${
+                filter === category
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              }`}
+              onClick={() => setFilter(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
       </div>
 
-    
-      </div>
-      <div className="mt-16">
-      {/* Transactions List */}
+      {/* Main Content with Padding */}
+      <div className="pt-32">
         {loading ? (
           <p className="text-center text-gray-500">Loading transactions...</p>
         ) : error ? (
           <p className="text-center text-red-500">{error}</p>
         ) : sortedTransactions.length > 0 ? (
-          <div className="divide-y divide-gray-200 ">
+          <div className="divide-y divide-gray-200">
             {sortedTransactions.map((txn) => (
               <div
-                key={txn.id}
-                className="flex items-center justify-between py-3 hover:bg-gray-100  cursor-pointer"
+                key={txn.regular_savings_transaction_id}
+                className="flex items-center justify-between py-3 hover:bg-gray-100 cursor-pointer"
                 onClick={() =>
-                  navigate(`/regular-savings-transaction-info/${txn.regular_savings_transaction_id}`)
+                  navigate(
+                    `/regular-savings-transaction-info/${txn.regular_savings_transaction_id}`
+                  )
                 }
               >
                 <div className="flex items-center gap-3">
-                  {/* Transaction Icon */}
                   {txn.transaction_type === "Deposit" ? (
                     <CreditCard className="text-green-500" size={24} />
                   ) : txn.transaction_type === "Withdrawal" ? (
@@ -114,8 +119,6 @@ const RegularSavingsTransactionHistory = () => {
                   ) : (
                     <PiggyBank className="text-green-500" size={24} />
                   )}
-
-                  {/* Transaction Info */}
                   <div>
                     <p className="font-medium">{txn.transaction_type}</p>
                     <p className="text-sm text-gray-500">
@@ -124,22 +127,26 @@ const RegularSavingsTransactionHistory = () => {
                         .tz("Asia/Manila")
                         .format("MMMM D, YYYY • hh:mm A")}
                     </p>
+                    <div className="flex items-center text-xs text-gray-400">
+                      <span className="mr-1">#</span>
+                      {txn.transaction_number}
+                    </div>
                   </div>
                 </div>
-
-                {/* Transaction Amount */}
-                <p
-                  className={`font-semibold ${
-                    txn.transaction_type === "Withdrawal"
-                      ? "text-red-500"
-                      : "text-green-500"
-                  }`}
-                >
-                  {txn.transaction_type === "Withdrawal" ? "−" : "+"}₱
-                  {Math.abs(txn.amount)
-                    .toFixed(2)
-                    .replace(/\d(?=(\d{3})+\.)/g, "$&,")}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p
+                    className={`font-semibold ${
+                      txn.transaction_type === "Withdrawal"
+                        ? "text-red-500"
+                        : "text-green-500"
+                    }`}
+                  >
+                    {txn.transaction_type === "Withdrawal" ? "−" : "+"}₱
+                    {Math.abs(txn.amount)
+                      .toFixed(2)
+                      .replace(/\d(?=(\d{3})+\.)/g, "$&,")}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
@@ -147,7 +154,7 @@ const RegularSavingsTransactionHistory = () => {
           <p className="text-gray-500 text-center py-4">No transactions found.</p>
         )}
       </div>
-      </div>
+    </div>
   );
 };
 

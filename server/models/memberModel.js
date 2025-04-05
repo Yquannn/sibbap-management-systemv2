@@ -2,7 +2,7 @@
 
 const db = require('../config/db'); // Import your DB configuration
 const { generateUniqueMemberCode } = require('../utils/databaseHelper'); // Import the helper
-
+const { generateTransactionNumber } = require('../utils/generateTransactionNumber'); // Import the transaction number generator
 exports.activateAccount = async (memberId) => {
   try {
     // Fetch memberCode using the memberId
@@ -90,8 +90,6 @@ const generateUniqueAccountNumber = async () => {
 };
 
 
-
-
 exports.updateMemberFinancials = async (memberId, financialData) => {
   const connection = await db.getConnection();
 
@@ -101,11 +99,10 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
     membership_fee,
     kalinga_fund_fee,
     initial_savings,
-    email,    // optional field
-    password  // optional field
+    email,
+    password
   } = financialData;
 
-  // Ensure no financial fields are null or undefined.
   if (
     share_capital == null ||
     identification_card_fee == null ||
@@ -116,34 +113,14 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
     throw new Error("All financial data fields must be provided and cannot be null.");
   }
 
-  // Fix: Set the initial_shared_capital equal to share_capital
   const initial_shared_capital = share_capital;
-
-  console.log(
-    "INPUT VALUES BEFORE QUERY EXECUTION:",
-    { share_capital, initial_shared_capital, identification_card_fee, membership_fee, kalinga_fund_fee, initial_savings },
-    "MEMBER ID:",
-    memberId
-  );
 
   try {
     await connection.beginTransaction();
 
-    // Determine member type and prefix based on share_capital
-    let memberType, codePrefix;
-    if (share_capital < 6000) {
-      memberType = "Partial Member";
-      codePrefix = "PM-";
-    } else {
-      memberType = "Regular Member";
-      codePrefix = "RM-";
-    }
+    // Generate memberCode and memberType using share_capital
+    const { memberCode, memberType } = await generateUniqueMemberCode(share_capital);
 
-    // Generate a unique member code suffix using the helper and prepend the prefix if needed
-    const uniqueSuffix = await generateUniqueMemberCode();
-    const memberCode = uniqueSuffix; // Alternatively, you might want: codePrefix + uniqueSuffix
-
-    // Update the members table with financials, memberCode, and member type
     const updateQuery = `
       UPDATE members SET
         share_capital = ?,
@@ -169,18 +146,14 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
       memberId
     ]);
 
-    console.log("ROWS AFFECTED BY QUERY:", result.affectedRows);
     if (result.affectedRows === 0) {
       throw new Error("No rows updated. Check that the memberId exists.");
     }
 
-    // Set default email and password to memberCode if not provided
-    const defaultEmail = email ? email : memberCode;
-    const defaultPassword = password ? password : memberCode;
+    const defaultEmail = email || memberCode;
+    const defaultPassword = password || memberCode;
     const accountStatus = "NOT ACTIVATED";
 
-    // Insert or update the member_account record
-    // Using ON DUPLICATE KEY UPDATE to handle cases where the account already exists
     const accountQuery = `
       INSERT INTO member_account (memberId, email, password, accountStatus)
       VALUES (?, ?, ?, ?)
@@ -196,26 +169,83 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
       accountStatus
     ]);
 
-    // If the initial savings amount is greater than zero, create a regular savings record
+    // Only add savings and a transaction record if initial_savings > 0
     if (initial_savings > 0) {
-      // Generate a unique account number for the regular savings account
+      // Insert into regular_savings table
       const accountNumber = await generateUniqueAccountNumber();
       const savingsQuery = `
         INSERT INTO regular_savings (memberId, account_number, amount)
         VALUES (?, ?, ?)
       `;
       await connection.execute(savingsQuery, [memberId, accountNumber, initial_savings]);
+
+      // ------------------ Add Regular Transaction History Entry ------------------
+      // Generate a unique transaction number (ensure you implement this function)
+      const transactionNumber = await generateTransactionNumber();
+      // Set authorized user type (adjust or pass this value as needed)
+      const authorizedUserType = "System";
+      // Define transaction type (e.g., "Initial Savings Deposit")
+      const transactionType = "Initial Savings Deposit";
+      // Use initial_savings as the transaction amount (adjust if needed)
+      const transactionAmount = initial_savings;
+      // Use current date/time
+      const transactionDateTime = new Date();
+
+      // Retrieve the corresponding savingsId for the member from the regular_savings table
+      // Ordering by savingsId DESC ensures you get the most recent record if multiple exist
+      const getSavingsIdQuery = `
+        SELECT savingsId 
+        FROM regular_savings 
+        WHERE memberId = ?
+        ORDER BY savingsId DESC
+        LIMIT 1
+      `;
+      const [rows] = await connection.execute(getSavingsIdQuery, [memberId]);
+
+      if (rows.length === 0) {
+        throw new Error('No regular savings record found for this member');
+      }
+
+      const savingsId = rows[0].savingsId;
+
+      // Now, insert the transaction record using the valid savingsId
+      const transactionQuery = `
+        INSERT INTO regular_savings_transaction 
+          (transaction_number, authorized, transaction_type, amount, transaction_date_time, regular_savings_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+
+      await connection.execute(transactionQuery, [
+        transactionNumber,
+        authorizedUserType,
+        transactionType,
+        transactionAmount,
+        transactionDateTime,
+        savingsId
+      ]);
+      // ---------------------------------------------------------------------------
     }
 
     await connection.commit();
 
-    return { success: true, message: "Membership Successfully updated." };
+    return { success: true, message: "Membership Successfully." };
 
   } catch (err) {
     await connection.rollback();
-    console.error("Simplified transaction error:", err.message);
+    console.error("Transaction error:", err.message);
     throw err;
   } finally {
     connection.release();
   }
+};
+
+
+// In memberModel.js
+exports.addPurchaseHistory = async (memberId, service, amount) => {
+  const sql = `
+    INSERT INTO purchase_history (memberId, service, amount, purchase_date)
+    VALUES (?, ?, ?, NOW())
+  `;
+  const [result] = await db.execute(sql, [memberId, service, amount]);
+  return result;
 };

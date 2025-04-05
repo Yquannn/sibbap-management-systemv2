@@ -1,57 +1,57 @@
 import React, { useEffect } from "react";
 
+// Default values for legal beneficiaries and documents
+const initialLegalBeneficiaries = {
+  primary: { fullName: "", relationship: "", contactNumber: "" },
+  secondary: { fullName: "", relationship: "", contactNumber: "" },
+  additional: [],
+  characterReferences: [
+    { fullName: "", position: "", contactNumber: "" },
+    { fullName: "", position: "", contactNumber: "" },
+  ],
+};
+
+const initialDocuments = {
+  id_picture: null,
+  barangay_clearance: null,
+  tax_identification: null,
+  valid_id: null,
+  membership_agreement: null,
+};
+
 const LegalAndDocuments = ({
   handlePrevious,
   handleNext,
   formData,
   setFormData,
   isReadOnly,
-  fetchedData, // new prop to pass fetched legal beneficiaries and documents data
+  fetchedData, // optional fetched data if available
 }) => {
-  // ------------------ LEGAL BENEFICIARIES SETUP ------------------
-  const defaultLegalBeneficiaries = {
-    primary: { fullName: "", relationship: "", contactNumber: "" },
-    secondary: { fullName: "", relationship: "", contactNumber: "" },
-    additional: [],
-    characterReferences: [
-      { fullName: "", position: "", contactNumber: "" },
-      { fullName: "", position: "", contactNumber: "" },
-    ],
-  };
-
-  // ------------------ DOCUMENTS UPLOAD SETUP ------------------
-  const defaultDocuments = {
-    id_picture: null,
-    barangay_clearance: null,
-    tax_identification: null,
-    valid_id: null,
-    membership_agreement: null,
-  };
-
-  // When fetchedData is available, merge its legalBeneficiaries and documents into formData
+  // When fetchedData is provided, merge its legal beneficiaries and documents into the parent's formData
   useEffect(() => {
     if (fetchedData) {
       if (fetchedData.legalBeneficiaries) {
         setFormData((prev) => ({
           ...prev,
           legalBeneficiaries: {
-            ...defaultLegalBeneficiaries,
+            ...initialLegalBeneficiaries,
             ...fetchedData.legalBeneficiaries,
             primary: {
-              ...defaultLegalBeneficiaries.primary,
+              ...initialLegalBeneficiaries.primary,
               ...(fetchedData.legalBeneficiaries.primary || {}),
             },
             secondary: {
-              ...defaultLegalBeneficiaries.secondary,
+              ...initialLegalBeneficiaries.secondary,
               ...(fetchedData.legalBeneficiaries.secondary || {}),
             },
             additional:
               fetchedData.legalBeneficiaries.additional ||
-              defaultLegalBeneficiaries.additional,
+              initialLegalBeneficiaries.additional,
             characterReferences:
-              (fetchedData.legalBeneficiaries.characterReferences &&
-                fetchedData.legalBeneficiaries.characterReferences.length > 0) ||
-              defaultLegalBeneficiaries.characterReferences,
+              fetchedData.legalBeneficiaries.characterReferences &&
+              fetchedData.legalBeneficiaries.characterReferences.length > 0
+                ? fetchedData.legalBeneficiaries.characterReferences
+                : initialLegalBeneficiaries.characterReferences,
           },
         }));
       }
@@ -59,7 +59,7 @@ const LegalAndDocuments = ({
         setFormData((prev) => ({
           ...prev,
           documents: {
-            ...defaultDocuments,
+            ...initialDocuments,
             ...fetchedData.documents,
           },
         }));
@@ -67,25 +67,30 @@ const LegalAndDocuments = ({
     }
   }, [fetchedData, setFormData]);
 
-  // Merge legal beneficiaries from formData with defaults
+  // Merge existing legal beneficiaries from formData with defaults
   const legalBeneficiaries = {
-    ...defaultLegalBeneficiaries,
+    ...initialLegalBeneficiaries,
     ...formData.legalBeneficiaries,
     primary: {
-      ...defaultLegalBeneficiaries.primary,
+      ...initialLegalBeneficiaries.primary,
       ...(formData.legalBeneficiaries?.primary || {}),
     },
     secondary: {
-      ...defaultLegalBeneficiaries.secondary,
+      ...initialLegalBeneficiaries.secondary,
       ...(formData.legalBeneficiaries?.secondary || {}),
     },
     additional: formData.legalBeneficiaries?.additional || [],
     characterReferences:
-      formData.legalBeneficiaries?.characterReferences?.length > 0
+      formData.legalBeneficiaries?.characterReferences &&
+      formData.legalBeneficiaries.characterReferences.length > 0
         ? formData.legalBeneficiaries.characterReferences
-        : defaultLegalBeneficiaries.characterReferences,
+        : initialLegalBeneficiaries.characterReferences,
   };
 
+  // Merge documents from formData with defaults
+  const documents = { ...initialDocuments, ...formData.documents };
+
+  // Handlers for legal beneficiaries
   const handlePrimaryChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -134,15 +139,12 @@ const LegalAndDocuments = ({
 
   const handleCharacterChange = (index, e) => {
     const { name, value } = e.target;
-    const updatedReferences = legalBeneficiaries.characterReferences.map(
-      (ref, i) => (i === index ? { ...ref, [name]: value } : ref)
+    const updatedReferences = legalBeneficiaries.characterReferences.map((ref, i) =>
+      i === index ? { ...ref, [name]: value } : ref
     );
     setFormData((prev) => ({
       ...prev,
-      legalBeneficiaries: {
-        ...legalBeneficiaries,
-        characterReferences: updatedReferences,
-      },
+      legalBeneficiaries: { ...legalBeneficiaries, characterReferences: updatedReferences },
     }));
   };
 
@@ -159,9 +161,7 @@ const LegalAndDocuments = ({
     }));
   };
 
-  // Merge documents from formData with defaults
-  const documents = { ...defaultDocuments, ...formData.documents };
-
+  // Handlers for documents upload
   const handleFileChange = (e) => {
     const { name, files } = e.target;
     setFormData((prev) => ({
@@ -192,6 +192,7 @@ const LegalAndDocuments = ({
             value={legalBeneficiaries.primary.fullName}
             onChange={handlePrimaryChange}
             className="border p-2 rounded-lg w-full my-1"
+            disabled={isReadOnly}
           />
           <input
             name="relationship"
@@ -199,6 +200,7 @@ const LegalAndDocuments = ({
             value={legalBeneficiaries.primary.relationship}
             onChange={handlePrimaryChange}
             className="border p-2 rounded-lg w-full my-1"
+            disabled={isReadOnly}
           />
           <input
             name="contactNumber"
@@ -206,6 +208,7 @@ const LegalAndDocuments = ({
             value={legalBeneficiaries.primary.contactNumber}
             onChange={handlePrimaryChange}
             className="border p-2 rounded-lg w-full my-1"
+            disabled={isReadOnly}
           />
 
           <p className="font-semibold mt-4">Secondary Beneficiary:</p>
@@ -215,6 +218,7 @@ const LegalAndDocuments = ({
             value={legalBeneficiaries.secondary.fullName}
             onChange={handleSecondaryChange}
             className="border p-2 rounded-lg w-full my-1"
+            disabled={isReadOnly}
           />
           <input
             name="relationship"
@@ -222,6 +226,7 @@ const LegalAndDocuments = ({
             value={legalBeneficiaries.secondary.relationship}
             onChange={handleSecondaryChange}
             className="border p-2 rounded-lg w-full my-1"
+            disabled={isReadOnly}
           />
           <input
             name="contactNumber"
@@ -229,6 +234,7 @@ const LegalAndDocuments = ({
             value={legalBeneficiaries.secondary.contactNumber}
             onChange={handleSecondaryChange}
             className="border p-2 rounded-lg w-full my-1"
+            disabled={isReadOnly}
           />
 
           <p className="font-semibold mt-4">Additional Beneficiaries:</p>
@@ -240,6 +246,7 @@ const LegalAndDocuments = ({
                 value={ben.fullName}
                 onChange={(e) => handleAdditionalChange(index, e)}
                 className="border p-2 rounded-lg w-full my-1"
+                disabled={isReadOnly}
               />
               <input
                 name="relationship"
@@ -247,6 +254,7 @@ const LegalAndDocuments = ({
                 value={ben.relationship}
                 onChange={(e) => handleAdditionalChange(index, e)}
                 className="border p-2 rounded-lg w-full my-1"
+                disabled={isReadOnly}
               />
               <input
                 name="contactNumber"
@@ -254,16 +262,19 @@ const LegalAndDocuments = ({
                 value={ben.contactNumber}
                 onChange={(e) => handleAdditionalChange(index, e)}
                 className="border p-2 rounded-lg w-full my-1"
+                disabled={isReadOnly}
               />
             </div>
           ))}
-          <button
-            type="button"
-            onClick={handleAddAdditionalBeneficiary}
-            className="text-blue-500 text-sm mt-2"
-          >
-            + Add Additional Beneficiary
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={handleAddAdditionalBeneficiary}
+              className="text-blue-500 text-sm mt-2"
+            >
+              + Add Additional Beneficiary
+            </button>
+          )}
 
           <p className="font-semibold mt-4">Character References:</p>
           {legalBeneficiaries.characterReferences.map((ref, index) => (
@@ -276,6 +287,7 @@ const LegalAndDocuments = ({
                   value={ref.fullName}
                   onChange={(e) => handleCharacterChange(index, e)}
                   className="border p-2 rounded-lg w-full"
+                  disabled={isReadOnly}
                 />
               </div>
               <div className="flex flex-col">
@@ -286,6 +298,7 @@ const LegalAndDocuments = ({
                   value={ref.position}
                   onChange={(e) => handleCharacterChange(index, e)}
                   className="border p-2 rounded-lg w-full"
+                  disabled={isReadOnly}
                 />
               </div>
               <div className="flex flex-col">
@@ -296,17 +309,20 @@ const LegalAndDocuments = ({
                   value={ref.contactNumber}
                   onChange={(e) => handleCharacterChange(index, e)}
                   className="border p-2 rounded-lg w-full"
+                  disabled={isReadOnly}
                 />
               </div>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={handleAddCharacterReference}
-            className="text-blue-500 text-sm mt-2"
-          >
-            + Add Character Reference
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={handleAddCharacterReference}
+              className="text-blue-500 text-sm mt-2"
+            >
+              + Add Character Reference
+            </button>
+          )}
         </div>
 
         {/* Right Column: Documents Upload */}
@@ -319,19 +335,22 @@ const LegalAndDocuments = ({
               name="id_picture"
               onChange={handleFileChange}
               className="border p-2 rounded-lg w-full"
+              disabled={isReadOnly}
             />
             {documents.id_picture && (
               <>
                 <p className="text-sm text-gray-700">
                   Uploaded: {documents.id_picture.name}
                 </p>
-                <button
-                  onClick={() => handleRemove("id_picture")}
-                  type="button"
-                  className="text-red-500 text-sm mt-1"
-                >
-                  Remove
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => handleRemove("id_picture")}
+                    type="button"
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    Remove
+                  </button>
+                )}
               </>
             )}
           </label>
@@ -342,19 +361,22 @@ const LegalAndDocuments = ({
               name="barangay_clearance"
               onChange={handleFileChange}
               className="border p-2 rounded-lg w-full"
+              disabled={isReadOnly}
             />
             {documents.barangay_clearance && (
               <>
                 <p className="text-sm text-gray-700">
                   Uploaded: {documents.barangay_clearance.name}
                 </p>
-                <button
-                  onClick={() => handleRemove("barangay_clearance")}
-                  type="button"
-                  className="text-red-500 text-sm mt-1"
-                >
-                  Remove
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => handleRemove("barangay_clearance")}
+                    type="button"
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    Remove
+                  </button>
+                )}
               </>
             )}
           </label>
@@ -365,19 +387,22 @@ const LegalAndDocuments = ({
               name="tax_identification"
               onChange={handleFileChange}
               className="border p-2 rounded-lg w-full"
+              disabled={isReadOnly}
             />
             {documents.tax_identification && (
               <>
                 <p className="text-sm text-gray-700">
                   Uploaded: {documents.tax_identification.name}
                 </p>
-                <button
-                  onClick={() => handleRemove("tax_identification")}
-                  type="button"
-                  className="text-red-500 text-sm mt-1"
-                >
-                  Remove
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => handleRemove("tax_identification")}
+                    type="button"
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    Remove
+                  </button>
+                )}
               </>
             )}
           </label>
@@ -388,19 +413,22 @@ const LegalAndDocuments = ({
               name="valid_id"
               onChange={handleFileChange}
               className="border p-2 rounded-lg w-full"
+              disabled={isReadOnly}
             />
             {documents.valid_id && (
               <>
                 <p className="text-sm text-gray-700">
                   Uploaded: {documents.valid_id.name}
                 </p>
-                <button
-                  onClick={() => handleRemove("valid_id")}
-                  type="button"
-                  className="text-red-500 text-sm mt-1"
-                >
-                  Remove
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => handleRemove("valid_id")}
+                    type="button"
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    Remove
+                  </button>
+                )}
               </>
             )}
           </label>
@@ -411,19 +439,22 @@ const LegalAndDocuments = ({
               name="membership_agreement"
               onChange={handleFileChange}
               className="border p-2 rounded-lg w-full"
+              disabled={isReadOnly}
             />
             {documents.membership_agreement && (
               <>
                 <p className="text-sm text-gray-700">
                   Uploaded: {documents.membership_agreement.name}
                 </p>
-                <button
-                  onClick={() => handleRemove("membership_agreement")}
-                  type="button"
-                  className="text-red-500 text-sm mt-1"
-                >
-                  Remove
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => handleRemove("membership_agreement")}
+                    type="button"
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    Remove
+                  </button>
+                )}
               </>
             )}
           </label>
@@ -440,11 +471,11 @@ const LegalAndDocuments = ({
           &#171;&#171; Previous
         </button>
         <button
-          onClick={handleNext}
+          onClick={() => handleNext(formData)}
           type="button"
           className="bg-green-700 text-white px-8 py-3 rounded-lg"
         >
-          Next &#187;&#187;
+          Submit &#187;&#187;
         </button>
       </div>
     </div>

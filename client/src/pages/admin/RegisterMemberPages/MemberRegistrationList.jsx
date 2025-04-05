@@ -175,7 +175,7 @@ const Members = () => {
               <th className="w-12">
                 <input type="checkbox" className="checkbox" />
               </th>
-              <th>Application Number</th>
+              {/* <th>Application Number</th> */}
               <th>Name</th>
               <th>Contact Number</th>
               <th>Address</th>
@@ -191,7 +191,7 @@ const Members = () => {
                     <input type="checkbox" className="checkbox" />
                   </label>
                 </th>
-                <td>{member.application_number || member.memberId}</td>
+                {/* <td>{member.application_number || member.memberId}</td> */}
                 <td>
                   <div className="flex items-center gap-3">
                     <div className="avatar">

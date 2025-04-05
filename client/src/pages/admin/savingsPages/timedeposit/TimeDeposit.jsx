@@ -48,7 +48,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get("http://localhost:3001/api/active/");
+      const response = await axios.get("http://localhost:3001/api/active");
       if (response.data.length === 0) {
         throw new Error("No depositor for time deposit.");
       }
@@ -129,8 +129,6 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
       <div className="overflow-y-auto max-h-[75vh] card bg-white shadow-md rounded-lg p-4">
         {loading ? (
           <p className="text-center text-gray-500 p-4">Loading...</p>
-        ) : error ? (
-          <p className="text-center text-red-500 p-4">{error}</p>
         ) : (
           <table className="table w-full">
             <thead className="text-center">

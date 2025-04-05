@@ -33,13 +33,17 @@ router.get('/members', memberController.getMembers);
 router.get('/members/savings', memberController.getMemberSavings);
 router.get('/member/email/:email', memberController.getMemberByEmail);
 router.get('/member/:id', memberController.getMemberById);
+router.get('/member-info/:id', memberController.fetchedMemberById);
+
 
 router.patch('/members/:memberId/financials', memberController.updateFinancials);
 router.get('/members/applicant', memberController.getAllMemberApplicants);
 
 // Use multiUpload middleware for routes that require file uploads.
 router.post('/register-member', multiUpload, memberController.memberApplication);
-router.put('/members/:id', multiUpload, memberController.updateMember); 
+router.post('/purchase-history/:memberId', memberController.addPurchaseHistory);
+
+router.put('/member/update-info/:id', multiUpload, memberController.updateMember); 
 router.delete('/members/:id', memberController.deleteMember); 
 router.put('/activate/:memberId', memberController.activateAccount);
 

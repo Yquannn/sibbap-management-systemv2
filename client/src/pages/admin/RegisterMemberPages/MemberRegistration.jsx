@@ -24,7 +24,15 @@ const MemberRegistration = () => {
   const [formData, setFormData] = useState({
     personalInfo: {},
     contactInfo: {},
-    legalBeneficiaries: {},
+    legalBeneficiaries: {
+      primary: { fullName: "", relationship: "", contactNumber: "" },
+      secondary: { fullName: "", relationship: "", contactNumber: "" },
+      additional: [],
+      characterReferences: [
+        { fullName: "", position: "", contactNumber: "" },
+        { fullName: "", position: "", contactNumber: "" },
+      ],
+    },
     initialContribution: { ...defaultInitialContribution },
     documents: {},
     mobilePortal: {},
@@ -35,7 +43,6 @@ const MemberRegistration = () => {
   const [successMessage, setSuccessMessage] = useState("");
 
   // Read memberId and mode from URL parameters.
-  // The mode will be "add" or "edit" if the user clicked the corresponding button.
   const { mode, memberId } = useParams();
 
   // Determine if the Initial Contribution step should be removed.
@@ -63,6 +70,7 @@ const MemberRegistration = () => {
             first_name: fetchedData.first_name || "",
             middle_name: fetchedData.middle_name || "",
             last_name: fetchedData.last_name || "",
+            extension_name: fetchedData.extension_name || "", // if available
             maiden_name: fetchedData.maiden_name || "",
             date_of_birth: fetchedData.date_of_birth || "",
             age: fetchedData.age || "",
@@ -76,13 +84,11 @@ const MemberRegistration = () => {
               fetchedData.highest_educational_attainment || "",
             occupation_source_of_income:
               fetchedData.occupation_source_of_income || "",
+            spouse_name: fetchedData.spouse_name || "",
             spouse_occupation_source_of_income:
               fetchedData.spouse_occupation_source_of_income || "",
-            monthly_income: fetchedData.monthly_income || "",
-            annual_income: fetchedData.annual_income || "",
             tin_number: fetchedData.tin_number || "",
             number_of_dependents: fetchedData.number_of_dependents || "",
-            spouse_name: fetchedData.spouse_name || "",
           },
           contactInfo: {
             house_no_street: fetchedData.house_no_street || "",
@@ -93,22 +99,21 @@ const MemberRegistration = () => {
             email: fetchedData.email || "",
           },
           legalBeneficiaries: {
-            membership_agreement: fetchedData.membership_agreement || "",
-            id_picture: fetchedData.id_picture || "",
-            barangay_clearance: fetchedData.barangay_clearance || "",
-            tax_identification_id: fetchedData.tax_identification_id || "",
-            valid_id: fetchedData.valid_id || "",
-            primary_beneficiary_name: fetchedData.primary_beneficiary_name || "",
-            primary_beneficiary_relationship:
-              fetchedData.primary_beneficiary_relationship || "",
-            primary_beneficiary_contact:
-              fetchedData.primary_beneficiary_contact || "",
-            secondary_beneficiary_name:
-              fetchedData.secondary_beneficiary_name || "",
-            secondary_beneficiary_relationship:
-              fetchedData.secondary_beneficiary_relationship || "",
-            secondary_beneficiary_contact:
-              fetchedData.secondary_beneficiary_contact || "",
+            primary: {
+              fullName: fetchedData.primary_beneficiary_name || "",
+              relationship: fetchedData.primary_beneficiary_relationship || "",
+              contactNumber: fetchedData.primary_beneficiary_contact || "",
+            },
+            secondary: {
+              fullName: fetchedData.secondary_beneficiary_name || "",
+              relationship: fetchedData.secondary_beneficiary_relationship || "",
+              contactNumber: fetchedData.secondary_beneficiary_contact || "",
+            },
+            additional: [], // Adjust if your API returns additional beneficiaries.
+            characterReferences: [
+              { fullName: "", position: "", contactNumber: "" },
+              { fullName: "", position: "", contactNumber: "" },
+            ],
           },
           initialContribution: {
             share_capital: fetchedData.share_capital || "",
@@ -117,6 +122,13 @@ const MemberRegistration = () => {
             kalinga_fund_fee: fetchedData.kalinga_fund_fee || "",
             initial_savings: fetchedData.initial_savings || "",
           },
+          documents: {
+            membership_agreement: fetchedData.membership_agreement || null,
+            id_picture: fetchedData.id_picture || null,
+            barangay_clearance: fetchedData.barangay_clearance || null,
+            tax_identification: fetchedData.tax_identification_id || null, // note: mapping to tax_identification_id
+            valid_id: fetchedData.valid_id || null,
+          },
           mobilePortal: {
             portalUsername: fetchedData.portalUsername || "",
             portalPassword: fetchedData.portalPassword || "",
@@ -124,7 +136,6 @@ const MemberRegistration = () => {
         });
       } catch (error) {
         console.error("Error fetching member data:", error);
-        alert("Failed to fetch data from API");
       }
     };
 
@@ -146,52 +157,62 @@ const MemberRegistration = () => {
     }
   };
 
-  // Save function for final submission.
-  const handleSave = async (memberData) => {
-    if (removeInitialContribution) {
-      // In add or edit mode, skip updating initial contribution.
-      try {
-        // For example, update personal/legal data.
-        await axios.put(
-          `http://localhost:3001/api/members/${memberId}`,
-          memberData,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          }
-        );
-        setSuccessMessage("Member updated successfully!");
-        setShowSuccessModal(true);
-      } catch (error) {
-        console.error("Error updating member:", error);
-        alert("Error updating member: " + error.message);
-      }
-    } else {
-      // In register mode, process initial contribution.
-      try {
-        const dataToSend = memberData || formData.initialContribution;
-        const jsonData = {
-          share_capital: Number(dataToSend.share_capital),
-          identification_card_fee: Number(dataToSend.identification_card_fee),
-          membership_fee: Number(dataToSend.membership_fee),
-          kalinga_fund_fee: Number(dataToSend.kalinga_fund_fee),
-          initial_savings: Number(dataToSend.initial_savings),
-        };
-        const response = await axios.patch(
-          `http://localhost:3001/api/members/${memberId}/financials`,
-          jsonData,
-          { headers: { "Content-Type": "application/json" } }
-        );
-        setSuccessMessage(
-          response.data.message || "Member Registration successfully!"
-        );
-        setShowSuccessModal(true);
-      } catch (error) {
-        console.error("Error during registration:", error);
-        const errorMessage =
-          error.response?.data?.message ||
-          "Registration error! Please try again later.";
-        alert(`Error adding member: ${errorMessage}`);
-      }
+  // handleSave builds a plain JSON object matching the backend update query
+  const handleSave = async () => {
+    // Build the combined JSON object based on the fields your backend expects.
+    let combinedData = {
+      registration_type: formData.personalInfo.registration_type || "",
+      last_name: formData.personalInfo.last_name || "",
+      first_name: formData.personalInfo.first_name || "",
+      middle_name: formData.personalInfo.middle_name || "",
+      extension_name: formData.personalInfo.extension_name || "", // default empty if not provided
+      tin_number: formData.personalInfo.tin_number || "",
+      date_of_birth: formData.personalInfo.date_of_birth || "",
+      birthplace_province: formData.personalInfo.birthplace_province || "",
+      number_of_dependents: formData.personalInfo.number_of_dependents || "",
+      age: formData.personalInfo.age || "",
+      sex: formData.personalInfo.sex || "",
+      civil_status: formData.personalInfo.civil_status || "",
+      religion: formData.personalInfo.religion || "",
+      highest_educational_attainment:
+        formData.personalInfo.highest_educational_attainment || "",
+      annual_income: formData.personalInfo.annual_income || "",
+      occupation_source_of_income:
+        formData.personalInfo.occupation_source_of_income || "",
+      spouse_name: formData.personalInfo.spouse_name || "",
+      spouse_occupation_source_of_income:
+        formData.personalInfo.spouse_occupation_source_of_income || "",
+      contact_number: formData.contactInfo.contact_number || "",
+      house_no_street: formData.contactInfo.house_no_street || "",
+      barangay: formData.contactInfo.barangay || "",
+      city: formData.contactInfo.city || "",
+      // Documents fields: note that files are not handled here;
+      // if a file exists, we simply send null (or you can set up a separate file upload logic)
+      barangay_clearance: formData.documents.barangay_clearance || null,
+      tax_identification_id: formData.documents.tax_identification || null,
+      valid_id: formData.documents.valid_id || null,
+      membership_agreement: formData.documents.membership_agreement || null,
+    };
+
+    // Replace any undefined values with null
+    combinedData = Object.fromEntries(
+      Object.entries(combinedData).map(([key, value]) => [key, value === undefined ? null : value])
+    );
+
+    // Log the combined JSON object so you can inspect it.
+    console.log("Combined Data (JSON):", combinedData);
+
+    try {
+      const response = await axios.put(
+        `http://localhost:3001/api/member/update-info/${memberId}`,
+        combinedData,
+        { headers: { "Content-Type": "application/json" } }
+      );
+      setSuccessMessage("Member updated successfully!");
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error("Error updating member data:", error);
+      alert("Error updating member data: " + error.message);
     }
   };
 
@@ -222,31 +243,31 @@ const MemberRegistration = () => {
               handleNext={handleNext}
               formData={formData}
               setFormData={setFormData}
-              isReadOnly={false} // Personal information remains editable
+              isReadOnly={false}
             />
           )}
 
           {activeTab === 1 && (
             <LegalAndDocuments
               handlePrevious={handlePrevious}
-              // If this is the last step (when initial contribution is removed), trigger save.
-              handleNext={activeTab === tabs.length - 1 ? handleSave : handleNext}
+              handleNext={
+                activeTab === tabs.length - 1 ? handleSave : handleNext
+              }
               formData={formData}
               setFormData={setFormData}
-              isReadOnly={false} // Legal & Documents remains editable
+              isReadOnly={false}
             />
           )}
 
-          {!removeInitialContribution &&
-            activeTab === 2 && (
-              <InitialContribution
-                handlePrevious={handlePrevious}
-                handleNext={handleSave}
-                formData={formData}
-                setFormData={setFormData}
-                isReadOnly={false}
-              />
-            )}
+          {!removeInitialContribution && activeTab === 2 && (
+            <InitialContribution
+              handlePrevious={handlePrevious}
+              handleNext={handleSave}
+              formData={formData}
+              setFormData={setFormData}
+              isReadOnly={false}
+            />
+          )}
         </div>
       </div>
 
@@ -254,9 +275,7 @@ const MemberRegistration = () => {
       {showSuccessModal && (
         <Success
           message={successMessage}
-          onClose={() => {
-            setShowSuccessModal(false);
-          }}
+          onClose={() => setShowSuccessModal(false)}
         />
       )}
     </div>

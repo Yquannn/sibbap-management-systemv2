@@ -114,102 +114,94 @@ const LoanInformation = () => {
 
   return (
     <div className="max-w-md mx-auto">
-      <div className="fixed top-0 left-0 right-0 bg-white  p-4 z-50">
-               <button
-                 className="flex items-center text-gray-700 hover:text-black mb-4"
-                 onClick={() => navigate(-1)}
-               >
-                 <ArrowLeft size={20} className="mr-2" /> Back
-               </button>
-               <div className="flex flex-col items-center justify-center">
-                 {/* Header */}
-                 <h1 className="text-2xl text-center font-bold mb-4">
-                   Loan Details
-                 </h1>
-             </div>
+      {/* Fixed Header & Title */}
+      <div className="fixed top-0 left-0 right-0 bg-white z-50 shadow-md mt-10">
+        <div className="flex items-center justify-center p-4 relative">
+          <button
+            className="absolute left-4 flex items-center text-gray-700 hover:text-black"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={20} className="mr-2" /> Back
+          </button>
+          <h1 className="text-2xl font-bold">Loan Details</h1>
+        </div>
       </div>
-      {/* Loan Summary (if available) */}
-      {loanApp && (
-        <>
-          <div className="text-3xl font-bold text-gray-800 mb-1 mt-28">
-            ₱{principalAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </div>
-          <div className="text-gray-500 mb-6">Loan Amount</div>
-
-          <hr className="my-4" />
-
-          <div className="grid grid-cols-2 gap-y-2 text-sm mb-6">
-            <div className="text-gray-600">Service Fee</div>
-            <div className="text-right">
-              ₱{processingFee.toLocaleString("en-US", {
+      {/* Content padding to avoid fixed header overlap */}
+      <div className="pt-32">
+        {/* Loan Summary (if available) */}
+        {loanApp && (
+          <>
+            <div className="text-3xl font-bold text-gray-800 mb-1">
+              ₱{principalAmount.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </div>
-
-            <div className="text-gray-600">Periods</div>
-            <div className="text-right">{loanApp.terms}</div>
-
-            <div className="text-gray-600">Created Time</div>
-            <div className="text-right">
-              {formatDate(loanApp.created_at)}
-            </div>
-
-            <div className="text-gray-600">Loan Type</div>
-            <div className="text-right">{loanApp.loan_type}</div>
-
-            <div className="text-gray-600">CVN</div>
-            <div className="text-right">{loanApp.client_voucher_number}</div>
-          </div>
-
-          <hr className="my-4" />
-        </>
-      )}
-
-      {/* Sacks Section (if applicable) */}
-      {isFeedsOrRiceLoan && feedsDetail && (
-        <div className="grid grid-cols-2 gap-y-2 text-sm mb-6">
-          <div className="text-gray-600">Sacks Avail</div>
-          <div className="text-right">
-            {feedsDetail.sacks} / {feedsDetail.max_sacks}
-          </div>
-        </div>
-      )}
-
-      {/* Installment Breakdown */}
-      <div className="border-t pt-4">
-        <h2 className="font-semibold mb-3">Installment Details</h2>
-        {installmentData.installments.length > 0 ? (
-          installmentData.installments.map((item, index) => (
-            <div key={item.id}>
-              <div className="flex items-center justify-between mb-4 text-sm">
-                <div>
-                  <div className="font-medium">
-                    {item.label} - ₱
-                    {Number(item.amount).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Due Date: {item.dueDate}
-                  </div>
-                </div>
-                <div className="text-sm text-red-500">{item.status}</div>
+            <div className="text-gray-500 mb-6">Loan Amount</div>
+            <hr className="my-4" />
+            <div className="grid grid-cols-2 gap-y-2 text-sm mb-6">
+              <div className="text-gray-600">Service Fee</div>
+              <div className="text-right">
+                ₱{processingFee.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
-              {index !== installmentData.installments.length - 1 && (
-                <hr className="border-gray-150" />
-              )}
+              <div className="text-gray-600">Periods</div>
+              <div className="text-right">{loanApp.terms}</div>
+              <div className="text-gray-600">Created Time</div>
+              <div className="text-right">{formatDate(loanApp.created_at)}</div>
+              <div className="text-gray-600">Loan Type</div>
+              <div className="text-right">{loanApp.loan_type}</div>
+              <div className="text-gray-600">CVN</div>
+              <div className="text-right">{loanApp.client_voucher_number}</div>
             </div>
-          ))
-        ) : (
-          <div className="text-center text-gray-500">
-            No installments available.
+            <hr className="my-4" />
+          </>
+        )}
+
+        {/* Sacks Section (if applicable) */}
+        {isFeedsOrRiceLoan && feedsDetail && (
+          <div className="grid grid-cols-2 gap-y-2 text-sm mb-6">
+            <div className="text-gray-600">Sacks Avail</div>
+            <div className="text-right">
+              {feedsDetail.sacks} / {feedsDetail.max_sacks}
+            </div>
           </div>
         )}
+
+        {/* Installment Breakdown */}
+        <div className="border-t pt-4">
+          <h2 className="font-semibold mb-3">Installment Details</h2>
+          {installmentData.installments.length > 0 ? (
+            installmentData.installments.map((item, index) => (
+              <div key={item.id}>
+                <div className="flex items-center justify-between mb-4 text-sm">
+                  <div>
+                    <div className="font-medium">
+                      {item.label} - ₱
+                      {Number(item.amount).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Due Date: {item.dueDate}
+                    </div>
+                  </div>
+                  <div className="text-sm text-red-500">{item.status}</div>
+                </div>
+                {index !== installmentData.installments.length - 1 && (
+                  <hr className="border-gray-150" />
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500">
+              No installments available.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

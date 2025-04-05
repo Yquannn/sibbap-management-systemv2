@@ -11,6 +11,7 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Line, Pie } from 'react-chartjs-2';
 import {
   FaMoneyCheckAlt,
@@ -27,11 +28,12 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  ChartDataLabels
 );
 
-// LoanDisbursementCard using count animation for disbursement amount
-const LoanDisbursementCard = () => {
+// A generic Financial Overview Card
+const FinancialOverviewCard = () => {
   return (
     <div className="max-w-sm w-full bg-white rounded-lg shadow-sm p-4 md:p-6">
       <div className="flex justify-between">
@@ -40,7 +42,7 @@ const LoanDisbursementCard = () => {
             <CountUp start={0} end={750000} duration={2.5} separator="," prefix="₱" />
           </h5>
           <p className="text-base font-normal text-gray-700">
-            Total disbursed this month
+            Total Revenue This Month
           </p>
         </div>
         <div className="flex items-center px-2.5 py-0.5 text-base font-semibold text-green-500 text-center">
@@ -62,15 +64,13 @@ const LoanDisbursementCard = () => {
           </svg>
         </div>
       </div>
-
-      {/* Chart */}
       <div className="mt-4">
         <Line
           data={{
             labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
             datasets: [
               {
-                label: 'Disbursement',
+                label: 'Revenue',
                 data: [150000, 200000, 180000, 220000],
                 borderColor: 'rgba(99,102,241,1)',
                 backgroundColor: 'rgba(99,102,241,0.2)',
@@ -85,15 +85,13 @@ const LoanDisbursementCard = () => {
           height={80}
         />
       </div>
-
-      {/* Footer */}
       <div className="grid grid-cols-1 items-center border-t border-gray-200 justify-between mt-5">
         <div className="flex justify-between items-center pt-5">
           <button
             id="dropdownDefaultButton"
             data-dropdown-toggle="lastDaysdropdown"
             data-dropdown-placement="bottom"
-            className="text-sm font-medium text-gray-500 hover:text-gray-900 text-center inline-flex items-center"
+            className="text-sm font-medium text-gray-500 hover:text-gray-900 inline-flex items-center"
             type="button"
           >
             Last 7 days
@@ -113,8 +111,6 @@ const LoanDisbursementCard = () => {
               />
             </svg>
           </button>
-
-          {/* Dropdown */}
           <div
             id="lastDaysdropdown"
             className="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44"
@@ -129,8 +125,6 @@ const LoanDisbursementCard = () => {
               ))}
             </ul>
           </div>
-
-          {/* Report Link */}
           <a
             href="#"
             className="uppercase text-sm font-semibold inline-flex items-center rounded-lg text-blue-600 hover:text-blue-700 hover:bg-gray-100 px-3 py-2"
@@ -158,18 +152,17 @@ const LoanDisbursementCard = () => {
   );
 };
 
-
 const Dashboard = () => {
-  // Top stats data (using numbers for count animation)
+  // Top stats for overall system analytics
   const stats = [
     {
-      label: 'Loans',
-      value: 25,
+      label: 'Total Revenue',
+      value: 750000,
       growth: '+5%',
       icon: <FaMoneyCheckAlt size={24} className="text-blue-500" />,
     },
     {
-      label: 'Savings',
+      label: 'Total Savings',
       value: 1200000,
       growth: '+12%',
       icon: <FaPiggyBank size={24} className="text-green-500" />,
@@ -181,8 +174,8 @@ const Dashboard = () => {
       icon: <FaUsers size={24} className="text-purple-500" />,
     },
     {
-      label: 'Lending',
-      value: 20,
+      label: 'Transactions',
+      value: 150,
       growth: '+10%',
       icon: <FaHandHoldingUsd size={24} className="text-yellow-500" />,
     },
@@ -202,53 +195,39 @@ const Dashboard = () => {
     ],
   };
 
-  // Dummy data for the pie chart
+  // Pie chart for member product distribution
   const pieChartData = {
-    labels: ['Deposits', 'Withdrawals', 'Loan Applications', 'Repayments'],
+    labels: ['Time Deposit', 'Loan', 'Regular Savings', 'Share Capital'],
     datasets: [
       {
-        label: 'Transactions',
-        data: [500, 200, 100, 50],
-        backgroundColor: ['#6366F1', '#F59E0B', '#10B981', '#EF4444'],
+        label: 'Member Count',
+        data: [150, 80, 200, 100],
+        backgroundColor: ['#6366F1', '#EF4444', '#F59E0B', '#10B981'],
       },
     ],
   };
 
-  // Upcoming events dummy data
+  // New pie chart for money distribution
+  const moneyPieChartData = {
+    labels: ['Loan', 'Share Capital', 'Interest', 'Regular Savings'],
+    datasets: [
+      {
+        label: 'Money Distribution',
+        data: [500000, 300000, 100000, 200000],
+        backgroundColor: ['#EF4444', '#10B981', '#F59E0B', '#6366F1'],
+      },
+    ],
+  };
+
+  // Dummy data for upcoming events
   const upcomingEvents = [
     { date: 'Sep 15, 2025', event: 'Monthly Members Meeting' },
-    { date: 'Sep 25, 2025', event: 'Loan Repayment Deadline' },
+    { date: 'Sep 25, 2025', event: 'System Maintenance' },
     { date: 'Oct 05, 2025', event: 'Financial Literacy Workshop' },
-  ];
-
-  // Recent transactions dummy data (amounts as numbers)
-  const recentTransactions = [
-    {
-      id: '#T001',
-      transaction: 'Savings Deposit',
-      member: 'Alice Johnson',
-      amount: 500,
-      status: 'Completed',
-    },
-    {
-      id: '#T002',
-      transaction: 'Loan Application',
-      member: 'Bob Smith',
-      amount: 5000,
-      status: 'Pending',
-    },
-    {
-      id: '#T003',
-      transaction: 'Loan Repayment',
-      member: 'Charlie Brown',
-      amount: 300,
-      status: 'Completed',
-    },
   ];
 
   return (
     <div className="w-full bg-gray-100">
-      {/* Main Content */}
       <main className="w-full">
         {/* Top Stats Cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4 mb-6">
@@ -268,7 +247,7 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Grid for main sections */}
+        {/* Grid for Main Sections */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column */}
           <div className="space-y-6 lg:col-span-4">
@@ -285,15 +264,15 @@ const Dashboard = () => {
               </ul>
             </div>
 
-            {/* Two-column grid for Fresh Clients and Loan Disbursement */}
+            {/* Two-column grid for New Members and Financial Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Fresh Clients Card */}
+              {/* New Members Card */}
               <div className="rounded-lg shadow bg-white p-4">
                 <div className="text-4xl font-bold mb-2">
                   <CountUp start={0} end={69} duration={2.5} />
                 </div>
-                <div className="text-base mb-1">Fresh Clients This Month</div>
-                <div className="text-sm">First-Time Customers</div>
+                <div className="text-base mb-1">New Members This Month</div>
+                <div className="text-sm">First-Time Registrations</div>
                 <div className="flex items-center mt-3 space-x-2">
                   <img
                     className="w-8 h-8 rounded-full border-2 border-gray-900"
@@ -315,8 +294,8 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-              {/* Loan Disbursement Card */}
-              <LoanDisbursementCard />
+              {/* Financial Overview Card */}
+              <FinancialOverviewCard />
             </div>
           </div>
 
@@ -333,18 +312,50 @@ const Dashboard = () => {
                 }}
               />
             </div>
-
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 space-y-6">
             <div className="rounded-lg bg-white p-4 shadow">
-              <h2 className="mb-2 text-lg font-semibold text-gray-700">Transactions Overview</h2>
+              <h2 className="mb-2 text-lg font-semibold text-gray-700">Member Distribution</h2>
               <Pie
                 data={pieChartData}
                 options={{
                   responsive: true,
-                  plugins: { legend: { position: 'bottom' } },
+                  plugins: {
+                    legend: { position: 'bottom' },
+                    datalabels: {
+                      formatter: (value, ctx) => {
+                        const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / sum) * 100).toFixed(2) + '%';
+                        return percentage;
+                      },
+                      color: '#fff',
+                      font: { weight: 'bold', size: 14 },
+                    },
+                  },
+                }}
+              />
+            </div>
+            {/* New Money Distribution Pie Graph */}
+            <div className="rounded-lg bg-white p-4 shadow">
+              <h2 className="mb-2 text-lg font-semibold text-gray-700">Financial Breakdown</h2>
+              <Pie
+                data={moneyPieChartData}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { position: 'bottom' },
+                    datalabels: {
+                      formatter: (value, ctx) => {
+                        const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / sum) * 100).toFixed(2) + '%';
+                        return percentage;
+                      },
+                      color: '#fff',
+                      font: { weight: 'bold', size: 14 },
+                    },
+                  },
                 }}
               />
             </div>

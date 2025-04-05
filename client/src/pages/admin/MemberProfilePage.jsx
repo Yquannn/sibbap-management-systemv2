@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import success from "../../components/Success";
 
 // 1) IMPORT THE CHART COMPONENTS (if you still need them elsewhere)
 import { Line } from "react-chartjs-2";
@@ -26,6 +27,22 @@ ChartJS.register(
   Legend
 );
 
+// ------------------ SUCCESS COMPONENT ------------------
+const SuccessComponent = ({ message, onClose }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div className="bg-white w-full max-w-md rounded shadow-lg p-6 relative flex flex-col items-center">
+      <img src={success} alt="Success" className="w-16 h-16 mb-4" />
+      <h2 className="text-xl font-bold mb-4 text-green-600">{message}</h2>
+      <button
+        onClick={onClose}
+        className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+);
+
 const MemberProfilePage = () => {
   const { memberId } = useParams();
   const navigate = useNavigate();
@@ -38,10 +55,11 @@ const MemberProfilePage = () => {
   const [messageType, setMessageType] = useState(""); // "success" or "error"
   const [message, setMessage] = useState("");
 
-  // Modal control for "View All Information"
+  // Modal control for "View All Information" and Add Transaction
   const [showAllInfoModal, setShowAllInfoModal] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
 
-  // State for tabs – one of: Documents, Beneficiaries, Account Info, Loan History, Initial Contribution
+  // State for tabs – one of: Documents, Beneficiaries, Account Info, Loan History, Share Capital, Purchase History
   const [activeTab, setActiveTab] = useState("Documents");
 
   // Define an array of background color classes for fallback avatar
@@ -61,7 +79,6 @@ const MemberProfilePage = () => {
     const idString = m?.memberId
       ? String(m.memberId)
       : `${m.first_name || ""}${m.last_name || ""}`;
-
     let hash = 0;
     for (let i = 0; i < idString.length; i++) {
       hash = idString.charCodeAt(i) + ((hash << 5) - hash);
@@ -90,10 +107,11 @@ const MemberProfilePage = () => {
     const fetchMember = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3001/api/member/${memberId}`
+          `http://localhost:3001/api/member-info/${memberId}`
         );
-        setMember(response.data);
-        console.log(response.data)
+        // Use fetched member data; your backend already returns nested arrays
+        const memberData = { ...response.data };
+        setMember(memberData);
       } catch (error) {
         console.error("Error fetching member data:", error);
         setMessage("Error fetching member data.");
@@ -125,6 +143,14 @@ const MemberProfilePage = () => {
     setMember(updated);
   };
 
+  // When a new transaction is added, update the member's purchase history
+  const handleAddTransaction = (newTransaction) => {
+    setMember((prev) => ({
+      ...prev,
+      purchase_history: [...(prev.purchase_history || []), newTransaction],
+    }));
+  };
+
   // ------------------ BASIC INFO SECTION ------------------
   const BasicInfoSection = () => {
     return (
@@ -153,7 +179,6 @@ const MemberProfilePage = () => {
 
         {/* Right: Details */}
         <div className="flex-1 leading-relaxed">
-          {/* Top Row: Badge and Name */}
           <div className="mb-2">
             <span className="bg-green-800 text-white text-xs px-2 py-1 rounded-full">
               {member.member_type}
@@ -166,7 +191,6 @@ const MemberProfilePage = () => {
             </h4>
           </div>
 
-          {/* Two-Column Grid for Additional Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="text-sm text-gray-600">
               <p>
@@ -202,7 +226,6 @@ const MemberProfilePage = () => {
             </div>
           </div>
 
-          {/* Button to open the modal with full profile */}
           <button
             className="mt-3 border border-green-600 text-green-600 px-4 py-1 rounded-full hover:bg-green-50 text-sm"
             onClick={() => setShowAllInfoModal(true)}
@@ -217,7 +240,6 @@ const MemberProfilePage = () => {
   // ------------------ DOCUMENTS SECTION ------------------
   const DocumentsSection = () => {
     const [showDocs, setShowDocs] = useState(false);
-
     return (
       <div className="p-6">
         <h3 className="text-xl font-bold mb-4 text-gray-800">Documents</h3>
@@ -341,7 +363,8 @@ const MemberProfilePage = () => {
             <strong>Relationship:</strong> {member.relationship || "N/A"}
           </p>
           <p>
-            <strong>Contact:</strong> {member.beneficiary_contactNumber || "N/A"}
+            <strong>Contact:</strong>{" "}
+            {member.beneficiary_contactNumber || "N/A"}
           </p>
         </div>
         <div>
@@ -353,7 +376,8 @@ const MemberProfilePage = () => {
             <strong>Position:</strong> {member.position || "N/A"}
           </p>
           <p>
-            <strong>Contact:</strong> {member.reference_contactNumber || "N/A"}
+            <strong>Contact:</strong>{" "}
+            {member.reference_contactNumber || "N/A"}
           </p>
         </div>
       </div>
@@ -419,7 +443,6 @@ const MemberProfilePage = () => {
         </div>
       );
     }
-
     return (
       <div className="p-6">
         <h3 className="text-xl font-bold mb-4 text-gray-800">Loan History</h3>
@@ -453,75 +476,208 @@ const MemberProfilePage = () => {
 
   // ------------------ INITIAL CONTRIBUTION SECTION ------------------
   const InitialContributionSection = () => {
-    // if (!member.initial_contribution) {
-    //   return (
-    //     <div className="p-6">
-    //       <p className="text-gray-600 text-base">
-    //         No Share Capital data.
-    //       </p>
-    //     </div>
-    //   );
-    // }
+    return (
+      <div className="p-6">
+        <h3 className="text-3xl font-bold text-gray-900 border-b pb-3 mb-5">
+          Current Contributions
+        </h3>
+        <div className="grid grid-cols-1 gap-4 text-gray-700">
+          <div className="border-b border-gray-300 pb-4">
+            <h4 className="text-xl font-semibold text-gray-900 mb-3">
+              Share Capital
+            </h4>
+            <p className="flex justify-between items-center group transition-all">
+              <span>Current Share Capital:</span>
+              <span className="font-medium text-blue-500 group-hover:text-blue-600">
+                ₱{member.share_capital}
+              </span>
+            </p>
+          </div>
+          <div className="border-b border-gray-300 pb-4">
+            <h4 className="text-xl font-semibold text-gray-900 mb-3">Fees</h4>
+            {[
+              { label: "Initial Shared Capital", value: member.initial_shared_capital },
+              { label: "Identification Card Fee", value: member.identification_card_fee },
+              { label: "Membership Fee", value: member.membership_fee },
+              { label: "Kalinga Fund Fee", value: member.kalinga_fund_fee },
+            ].map((item, index) => (
+              <p
+                key={index}
+                className="flex justify-between items-center hover:text-blue-600 transition-all"
+              >
+                <span>{item.label}:</span>
+                <span className="font-medium text-blue-500">₱{item.value}</span>
+              </p>
+            ))}
+          </div>
+          <div>
+            <h4 className="text-xl font-semibold text-gray-900 mb-3">Savings</h4>
+            <p className="flex justify-between items-center hover:text-blue-600 transition-all">
+              <span>Initial Savings:</span>
+              <span className="font-medium text-blue-500">₱{member.initial_savings}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const PurchaseHistorySection = () => {
+    const purchaseHistory = member.purchase_history || [];
+  
+    // Calculate the total purchase amount
+    const totalPurchase = purchaseHistory.reduce(
+      (acc, transaction) => acc + parseFloat(transaction.amount),
+      0
+    );
+  
+    return (
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-800">Purchase History</h3>
+          <button
+            onClick={() => setShowTransactionModal(true)}
+            className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+          >
+            Add New Transaction
+          </button>
+        </div>
+        <div className="mb-4">
+          <p className="text-lg font-medium text-gray-700">
+            Total Purchase: ₱{totalPurchase.toFixed(2)}
+          </p>
+        </div>
+        {purchaseHistory.length === 0 ? (
+          <p className="text-gray-600">No purchase history available.</p>
+        ) : (
+          <div className="max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {purchaseHistory.map((transaction, index) => (
+                <div
+                  key={index}
+                  className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow"
+                >
+                  <p className="text-lg font-semibold text-gray-700">
+                    ₱{transaction.amount}
+                  </p>
+                  <p className="text-gray-600 mt-2">
+                    <span className="font-medium">Service:</span> {transaction.service}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {formatDate(transaction.purchase_date)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  
+  
+
+  // ------------------ ADD TRANSACTION MODAL ------------------
+  const AddTransactionModal = ({ memberId, onClose, onAddTransaction, onMessage }) => {
+    const [formData, setFormData] = useState({ totalAmount: "", service: "" });
+    const [saving, setSaving] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleSave = async () => {
+      if (!formData.totalAmount || !formData.service) {
+        onMessage("error", "Please fill in all fields.");
+        return;
+      }
+      setSaving(true);
+      try {
+        const response = await axios.post(
+          `http://localhost:3001/api/purchase-history/${memberId}`,
+          {
+            amount: parseFloat(formData.totalAmount), // sending "amount" as required by backend
+            service: formData.service,
+          }
+        );
+        // Assuming response.data.result contains the new transaction details
+        onAddTransaction(response.data.result);
+        onMessage("success", "Transaction added successfully!");
+        setIsSuccess(true);
+      } catch (error) {
+        console.error(
+          "Error adding transaction:",
+          error.response ? error.response.data : error.message
+        );
+        onMessage("error", "Error adding transaction.");
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    if (isSuccess) {
+      return (
+        <SuccessComponent
+          message="Transaction added successfully!"
+          onClose={onClose}
+        />
+      );
+    }
 
     return (
-<div className="p-6">
-  <h3 className="text-3xl font-bold text-gray-900 border-b pb-3 mb-5">
-    Current Contributions
-  </h3>
-
-  <div className="grid grid-cols-1 gap-4 text-gray-700">
-    {/* Share Capital Section */}
-    <div className="border-b border-gray-300 pb-4">
-      <h4 className="text-xl font-semibold text-gray-900 mb-3">Share Capital</h4>
-      <p className="flex justify-between items-center group transition-all">
-        <span>Current Share Capital:</span>
-        <span className="font-medium text-blue-500 group-hover:text-blue-600">
-          ₱{member.share_capital}
-        </span>
-      </p>
-    </div>
-
-    {/* Fees Section */}
-    <div className="border-b border-gray-300 pb-4">
-      <h4 className="text-xl font-semibold text-gray-900 mb-3">Fees</h4>
-      {[
-        { label: "Initial Shared Capital", value: member.initial_shared_capital },
-        { label: "Identification Card Fee", value: member.identification_card_fee },
-        { label: "Membership Fee", value: member.membership_fee },
-        { label: "Kalinga Fund Fee", value: member.kalinga_fund_fee },
-      ].map((item, index) => (
-        <p
-          key={index}
-          className="flex justify-between items-center hover:text-blue-600 transition-all"
-        >
-          <span>{item.label}:</span>
-          <span className="font-medium text-blue-500">₱{item.value}</span>
-        </p>
-      ))}
-    </div>
-
-    {/* Savings Section */}
-    <div>
-      <h4 className="text-xl font-semibold text-gray-900 mb-3">Savings</h4>
-      <p className="flex justify-between items-center hover:text-blue-600 transition-all">
-        <span>Initial Savings:</span>
-        <span className="font-medium text-blue-500">₱{member.initial_savings}</span>
-      </p>
-    </div>
-  </div>
-</div>
-
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="bg-white w-full max-w-md rounded shadow-lg p-6 relative">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Add New Transaction</h2>
+          <div className="mb-4">
+            <label className="font-medium">Total Amount</label>
+            <input
+              type="number"
+              name="totalAmount"
+              value={formData.totalAmount}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 mt-1"
+              placeholder="Enter total amount"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="font-medium">Service</label>
+            <select
+              name="service"
+              value={formData.service}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 mt-1"
+            >
+              <option value="">Select Service</option>
+              <option value="Consumer">Consumer</option>
+              <option value="Store">Store</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 
   // ------------------ ALL INFO MODAL (EDITABLE) ------------------
-  const AllInfoModal = ({
-    member,
-    memberId,
-    onClose,
-    onUpdateMember,
-    onMessage,
-  }) => {
+  const AllInfoModal = ({ member, memberId, onClose, onUpdateMember, onMessage }) => {
     const [formData, setFormData] = useState({ ...member });
     const [saving, setSaving] = useState(false);
 
@@ -551,12 +707,8 @@ const MemberProfilePage = () => {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
         <div className="bg-white w-full max-w-3xl rounded shadow-lg p-6 relative">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">
-            All Information
-          </h2>
-
+          <h2 className="text-xl font-bold mb-4 text-gray-800">All Information</h2>
           <div className="max-h-[70vh] overflow-y-auto pr-2">
-            {/* BASIC FIELDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
               <div className="flex flex-col">
                 <label className="font-medium">First Name</label>
@@ -713,15 +865,11 @@ const MemberProfilePage = () => {
                 />
               </div>
             </div>
-
             <hr className="my-4" />
-
-            {/* ADDITIONAL DETAILS */}
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
               Additional Details
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-              {/* Column 1 */}
               <div>
                 <label className="font-medium">Annual Income</label>
                 <input
@@ -764,8 +912,6 @@ const MemberProfilePage = () => {
                   className="border rounded px-3 py-2 w-full mb-3"
                 />
               </div>
-
-              {/* Column 2 */}
               <div>
                 <label className="font-medium">Occupation</label>
                 <input
@@ -808,8 +954,6 @@ const MemberProfilePage = () => {
                   className="border rounded px-3 py-2 w-full mb-3"
                 />
               </div>
-
-              {/* Column 3 */}
               <div>
                 <label className="font-medium">City</label>
                 <input
@@ -838,8 +982,6 @@ const MemberProfilePage = () => {
               </div>
             </div>
           </div>
-
-          {/* BUTTONS */}
           <div className="mt-6 flex justify-end space-x-3">
             <button
               onClick={onClose}
@@ -863,10 +1005,6 @@ const MemberProfilePage = () => {
   // ------------------ MAIN RENDER ------------------
   return (
     <div className="">
-      {/* Back/Exit Button */}
-      
-
-      {/* Notification Banner */}
       {showMessage && (
         <div
           className={`mb-4 p-4 rounded ${
@@ -879,42 +1017,49 @@ const MemberProfilePage = () => {
         </div>
       )}
 
-{/* Title / Subtitle */}
-<div className="flex justify-between items-center mb-6">
-  <div>
-    <h1 className="text-2xl font-bold text-gray-800">
-      Member Profile Overview
-    </h1>
-    <p className="text-base text-gray-500">
-      Manage and review member details
-    </p>
-  </div>
-  <button
-    onClick={() => navigate(-1)}
-    className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-6 w-6"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  </button>
-</div>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Member Profile Overview
+          </h1>
+          <p className="text-base text-gray-500">
+            Manage and review member details
+          </p>
+        </div>
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
 
-      {/* Basic Info Section */}
       <BasicInfoSection />
 
-      {/* Tabs Container */}
       <div className="bg-white rounded-xl shadow-md mt-6">
-        {/* Tabs Navigation */}
         <div className="border-b">
           <nav className="flex space-x-4">
-            {["Documents", "Beneficiaries", "Account Info", "Loan History", "Share Capital"].map((tab) => (
+            {[
+              "Documents",
+              "Beneficiaries",
+              "Account Info",
+              "Loan History",
+              "Share Capital",
+              "Purchase History",
+            ].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -930,24 +1075,31 @@ const MemberProfilePage = () => {
           </nav>
         </div>
 
-        {/* Tab Content */}
         <div className="p-4">
           {activeTab === "Documents" && <DocumentsSection />}
           {activeTab === "Beneficiaries" && <BeneficiariesSection />}
           {activeTab === "Account Info" && <AccountInfoSection />}
           {activeTab === "Loan History" && <LoanHistorySection />}
           {activeTab === "Share Capital" && <InitialContributionSection />}
-          
+          {activeTab === "Purchase History" && <PurchaseHistorySection />}
         </div>
       </div>
 
-      {/* All Info Modal */}
       {showAllInfoModal && (
         <AllInfoModal
           member={member}
           memberId={memberId}
           onClose={() => setShowAllInfoModal(false)}
           onUpdateMember={handleUpdateMember}
+          onMessage={handleModalMessage}
+        />
+      )}
+
+      {showTransactionModal && (
+        <AddTransactionModal
+          memberId={memberId}
+          onClose={() => setShowTransactionModal(false)}
+          onAddTransaction={handleAddTransaction}
           onMessage={handleModalMessage}
         />
       )}

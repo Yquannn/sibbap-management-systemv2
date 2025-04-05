@@ -9,7 +9,7 @@ const PersonalInformationReg = ({
   const { mode } = useParams(); // <-- Get mode from URL
   const [errors, setErrors] = React.useState({});
 
-  const isReadOnly = mode === "add" || "register"; // Disable fields if mode is "add"
+  const isReadOnly = mode === "add" || mode === "register" 
 
   const handleChange = (e) => {
     const { name, value } = e.target;

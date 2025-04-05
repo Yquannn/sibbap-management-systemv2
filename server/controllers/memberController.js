@@ -28,6 +28,7 @@ exports.getMembers = async (req, res) => {
     LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
     LEFT JOIN character_references c ON mi.memberId = c.memberId
     LEFT JOIN regular_savings s ON mi.memberId = s.memberId
+    
     WHERE mi.status = 'Active'
     `;
 
@@ -135,7 +136,55 @@ exports.getMembers = async (req, res) => {
 
 
 
-
+exports.fetchedMemberById = async (req, res) => {
+    const id = req.params.id;
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      return res.status(400).json({ message: 'Invalid member ID' });
+    }
+  
+    try {
+      // Fetch the main member data (for active members) using the provided id.
+      const memberQuery = `
+        SELECT mi.*, ma.email, ma.password, ma.accountStatus, s.amount AS savingsAmount
+        FROM members mi
+        LEFT JOIN member_account ma ON mi.memberId = ma.memberId
+        LEFT JOIN regular_savings s ON mi.memberId = s.memberId
+        WHERE mi.status = 'Active' AND mi.memberId = ?
+      `;
+      const members = await queryDatabase(memberQuery, [id]);
+  
+      if (!members.length) {
+        return res.status(404).json({ message: 'Member not found' });
+      }
+      const member = members[0];
+  
+      // Fetch purchase history for the member.
+      const purchaseQuery = `SELECT * FROM purchase_history WHERE memberId = ?`;
+      const purchaseHistory = await queryDatabase(purchaseQuery, [id]);
+  
+      // Fetch loan history for the member (assuming the table is "loan_applications").
+      const loanQuery = `SELECT * FROM loan_applications WHERE memberId = ?`;
+      const loanHistory = await queryDatabase(loanQuery, [id]);
+  
+      // Fetch beneficiaries for the member.
+      const beneficiaryQuery = `SELECT * FROM beneficiaries WHERE memberId = ?`;
+      const beneficiaries = await queryDatabase(beneficiaryQuery, [id]);
+  
+      // Combine nested data into a single object.
+      const memberWithNested = {
+        ...member,
+        purchase_history: purchaseHistory,
+        loan_history: loanHistory,
+        beneficiaries: beneficiaries
+      };
+  
+      res.json(memberWithNested);
+    } catch (error) {
+      console.error("Error fetching data from MySQL:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  };
+  
 
 
 exports.getMemberById = async (req, res) => {
@@ -150,6 +199,7 @@ exports.getMemberById = async (req, res) => {
     FROM members m
     LEFT JOIN member_account ma ON m.memberId = ma.memberId  
     WHERE m.memberId = ?`;
+    
 
   try {
     const results = await queryDatabase(query, [id]);
@@ -469,73 +519,127 @@ exports.getMemberSavings = async (req, res) => {
 
 
 
-
-// Update member details
 exports.updateMember = async (req, res) => {
-  const id = req.params.id; 
-  const { fullName, age, contactNumber, gender, address, shareCapital, email, password } = req.body;
-  const idPicture = req.file ? req.file.filename : null; 
-
+  const id = req.params.id;
   if (!id || typeof id !== 'string' || id.trim() === '') {
     return res.status(400).json({ message: 'Invalid member ID' });
   }
+
+  // Destructure all expected fields from req.body
+  const {
+    registration_type,
+    last_name,
+    first_name,
+    middle_name,
+    extension_name,
+    tin_number,
+    date_of_birth,
+    birthplace_province,
+    number_of_dependents,
+    age,
+    sex,
+    civil_status,
+    religion,
+    highest_educational_attainment,
+    annual_income,
+    occupation_source_of_income,
+    spouse_name,
+    spouse_occupation_source_of_income,
+    contact_number,
+    house_no_street,
+    barangay,
+    city,
+    tax_identification_id,
+  } = req.body;
+
+  // File-based columns: if files are provided via req.file or req.files
+  // Here we assume the filenames for these fields are provided in req.body,
+  // or you can customize this to check req.files if you're uploading files.
+  const barangay_clearance = req.body.barangay_clearance || (req.files && req.files.barangay_clearance ? req.files.barangay_clearance[0].filename : null);
+  const valid_id = req.body.valid_id || (req.files && req.files.valid_id ? req.files.valid_id[0].filename : null);
+  const membership_agreement = req.body.membership_agreement || (req.files && req.files.membership_agreement ? req.files.membership_agreement[0].filename : null);
 
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    let memberQuery = `
-      UPDATE member_information
+    const updateQuery = `
+      UPDATE members
       SET 
-        fullName = ?, 
-        age = ?, 
-        contactNumber = ?, 
-        gender = ?, 
-        address = ?, 
-        shareCapital = ?
+        registration_type = ?,
+        last_name = ?,
+        first_name = ?,
+        middle_name = ?,
+        extension_name = ?,
+        tin_number = ?,
+        date_of_birth = ?,
+        birthplace_province = ?,
+        number_of_dependents = ?,
+        age = ?,
+        sex = ?,
+        civil_status = ?,
+        religion = ?,
+        highest_educational_attainment = ?,
+        annual_income = ?,
+        occupation_source_of_income = ?,
+        spouse_name = ?,
+        spouse_occupation_source_of_income = ?,
+        contact_number = ?,
+        house_no_street = ?,
+        barangay = ?,
+        city = ?,
+        barangay_clearance = ?,
+        tax_identification_id = ?,
+        valid_id = ?,
+        membership_agreement = ?
+      WHERE memberId = ?
     `;
-    const memberParams = [fullName, age, contactNumber, gender, address, shareCapital];
+    const params = [
+      registration_type,
+      last_name,
+      first_name,
+      middle_name,
+      extension_name,
+      tin_number,
+      date_of_birth,
+      birthplace_province,
+      number_of_dependents,
+      age,
+      sex,
+      civil_status,
+      religion,
+      highest_educational_attainment,
+      annual_income,
+      occupation_source_of_income,
+      spouse_name,
+      spouse_occupation_source_of_income,
+      contact_number,
+      house_no_street,
+      barangay,
+      city,
+      barangay_clearance,
+      tax_identification_id,
+      valid_id,
+      membership_agreement,
+      id
+    ];
 
-    if (idPicture) {
-      memberQuery += `, idPicture = ?`; 
-      memberParams.push(idPicture);
-    }
-
-    memberQuery += ` WHERE id = ?`; 
-    memberParams.push(id);
-
-    await connection.execute(memberQuery, memberParams);
-
-    if (password) {
-      const accountQuery = `
-        UPDATE member_account
-        SET email = ?, password = ?
-        WHERE memberId = ?  
-      `;
-      const accountParams = [email, password, id]; 
-      await connection.execute(accountQuery, accountParams);
-    } else {
-      const accountQuery = `
-        UPDATE member_account
-        SET email = ?
-        WHERE memberId = ?  
-      `;
-      const accountParams = [email, id]; 
-      await connection.execute(accountQuery, accountParams);
-    }
-
+    await connection.execute(updateQuery, params);
     await connection.commit();
-
     res.json({ message: 'Member updated successfully' });
   } catch (error) {
-    console.error('Error updating data in MySQL:', error);
+    console.error('Error updating member data:', error);
     await connection.rollback();
     res.status(500).json({ message: 'Error updating member information' });
   } finally {
     await connection.release();
   }
 };
+
+
+
+
 
 // Delete a member
 exports.deleteMember = async (req, res) => {
@@ -665,3 +769,21 @@ exports.updateFinancials = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.addPurchaseHistory = async (req, res) => {
+  try {
+    const memberId = req.params.memberId;
+    const { service, amount } = req.body;
+
+    if (!service || amount == null) {
+      return res.status(400).json({ message: "Service and amount are required." });
+    }
+
+    const result = await memberModel.addPurchaseHistory(memberId, service, amount);
+    res.status(200).json({ message: "Purchase history added successfully.", result });
+  } catch (error) {
+    console.error("Error adding purchase history:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
