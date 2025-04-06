@@ -11,23 +11,30 @@ const queryDatabase = async (query, params) => {
     connection.release();
   }
 };
-const generateUniqueMemberCode = async (share_capital) => {
-  const currentYear = String(new Date().getFullYear()).slice(2);
-  const query = 'SELECT MAX(memberCode) AS maxCode FROM members WHERE memberCode LIKE ?';
-  const queryParams = [`${currentYear}%`];
 
+
+const generateUniqueMemberCode = async (share_capital) => {
+  const currentYear = String(new Date().getFullYear()).slice(2); // e.g., '25'
+  
   // Determine prefix and type
   const memberType = share_capital < 6000 ? "Partial Member" : "Regular Member";
   const codePrefix = share_capital < 6000 ? "PM-" : "RM-";
-  console.log(share_capital)
+
+  // Example LIKE 'PM-25%' or 'RM-25%'
+  const query = `
+    SELECT MAX(CAST(SUBSTRING(memberCode, 6) AS UNSIGNED)) AS maxCode
+    FROM members
+    WHERE memberCode LIKE ?
+  `;
+  const queryParams = [`${codePrefix}${currentYear}%`];
+
   try {
     const results = await queryDatabase(query, queryParams);
     const maxCode = results[0]?.maxCode;
+    const nextNumber = maxCode ? parseInt(maxCode, 10) + 1 : 1;
+    const numericPart = String(nextNumber).padStart(4, '0');
 
-    const lastNumber = maxCode ? parseInt(maxCode.slice(2), 10) + 1 : 1;
-    const numericPart = String(lastNumber).padStart(4, '0');
-
-    const newMemberCode = currentYear + numericPart;
+    const newMemberCode = `${currentYear}${numericPart}`;
 
     return { memberCode: newMemberCode, memberType };
   } catch (error) {
@@ -35,6 +42,7 @@ const generateUniqueMemberCode = async (share_capital) => {
     throw new Error('Error generating unique member code');
   }
 };
+
 
 
 // Format a date as YYYY-MM-DD

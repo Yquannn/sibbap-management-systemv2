@@ -269,14 +269,14 @@ const SideBar = ({ mode }) => {
                       "Loan Application"
                     )}
                   </li>
-                  <li>
+                  {/* <li>
                     {renderItem(
                       loanSubAllowed["loan-applicant"],
                       "/loan-applicant",
                       <IoPeople />,
                       "Loan Applicant"
                     )}
-                  </li>
+                  </li> */}
                   <li>
                     {renderItem(
                       loanSubAllowed["loan-approval"],
@@ -304,12 +304,12 @@ const SideBar = ({ mode }) => {
             </li>
           )}
 
-          {renderItem(
+          {/* {renderItem(
             allowed.fileMaintenance,
             "/file-maintenance",
             <HiOutlineDocumentText />,
             "File Maintenance"
-          )}
+          )} */}
           {renderItem(allowed.report, "/report", <HiOutlineChartBar />, "Report")}
           {renderItem(allowed.users, "/users", <HiOutlineUserGroup />, "Users")}
           {renderItem(allowed.announcement, "/announcement", <HiOutlineBell />, "Announcement")}

@@ -2,11 +2,12 @@ import React from "react";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const ShareCapital = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
 
   async function fetchMembers() {
     try {
@@ -52,21 +53,18 @@ const ShareCapital = () => {
                   <td className="py-3 px-4 border-b border-gray-300">{member.house_no_street} {member.barangay} {member.city}</td>
                   {/* <td className="py-3 px-4 border-b border-gray-300">{member.shareCapital}</td> */}
                   <td className="py-3 px-4 border-b border-gray-300">
-                    <div className="flex justify-center space-x-3">
-                      <button
-                        // onClick={() => openModal("editOpen", member)}
-                        // className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center"
-                      >
-                        <FaEdit className="mr-1" /> Update
-                      </button>
-                      <button
-                        // onClick={() => openModal("viewOpen", member)}
-                        // className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
-                      >
-                        <FaEye className="mr-1" /> View
-                      </button>
-                    </div>
-                  </td>
+                                        <div className="flex justify-center space-x-3">
+                                          <button
+                                            onClick={() =>
+                                              navigate(`/member/share-capital/${null}`)
+                                            }
+                                            className="btn btn-success btn-sm flex items-center"
+                                          >
+                                            <FaEye className="mr-1" /> View
+                                          </button>
+                                        </div>
+                                      </td>
+                    
                 </tr>
               ))
             ) : (

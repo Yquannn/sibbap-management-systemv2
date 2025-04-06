@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LoanTypeSelector from "./components/LoanTypeSelector";
 import FeedsRiceSection from "./components/FeedsRiceSection";
+import MarketingSection from "./components/MarketingSection";
 import axios from "axios";
 
 const LoanInformation = ({
@@ -37,6 +38,8 @@ const LoanInformation = ({
     proofOfBusiness: "",
     sacks: 0,
     loanAmount: "",
+    // Added for marketing loans:
+    coMakerDetails: { name: "", memberId: "" },
   };
 
   // The memberInfo will hold the personal information fetched from the API.
@@ -114,10 +117,25 @@ const LoanInformation = ({
   // Update maxSacks when loan type or share capital changes.
   useEffect(() => {
     const shareCapital = memberInfo.share_capital;
-    if ((loanInfo.loanType === "rice" || loanInfo.loanType === "feeds") && shareCapital) {
+    if (
+      (loanInfo.loanType === "rice" || loanInfo.loanType === "feeds") &&
+      shareCapital
+    ) {
       setMaxSacks(getSackLimit(shareCapital, loanInfo.loanType));
     }
   }, [loanInfo.loanType, memberInfo]);
+
+  // Compute loanable amount based on entered values.
+  const baseLoanAmount = Number(loanInfo.loanAmount) || 0;
+  const sacks = Number(loanInfo.sacks) || 1;
+  const loanableAmount =
+    loanInfo.loanType === "feeds" || loanInfo.loanType === "rice"
+      ? baseLoanAmount * sacks
+      : loanInfo.loanType === "marketing"
+      ? Math.min(baseLoanAmount, 75000)
+      : loanInfo.loanType === "backToBack"
+      ? Number(memberInfo.share_capital)
+      : baseLoanAmount;
 
   // Modal state to show success message.
   const [modalVisible, setModalVisible] = useState(false);
@@ -128,8 +146,12 @@ const LoanInformation = ({
     const sacks = Number(loanInfo.sacks) || 1; // default to 1 if sacks is zero or not provided
     // Multiply loan amount by sacks if loan type is feeds or rice.
     const finalLoanAmount =
-      (loanInfo.loanType === "feeds" || loanInfo.loanType === "rice")
+      loanInfo.loanType === "feeds" || loanInfo.loanType === "rice"
         ? baseLoanAmount * sacks
+        : loanInfo.loanType === "marketing"
+        ? Math.min(baseLoanAmount, 75000)
+        : loanInfo.loanType === "backToBack"
+        ? Number(memberInfo.share_capital)
         : baseLoanAmount;
 
     return {
@@ -144,7 +166,7 @@ const LoanInformation = ({
       loan_amount: finalLoanAmount,
       interest: Number(loanInfo.interest),
       terms: Number(loanInfo.loanTerms),
-      balance:  finalLoanAmount,
+      balance: finalLoanAmount,
       service_fee: Number(loanInfo.serviceFee),
       details: {
         statement_of_purpose: loanInfo.statementOfPurpose,
@@ -280,8 +302,6 @@ const LoanInformation = ({
     }
   };
 
-  // Modal state to show success message.
-
   // Function to handle closing the modal.
   const closeModal = () => {
     setModalVisible(false);
@@ -317,9 +337,9 @@ const LoanInformation = ({
               value={loanInfo.applicationType}
               onChange={handleLoanChange}
             >
-              <option value="">Select Application Type</option>
+              <option value="">Select type</option>
               <option value="New">New</option>
-              <option value="Renewal">Renewal</option>
+              {/* You can add more options here in the future */}
             </select>
           </div>
           <div>
@@ -335,128 +355,135 @@ const LoanInformation = ({
               getSackLimit={getSackLimit}
             />
           </div>
-          {/* Statement of Purpose spanning all columns */}
-          <div className="md:col-span-3">
-            <label className="block font-medium text-gray-700 mb-1">
-              Statement of Purpose
-            </label>
-            <textarea
-              name="statementOfPurpose"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter statement of purpose"
-              value={loanInfo.statementOfPurpose}
-              onChange={handleLoanChange}
-              rows="2"
-            ></textarea>
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Loan Terms
-            </label>
-            <input
-              type="text"
-              name="loanTerms"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter loan terms"
-              value={loanInfo.loanTerms}
-              onChange={handleLoanChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Interest (%)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              name="interest"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter interest rate"
-              value={loanInfo.interest}
-              onChange={handleLoanChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Service Fee
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              name="serviceFee"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter service fee"
-              value={loanInfo.serviceFee}
-              onChange={handleLoanChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Additional Savings Deposit (1%)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              name="additionalSavingsDeposit"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter additional savings deposit"
-              value={loanInfo.additionalSavingsDeposit}
-              onChange={handleLoanChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Sharecapital Build Up (1%)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              name="shareCapitalBuildUp"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter sharecapital build up"
-              value={loanInfo.shareCapitalBuildUp}
-              onChange={handleLoanChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Loan Amount
-            </label>
-            <input
-              type="number"
-              name="loanAmount"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter loan amount"
-              value={loanInfo.loanAmount}
-              onChange={handleLoanChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Insurance
-            </label>
-            <input
-              type="number"
-              name="insurance"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter insurance"
-              value={loanInfo.insurance}
-              onChange={handleLoanChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Gift Certificate
-            </label>
-            <input
-              type="text"
-              name="giftCertificate"
-              className="border p-3 rounded-lg w-full"
-              placeholder="Enter gift certificate code"
-              value={loanInfo.giftCertificate}
-              onChange={handleLoanChange}
-            />
-          </div>
+
+          {/* Conditionally render additional section based on loan type */}
+          {loanInfo.loanType === "marketing" ? (
+            // Render marketing-specific fields
+            <div className="md:col-span-3">
+              <MarketingSection
+                statementOfPurpose={loanInfo.statementOfPurpose}
+                setStatementOfPurpose={setStatementOfPurpose}
+                loanAmount={loanInfo.loanAmount}
+                setLoanAmount={(val) =>
+                  setFormData((prevData) => ({
+                    ...prevData,
+                    loanInfo: { ...prevData.loanInfo, loanAmount: val },
+                  }))
+                }
+                coMakerDetails={loanInfo.coMakerDetails}
+                setCoMakerDetails={(val) =>
+                  setFormData((prevData) => ({
+                    ...prevData,
+                    loanInfo: { ...prevData.loanInfo, coMakerDetails: val },
+                  }))
+                }
+                terms={loanInfo.loanTerms}
+                setTerms={(val) =>
+                  setFormData((prevData) => ({
+                    ...prevData,
+                    loanInfo: { ...prevData.loanInfo, loanTerms: val },
+                  }))
+                }
+              />
+            </div>
+          ) : (
+            <>
+              {/* For non-marketing loans, render the standard fields */}
+              <div className="md:col-span-3">
+                <label className="block font-medium text-gray-700 mb-1">
+                  Statement of Purpose
+                </label>
+                <textarea
+                  name="statementOfPurpose"
+                  className="border p-3 rounded-lg w-full"
+                  placeholder="Enter statement of purpose"
+                  value={loanInfo.statementOfPurpose}
+                  onChange={handleLoanChange}
+                  rows="2"
+                ></textarea>
+              </div>
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">
+                  Loan Terms
+                </label>
+                <input
+                  type="text"
+                  name="loanTerms"
+                  className="border p-3 rounded-lg w-full"
+                  placeholder="Enter loan terms"
+                  value={loanInfo.loanTerms}
+                  onChange={handleLoanChange}
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">
+                  Interest (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="interest"
+                  className="border p-3 rounded-lg w-full"
+                  placeholder="Enter interest rate"
+                  value={loanInfo.interest}
+                  onChange={handleLoanChange}
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">
+                  Service Fee
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="serviceFee"
+                  className="border p-3 rounded-lg w-full"
+                  placeholder="Enter service fee"
+                  value={loanInfo.serviceFee}
+                  onChange={handleLoanChange}
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">
+                  Additional Savings Deposit (1%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="additionalSavingsDeposit"
+                  className="border p-3 rounded-lg w-full"
+                  placeholder="Enter additional savings deposit"
+                  value={loanInfo.additionalSavingsDeposit}
+                  onChange={handleLoanChange}
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">
+                  Loan Amount
+                </label>
+                <input
+                  type="number"
+                  name="loanAmount"
+                  className="border p-3 rounded-lg w-full"
+                  placeholder="Enter loan amount"
+                  value={loanInfo.loanAmount}
+                  onChange={handleLoanChange}
+                />
+              </div>
+              {/* New Loanable Amount field */}
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">
+                  Loanable Amount
+                </label>
+                <input
+                  type="text"
+                  className="border p-3 rounded-lg w-full"
+                  value={loanableAmount}
+                  disabled
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Render Feeds/Rice section if the loan type is feeds or rice */}
@@ -483,7 +510,10 @@ const LoanInformation = ({
           >
             <span className="text-2xl">&#187;&#187;</span> Previous
           </button>
-          {(loanInfo.loanType === "rice" || loanInfo.loanType === "feeds") ? (
+          {(loanInfo.loanType === "rice" ||
+            loanInfo.loanType === "feeds" ||
+            loanInfo.loanType === "marketing" ||
+            loanInfo.loanType === "backToBack") ? (
             <button
               className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg flex items-center gap-3 shadow-md hover:bg-green-800 transition-all"
               onClick={handleSave}

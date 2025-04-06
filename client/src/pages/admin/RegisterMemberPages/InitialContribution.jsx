@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
 const InitialContribution = ({
-  handleNext,
-  formData = {}, // Ensure formData is always defined
+  handleNext, // This will be our handleSave function from the parent.
+  formData = {}, // Ensure formData is always defined.
   setFormData,
-  isReadOnly = false, // default to false if not provided
+  isReadOnly = false, // default to false if not provided.
 }) => {
-  // Default initial values that the user can override by typing.
+  // Default initial values.
   const defaultInitialContribution = {
     share_capital: null,
     membership_fee: 300,
@@ -39,13 +39,13 @@ const InitialContribution = ({
   const handleSubmit = () => {
     console.log("Local contribution data:", localContribution);
 
-    // Update parent form data before moving to the next step.
+    // Update parent's formData.
     setFormData((prev) => ({
       ...prev,
       initialContribution: localContribution,
     }));
 
-    // Call the parent's callback with the new contribution data.
+    // Call parent's handleSave (passed as handleNext) with the updated local data.
     handleNext(localContribution);
   };
 
@@ -72,7 +72,7 @@ const InitialContribution = ({
                   className="border p-2 rounded-lg w-full"
                   value={localContribution[name]}
                   onChange={handleChange}
-                  disabled={isReadOnly} // Disable input if read-only
+                  disabled={isReadOnly}
                 />
               </React.Fragment>
             ))}
@@ -83,7 +83,7 @@ const InitialContribution = ({
             className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg shadow-md hover:bg-green-800 transition-all"
             onClick={handleSubmit}
             type="button"
-            disabled={isReadOnly} // Disable the button if read-only
+            disabled={isReadOnly}
           >
             Submit
           </button>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import CountUp from 'react-countup';
 import {
   Chart as ChartJS,
@@ -20,6 +20,7 @@ import {
   FaHandHoldingUsd,
 } from 'react-icons/fa';
 
+// Register ChartJS components and plugins
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -32,8 +33,40 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// A generic Financial Overview Card
-const FinancialOverviewCard = () => {
+// A reusable card component for displaying statistics
+const StatsCard = ({ icon, label, value, growth }) => {
+  return (
+    <div className="rounded-lg bg-white p-4 shadow flex items-center">
+      <div className="p-2 bg-gray-100 rounded mr-4">{icon}</div>
+      <div>
+        <div className="text-sm font-medium text-gray-500">{label}</div>
+        <div className="mt-1 text-xl font-bold text-gray-800">
+          <CountUp start={0} end={value} duration={2.5} separator="," />
+        </div>
+        <div className={`mt-1 text-sm ${growth.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
+          {growth} from last month
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// FinancialOverviewCard with an interactive line chart
+const FinancialOverviewCard = ({ revenueData }) => {
+  const chartData = useMemo(() => ({
+    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    datasets: [
+      {
+        label: 'Revenue',
+        data: revenueData,
+        borderColor: 'rgba(99,102,241,1)',
+        backgroundColor: 'rgba(99,102,241,0.2)',
+        fill: true,
+        tension: 0.3,
+      },
+    ],
+  }), [revenueData]);
+
   return (
     <div className="max-w-sm w-full bg-white rounded-lg shadow-sm p-4 md:p-6">
       <div className="flex justify-between">
@@ -41,9 +74,7 @@ const FinancialOverviewCard = () => {
           <h5 className="leading-none text-3xl font-bold text-gray-900 pb-2">
             <CountUp start={0} end={750000} duration={2.5} separator="," prefix="₱" />
           </h5>
-          <p className="text-base font-normal text-gray-700">
-            Total Revenue This Month
-          </p>
+          <p className="text-base font-normal text-gray-700">Total Revenue This Month</p>
         </div>
         <div className="flex items-center px-2.5 py-0.5 text-base font-semibold text-green-500 text-center">
           23%
@@ -66,86 +97,47 @@ const FinancialOverviewCard = () => {
       </div>
       <div className="mt-4">
         <Line
-          data={{
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-            datasets: [
-              {
-                label: 'Revenue',
-                data: [150000, 200000, 180000, 220000],
-                borderColor: 'rgba(99,102,241,1)',
-                backgroundColor: 'rgba(99,102,241,0.2)',
-              },
-            ],
-          }}
+          data={chartData}
           options={{
             responsive: true,
-            plugins: { legend: { display: false } },
+            plugins: { 
+              legend: { display: false },
+              tooltip: { mode: 'index', intersect: false }
+            },
             scales: { x: { display: false }, y: { display: false } },
           }}
           height={80}
         />
       </div>
-      <div className="grid grid-cols-1 items-center border-t border-gray-200 justify-between mt-5">
-        <div className="flex justify-between items-center pt-5">
-          <button
-            id="dropdownDefaultButton"
-            data-dropdown-toggle="lastDaysdropdown"
-            data-dropdown-placement="bottom"
-            className="text-sm font-medium text-gray-500 hover:text-gray-900 inline-flex items-center"
-            type="button"
-          >
-            Last 7 days
-            <svg
-              className="w-2.5 m-2.5 ms-1.5"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 10 6"
+    </div>
+  );
+};
+
+// A dropdown component to control the time range for analytics
+const TimeRangeDropdown = ({ selectedRange, onChange }) => {
+  const ranges = ["Yesterday", "Today", "Last 7 days", "Last 30 days", "Last 90 days"];
+  return (
+    <div className="relative inline-block text-left">
+      <button
+        type="button"
+        className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        {selectedRange}
+        <svg className="w-5 h-5 ml-2 -mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div className="origin-top-right absolute right-0 mt-2 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+        <div className="py-1">
+          {ranges.map((range) => (
+            <button
+              key={range}
+              onClick={() => onChange(range)}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             >
-              <path
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="m1 1 4 4 4-4"
-              />
-            </svg>
-          </button>
-          <div
-            id="lastDaysdropdown"
-            className="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44"
-          >
-            <ul className="py-2 text-sm text-gray-700" aria-labelledby="dropdownDefaultButton">
-              {["Yesterday", "Today", "Last 7 days", "Last 30 days", "Last 90 days"].map((text) => (
-                <li key={text}>
-                  <a href="#" className="block px-4 py-2 hover:bg-gray-100">
-                    {text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <a
-            href="#"
-            className="uppercase text-sm font-semibold inline-flex items-center rounded-lg text-blue-600 hover:text-blue-700 hover:bg-gray-100 px-3 py-2"
-          >
-            Report
-            <svg
-              className="w-2.5 h-2.5 ms-1.5 rtl:rotate-180"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 6 10"
-            >
-              <path
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="m1 9 4-4-4-4"
-              />
-            </svg>
-          </a>
+              {range}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -153,7 +145,26 @@ const FinancialOverviewCard = () => {
 };
 
 const Dashboard = () => {
-  // Top stats for overall system analytics
+  const [timeRange, setTimeRange] = useState("Last 7 days");
+
+  // Simulate dynamic revenue data based on the selected time range.
+  const revenueData = useMemo(() => {
+    switch(timeRange) {
+      case "Yesterday":
+        return [200000, 0, 0, 0];
+      case "Today":
+        return [0, 250000, 0, 0];
+      case "Last 30 days":
+        return [150000, 180000, 170000, 210000];
+      case "Last 90 days":
+        return [140000, 190000, 180000, 230000];
+      default:
+        // Default is "Last 7 days"
+        return [150000, 200000, 180000, 220000];
+    }
+  }, [timeRange]);
+
+  // Top stats for overall analytics
   const stats = [
     {
       label: 'Total Revenue',
@@ -181,7 +192,7 @@ const Dashboard = () => {
     },
   ];
 
-  // Dummy data for Monthly Savings Contributions
+  // Dummy data for monthly savings contributions
   const lineChartData = {
     labels: ['January', 'February', 'March', 'April', 'May', 'June'],
     datasets: [
@@ -195,7 +206,7 @@ const Dashboard = () => {
     ],
   };
 
-  // Pie chart for member product distribution
+  // Data for member distribution pie chart
   const pieChartData = {
     labels: ['Time Deposit', 'Loan', 'Regular Savings', 'Share Capital'],
     datasets: [
@@ -207,7 +218,7 @@ const Dashboard = () => {
     ],
   };
 
-  // New pie chart for money distribution
+  // Data for money distribution pie chart
   const moneyPieChartData = {
     labels: ['Loan', 'Share Capital', 'Interest', 'Regular Savings'],
     datasets: [
@@ -219,7 +230,7 @@ const Dashboard = () => {
     ],
   };
 
-  // Dummy data for upcoming events
+  // Upcoming events data
   const upcomingEvents = [
     { date: 'Sep 15, 2025', event: 'Monthly Members Meeting' },
     { date: 'Sep 25, 2025', event: 'System Maintenance' },
@@ -227,27 +238,16 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="w-full bg-gray-100">
+    <div className="w-full bg-gray-100 p-4">
       <main className="w-full">
         {/* Top Stats Cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4 mb-6">
           {stats.map((item, idx) => (
-            <div key={idx} className="rounded-lg bg-white p-4 shadow flex items-center">
-              <div className="p-2 bg-gray-100 rounded mr-4">{item.icon}</div>
-              <div>
-                <div className="text-sm font-medium text-gray-500">{item.label}</div>
-                <div className="mt-1 text-xl font-bold text-gray-800">
-                  <CountUp start={0} end={item.value} duration={2.5} separator="," />
-                </div>
-                <div className={`mt-1 text-sm ${item.growth.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-                  {item.growth} from last month
-                </div>
-              </div>
-            </div>
+            <StatsCard key={idx} {...item} />
           ))}
         </div>
 
-        {/* Grid for Main Sections */}
+        {/* Main Grid Sections */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column */}
           <div className="space-y-6 lg:col-span-4">
@@ -264,7 +264,7 @@ const Dashboard = () => {
               </ul>
             </div>
 
-            {/* Two-column grid for New Members and Financial Overview */}
+            {/* New Members and Financial Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* New Members Card */}
               <div className="rounded-lg shadow bg-white p-4">
@@ -295,19 +295,25 @@ const Dashboard = () => {
                 </div>
               </div>
               {/* Financial Overview Card */}
-              <FinancialOverviewCard />
+              <FinancialOverviewCard revenueData={revenueData} />
             </div>
           </div>
 
           {/* Middle Column */}
           <div className="lg:col-span-5 space-y-6">
             <div className="rounded-lg bg-white p-4 shadow">
-              <h2 className="mb-2 text-lg font-semibold text-gray-700">Monthly Savings Contributions</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-700">Monthly Savings Contributions</h2>
+                <TimeRangeDropdown selectedRange={timeRange} onChange={setTimeRange} />
+              </div>
               <Line
                 data={lineChartData}
                 options={{
                   responsive: true,
-                  plugins: { legend: { display: false } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false },
+                  },
                   scales: { y: { beginAtZero: true } },
                 }}
               />
@@ -327,8 +333,7 @@ const Dashboard = () => {
                     datalabels: {
                       formatter: (value, ctx) => {
                         const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                        const percentage = ((value / sum) * 100).toFixed(2) + '%';
-                        return percentage;
+                        return ((value / sum) * 100).toFixed(2) + '%';
                       },
                       color: '#fff',
                       font: { weight: 'bold', size: 14 },
@@ -337,7 +342,6 @@ const Dashboard = () => {
                 }}
               />
             </div>
-            {/* New Money Distribution Pie Graph */}
             <div className="rounded-lg bg-white p-4 shadow">
               <h2 className="mb-2 text-lg font-semibold text-gray-700">Financial Breakdown</h2>
               <Pie
@@ -349,8 +353,7 @@ const Dashboard = () => {
                     datalabels: {
                       formatter: (value, ctx) => {
                         const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                        const percentage = ((value / sum) * 100).toFixed(2) + '%';
-                        return percentage;
+                        return ((value / sum) * 100).toFixed(2) + '%';
                       },
                       color: '#fff',
                       font: { weight: 'bold', size: 14 },
