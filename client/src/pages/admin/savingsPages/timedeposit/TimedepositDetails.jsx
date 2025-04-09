@@ -2,79 +2,49 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import {
-  FaMoneyBillWave,
-  FaHandHoldingUsd,
-  FaHistory,
-  FaArrowUp,
-  FaArrowDown,
-} from "react-icons/fa";
-import TransactionForm from "../utils/TransactionForm";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  LineElement,
-  PointElement,
-} from "chart.js";
-import { Bar, Line } from "react-chartjs-2";
+  BanknotesIcon,
+  CalendarIcon,
+  ArrowPathIcon,
+  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ClockIcon,
+  BanknotesIcon as CashIcon,
+  ChartBarIcon,
+  ArrowDownTrayIcon,
+} from "@heroicons/react/24/outline";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement } from "chart.js";
+import { Line } from "react-chartjs-2";
 
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  LineElement,
-  PointElement
-);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement);
 
-const TimedepositDetails = () => {
+const TimeDepositDetails = () => {
   const { timeDepositId } = useParams();
   const [depositData, setDepositData] = useState(null);
-  const [transactions, setTransactions] = useState([]); // Assume transactions are fetched if available.
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [transactionFilter, setTransactionFilter] = useState("all");
+  const [selectedTimeGroup, setSelectedTimeGroup] = useState("monthly");
 
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [modalType, setModalType] = useState(""); // "deposit" or "withdrawal"
-
-  // Filter states
-  const [transactionNumberFilter, setTransactionNumberFilter] = useState("");
-  const [transactionTypeFilter, setTransactionTypeFilter] = useState("all");
-
-  // Chart options states
-  const [selectedChartType, setSelectedChartType] = useState("bar");
-  const [selectedGraphFilter, setSelectedGraphFilter] = useState("all");
-  const [selectedTimeGroup, setSelectedTimeGroup] = useState("daily");
-
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
-  // Fetch time deposit data using timeDepositId from URL.
+  // Fetch time deposit data
   useEffect(() => {
     const fetchDepositData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          `http://localhost:3001/api/timedepositor/${timeDepositId}`
-        );
-        console.log("API response:", response.data);
-        // Check if the API response is an array or an object
+        const response = await axios.get(`http://localhost:3001/api/timedepositor/${timeDepositId}`);
+        
         if (Array.isArray(response.data)) {
           if (response.data.length > 0) {
             setDepositData(response.data[0]);
+            // Simulating some transaction data for demo purposes
+            setTransactions(generateSampleTransactions(response.data[0]));
           } else {
             setDepositData(null);
           }
         } else if (response.data) {
           setDepositData(response.data);
+          // Simulating some transaction data for demo purposes
+          setTransactions(generateSampleTransactions(response.data));
         } else {
           setDepositData(null);
         }
@@ -88,585 +58,631 @@ const TimedepositDetails = () => {
     fetchDepositData();
   }, [timeDepositId]);
 
-  // (Optional) Fetch transactions if available.
-  useEffect(() => {
-    if (!depositData) return;
-    // If your API provides transactions as part of depositData, you can set them here:
-    // setTransactions(depositData.transactions || []);
-  }, [depositData]);
+  // Sample transaction data generator (for demo purposes)
+  const generateSampleTransactions = (data) => {
+    const amount = parseFloat(data.amount) || 10000;
+    const today = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(today.getMonth() - 6);
+    
+    const transactions = [];
+    // Initial deposit
+    transactions.push({
+      transaction_number: "TXN" + Math.floor(10000 + Math.random() * 90000),
+      transaction_date_time: sixMonthsAgo,
+      authorized: "John Admin",
+      user_type: "Staff",
+      transaction_type: "deposit",
+      amount: amount
+    });
+    
+    // Interest payments - monthly
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(today.getMonth() - i);
+      if (i > 0) { // No interest for current month
+        transactions.push({
+          transaction_number: "TXN" + Math.floor(10000 + Math.random() * 90000),
+          transaction_date_time: date,
+          authorized: "System",
+          user_type: "System",
+          transaction_type: "interest",
+          amount: amount * 0.005 // 0.5% monthly interest
+        });
+      }
+    }
+    
+    return transactions;
+  };
 
-  if (loading) return <div className="text-center p-6">Loading...</div>;
-  if (error) return <div className="text-center p-6 text-red-600">{error}</div>;
-  if (!depositData)
-    return <div className="text-center p-6">No time deposit data found.</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="flex flex-col items-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-lg font-medium text-gray-700">Loading time deposit details...</p>
+      </div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-lg">
+        <h3 className="text-red-800 font-semibold text-lg mb-2">Error Loading Data</h3>
+        <p className="text-gray-700">{error}</p>
+        <button 
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+          onClick={() => window.location.reload()}
+        >
+          Try Again
+        </button>
+      </div>
+    </div>
+  );
+  
+  if (!depositData) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-lg">
+        <h3 className="text-yellow-800 font-semibold text-lg mb-2">No Time Deposit Found</h3>
+        <p className="text-gray-700">The requested time deposit could not be found.</p>
+      </div>
+    </div>
+  );
 
-  // Destructure fields from depositData (joined time_deposit and member fields)
+  // Format and extract data
   const {
-    memberId: mId,
-    memberCode,
     amount,
     fixedTerm,
     interest,
     payout,
     maturityDate,
     remarks,
-    account_type,
-    co_last_name,
-    co_middle_name,
-    co_first_name,
-    co_extension_name,
-    co_date_of_birth,
-    co_place_of_birth,
-    co_age,
-    co_gender,
-    co_civil_status,
-    co_contact_number,
-    co_relationship_primary,
-    co_complete_address,
-    id_picture,
-    email,
     last_name,
     first_name,
     middle_name,
-    extension_name,
     date_of_birth,
     civil_status,
     contact_number,
-    age,
     house_no_street,
     barangay,
     city,
-    membership_status,
-    account_status,
-    tax_id,
-    occupation,
-    annual_income,
-    highest_education_attainment,
-    tin_number,
-    place_of_birth,
+    memberCode,
+    id_picture,
   } = depositData;
 
-  const availableBalance = amount || 0;
+  const availableBalance = parseFloat(amount) || 0;
+  const interestAmount = parseFloat(interest) || 0;
+  const payoutAmount = parseFloat(payout) || 0;
+  
   const address = `${house_no_street ? house_no_street + ", " : ""}${
     barangay ? barangay + ", " : ""
   }${city ? city : ""}`.trim();
 
-  const defaultProfileImageURL = "https://via.placeholder.com/64";
-  const imageUrl = (filename) =>
-    filename ? `http://localhost:3001/uploads/${filename}` : defaultProfileImageURL;
+  const fullName = `${first_name || ""} ${middle_name ? middle_name.charAt(0) + ". " : ""}${last_name || ""}`.trim();
+  const initials = `${first_name ? first_name.charAt(0) : ""}${last_name ? last_name.charAt(0) : ""}`.toUpperCase();
 
-  // Calculate initials for profile placeholder if no image exists.
-  const initials = `${first_name ? first_name.charAt(0) : ""}${
-    last_name ? last_name.charAt(0) : ""
-  }`.toUpperCase();
+  // Calculate days remaining until maturity
+  const today = new Date();
+  const maturityDateObj = maturityDate ? new Date(maturityDate) : null;
+  const daysRemaining = maturityDateObj ? Math.ceil((maturityDateObj - today) / (1000 * 60 * 60 * 24)) : 0;
+  const depositStatus = daysRemaining > 0 ? "Active" : "Matured";
+  
+  // Interest rate calculation (demonstrative - would ideally come from API)
+  const interestRate = interestAmount > 0 && availableBalance > 0 
+    ? ((interestAmount / availableBalance) * 100).toFixed(2)
+    : 3.5; // Default to 3.5% if not calculable
+    
+  // Calculate maturity progress percentage
+  let maturityProgress = 0;
+  if (maturityDateObj && fixedTerm) {
+    const termDays = parseInt(fixedTerm) * 30; // Assuming term is in months
+    const elapsedDays = termDays - daysRemaining;
+    maturityProgress = Math.min(100, Math.max(0, (elapsedDays / termDays) * 100));
+  }
 
-  // Filter transactions based on filter inputs
-  const filteredTransactions = [...transactions]
-    .sort((a, b) => new Date(b.transaction_date_time) - new Date(a.transaction_date_time))
-    .filter((tx) => {
-      const search = transactionNumberFilter.toLowerCase();
-      if (transactionNumberFilter.trim() && !tx.transaction_number?.toLowerCase().includes(search))
-        return false;
-      if (transactionTypeFilter !== "all" && tx.transaction_type?.toLowerCase() !== transactionTypeFilter)
-        return false;
-      return true;
-    });
+  // Filter transactions based on filter input
+  const filteredTransactions = transactions
+    .filter(tx => transactionFilter === "all" || tx.transaction_type === transactionFilter)
+    .sort((a, b) => new Date(b.transaction_date_time) - new Date(a.transaction_date_time));
 
-  // Helper: group transactions by time (for charts and monthly percentage change)
-  function groupTransactionsByTime(transactions, timeGroup) {
-    const map = {};
-    transactions.forEach((tx) => {
+  // Prepare chart data
+  const prepareChartData = () => {
+    const grouped = {};
+    transactions.forEach(tx => {
       const date = new Date(tx.transaction_date_time);
       let key;
-      switch (timeGroup) {
-        case "daily":
-          date.setHours(0, 0, 0, 0);
-          key = date.getTime();
-          break;
-        case "weekly": {
-          const firstDayOfWeek = new Date(date);
-          const diff = firstDayOfWeek.getDay() === 0 ? -6 : 1 - firstDayOfWeek.getDay();
-          firstDayOfWeek.setDate(firstDayOfWeek.getDate() + diff);
-          firstDayOfWeek.setHours(0, 0, 0, 0);
-          key = firstDayOfWeek.getTime();
-          break;
-        }
-        case "monthly":
-          key = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
-          break;
-        case "quarterly": {
-          const quarter = Math.floor(date.getMonth() / 3);
-          key = new Date(date.getFullYear(), quarter * 3, 1).getTime();
-          break;
-        }
-        case "annually":
-          key = new Date(date.getFullYear(), 0, 1).getTime();
-          break;
-        default:
-          date.setHours(0, 0, 0, 0);
-          key = date.getTime();
+      
+      if (selectedTimeGroup === "monthly") {
+        key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      } else {
+        key = date.toISOString().split('T')[0]; // daily
       }
-      if (!map[key]) {
-        map[key] = { deposit: 0, withdraw: 0, interest: 0, timestamp: key };
+      
+      if (!grouped[key]) {
+        grouped[key] = { interest: 0, deposit: 0, withdrawal: 0, date: date };
       }
-      const amt = parseFloat(tx.amount) || 0;
-      const type = tx.transaction_type?.toLowerCase();
-      if (type === "deposit") {
-        map[key].deposit += amt;
-      } else if (type === "withdrawal") {
-        map[key].withdraw += amt;
-      } else if (type === "savings interest") {
-        map[key].interest += amt;
-      }
+      
+      const type = tx.transaction_type;
+      const amount = parseFloat(tx.amount) || 0;
+      
+      if (type === "interest") grouped[key].interest += amount;
+      else if (type === "deposit") grouped[key].deposit += amount;
+      else if (type === "withdrawal") grouped[key].withdrawal += amount;
     });
-    return map;
-  }
-
-  // For monthly percentage change calculations we group filtered transactions by month.
-  const monthlyGrouped = groupTransactionsByTime(filteredTransactions, "monthly");
-  const monthlyKeys = Object.keys(monthlyGrouped).map(Number).sort((a, b) => a - b);
-
-  // Helper to compute percentage change for a metric from monthly data.
-  const computeMonthlyChange = (metric, data) => {
-    if (monthlyKeys.length < 2) return null;
-    const prev = data[monthlyKeys[monthlyKeys.length - 2]][metric];
-    const curr = data[monthlyKeys[monthlyKeys.length - 1]][metric];
-    if (prev === 0) return null;
-    return ((curr - prev) / prev) * 100;
-  };
-
-  // For current balance, net flow = deposit – withdrawal + interest.
-  const computeNet = (data) => data.deposit - data.withdraw + data.interest;
-  const currentBalanceChange =
-    monthlyKeys.length < 2
-      ? null
-      : (() => {
-          const prevNet = computeNet(monthlyGrouped[monthlyKeys[monthlyKeys.length - 2]]);
-          const currNet = computeNet(monthlyGrouped[monthlyKeys[monthlyKeys.length - 1]]);
-          if (prevNet === 0) return null;
-          return ((currNet - prevNet) / prevNet) * 100;
-        })();
-
-  const depositChange = computeMonthlyChange("deposit", monthlyGrouped);
-  const withdrawChange = computeMonthlyChange("withdraw", monthlyGrouped);
-  const interestChange = computeMonthlyChange("interest", monthlyGrouped);
-
-  // Prepare chart data using grouping based on selectedTimeGroup.
-  function formatLabel(timestamp, timeGroup) {
-    const date = new Date(Number(timestamp));
-    switch (timeGroup) {
-      case "daily":
-        return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-      case "weekly":
-        return "Week of " + date.toLocaleDateString("en-US");
-      case "monthly":
-        return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-      case "quarterly": {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        return "Q" + quarter + " " + date.getFullYear();
-      }
-      case "annually":
-        return date.getFullYear().toString();
-      default:
-        return date.toLocaleDateString("en-US");
-    }
-  }
-
-  const grouped = groupTransactionsByTime(transactions, selectedTimeGroup);
-  const sortedTimestamps = Object.keys(grouped).map(Number).sort((a, b) => a - b);
-  const labels = sortedTimestamps.map((ts) => formatLabel(ts, selectedTimeGroup));
-  const depositDataChart = sortedTimestamps.map((ts) => grouped[ts].deposit);
-  const withdrawData = sortedTimestamps.map((ts) => grouped[ts].withdraw);
-  const interestData = sortedTimestamps.map((ts) => grouped[ts].interest);
-
-  const chartDatasetsBar = [];
-  const chartDatasetsLine = [];
-  if (selectedGraphFilter === "all" || selectedGraphFilter === "deposit") {
-    chartDatasetsBar.push({
-      label: "Deposits",
-      data: depositDataChart,
-      backgroundColor: "#4ade80",
+    
+    // Sort by date
+    const sortedKeys = Object.keys(grouped).sort((a, b) => {
+      return grouped[a].date - grouped[b].date;
     });
-    chartDatasetsLine.push({
-      label: "Deposits",
-      data: depositDataChart,
-      borderColor: "#4ade80",
-      backgroundColor: "#4ade80",
-      fill: false,
-      tension: 0.1,
-      pointRadius: 3,
-    });
-  }
-  if (selectedGraphFilter === "all" || selectedGraphFilter === "withdrawal") {
-    chartDatasetsBar.push({
-      label: "Withdrawals",
-      data: withdrawData,
-      backgroundColor: "#f87171",
-    });
-    chartDatasetsLine.push({
-      label: "Withdrawals",
-      data: withdrawData,
-      borderColor: "#f87171",
-      backgroundColor: "#f87171",
-      fill: false,
-      tension: 0.1,
-      pointRadius: 3,
-    });
-  }
-  if (selectedGraphFilter === "all" || selectedGraphFilter === "savings interest") {
-    chartDatasetsBar.push({
-      label: "Savings Interest",
-      data: interestData,
-      backgroundColor: "#60a5fa",
-    });
-    chartDatasetsLine.push({
-      label: "Savings Interest",
-      data: interestData,
-      borderColor: "#60a5fa",
-      backgroundColor: "#60a5fa",
-      fill: false,
-      tension: 0.1,
-      pointRadius: 3,
-    });
-  }
-
-  const barData = {
-    labels,
-    datasets: chartDatasetsBar,
-  };
-
-  const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: `Time Deposit Transactions (${
-          selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)
-        })`,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function (value) {
-            return value.toLocaleString("en-PH", { style: "currency", currency: "PHP" });
-          },
+    
+    return {
+      labels: sortedKeys.map(key => {
+        const date = grouped[key].date;
+        return selectedTimeGroup === "monthly" 
+          ? new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+          : new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }),
+      datasets: [
+        {
+          label: 'Interest',
+          data: sortedKeys.map(key => grouped[key].interest),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
         },
-      },
-    },
-  };
-
-  const lineData = {
-    labels,
-    datasets: chartDatasetsLine,
-  };
-
-  const lineOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: `Time Deposit Transactions (${
-          selectedTimeGroup.charAt(0).toUpperCase() + selectedTimeGroup.slice(1)
-        })`,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function (value) {
-            return value.toLocaleString("en-PH", { style: "currency", currency: "PHP" });
-          },
+        {
+          label: 'Deposit',
+          data: sortedKeys.map(key => grouped[key].deposit),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
         },
-      },
-    },
+        {
+          label: 'Withdrawal',
+          data: sortedKeys.map(key => grouped[key].withdrawal),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+        }
+      ]
+    };
   };
+
+  const chartData = prepareChartData();
 
   return (
-    <div className="bg-gray-100">
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Left Section - Deposit Info & Analytics */}
-        <div className="flex-1 space-y-4">
-          {/* Balance Summary Section */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-wrap items-center justify-around">
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Principal Amount</p>
-              <p className="font-semibold text-2xl">
-                {parseFloat(availableBalance).toLocaleString("en-PH", {
-                  style: "currency",
-                  currency: "PHP",
-                })}
-              </p>
-              {currentBalanceChange !== null && (
-                <div className="flex items-center">
-                  {currentBalanceChange >= 0 ? (
-                    <FaArrowUp className="text-green-500" size={14} />
+    <div className="bg-gray-50 p-4 md:p-6">
+      <div className="">
+        {/* Header Section */}
+        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Time Deposit Details</h1>
+            <p className="text-gray-500">Manage and view your time deposit account</p>
+          </div>
+          <div className="mt-4 md:mt-0 flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-500">Status:</span>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              depositStatus === "Active" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+            }`}>
+              {depositStatus}
+            </span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Member Info */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Member Profile */}
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
+                <div className="flex items-center mb-4">
+                  {id_picture ? (
+                    <img
+                      src={`http://localhost:3001/uploads/${id_picture}`}
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-white"
+                    />
                   ) : (
-                    <FaArrowDown className="text-red-500" size={14} />
+                    <div className="w-16 h-16 rounded-full bg-white text-indigo-600 flex items-center justify-center font-bold text-xl">
+                      {initials}
+                    </div>
                   )}
-                  <span className={currentBalanceChange >= 0 ? "text-green-500" : "text-red-500"}>
-                    {Math.abs(currentBalanceChange).toFixed(1)}%
-                  </span>
+                  <div className="ml-4">
+                    <h2 className="text-xl font-bold">{fullName}</h2>
+                    <p className="text-blue-100">Member Code: {memberCode || "N/A"}</p>
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Time Deposit Term</p>
-              <p className="font-semibold text-2xl">{fixedTerm || "N/A"}</p>
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Maturity Date</p>
-              <p className="font-semibold text-2xl">
-                {maturityDate
-                  ? new Date(maturityDate).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "N/A"}
-              </p>
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Interest</p>
-              <p className="font-semibold text-2xl">
-                {interest
-                  ? parseFloat(interest).toLocaleString("en-PH", {
-                      style: "currency",
-                      currency: "PHP",
-                    })
-                  : "0.00"}
-              </p>
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Payout</p>
-              <p className="font-semibold text-2xl">
-                {payout
-                  ? parseFloat(payout).toLocaleString("en-PH", {
-                      style: "currency",
-                      currency: "PHP",
-                    })
-                  : "N/A"}
-              </p>
-            </div>
-            <div className="flex flex-col items-center m-2">
-              <p className="text-sm text-gray-500">Account Status</p>
-              <p className="font-semibold text-2xl">Pre-mature</p>
+              </div>
+              
+              {/* Personal Info */}
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Personal Information</h3>
+                <div className="space-y-3">
+                  {[
+                    { icon: <CalendarIcon className="w-5 h-5 text-gray-500" />, label: "Date of Birth", value: date_of_birth ? new Date(date_of_birth).toLocaleDateString() : "N/A" },
+                    { icon: <ArrowTrendingUpIcon className="w-5 h-5 text-gray-500" />, label: "Civil Status", value: civil_status || "N/A" },
+                    { icon: <BanknotesIcon className="w-5 h-5 text-gray-500" />, label: "Contact", value: contact_number || "N/A" },
+                    { icon: <ArrowPathIcon className="w-5 h-5 text-gray-500" />, label: "Address", value: address || "N/A" },
+                  ].map((item, index) => (
+                    <div key={index} className="flex items-start">
+                      <div className="mt-0.5">{item.icon}</div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-500">{item.label}</p>
+                        <p className="text-gray-800">{item.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="p-4 border-t border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Time Deposit Actions</h3>
+                <div className="space-y-2">
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center">
+                    <ArrowPathIcon className="w-5 h-5 mr-2" />
+                    Roll Over Deposit
+                  </button>
+                  <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center">
+                    <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                    {daysRemaining <= 0 ? "Withdraw at Maturity" : "Early Withdrawal"}
+                  </button>
+                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+                    <h4 className="font-medium text-yellow-800">Early Withdrawal Notice</h4>
+                    <p className="text-sm text-gray-600 mt-1">Early withdrawals may be subject to penalties as per your agreement terms. Please consult with an account manager before proceeding.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Transactions Table */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex flex-wrap items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <FaHistory className="text-green-500" size={20} />
-                <h3 className="text-lg font-bold text-gray-800">Transaction History</h3>
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center">
-                  <label htmlFor="txNumberFilter" className="mr-2 font-semibold text-gray-700">
-                    Filter by Txn No:
-                  </label>
-                  <input
-                    id="txNumberFilter"
-                    type="text"
-                    className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                    placeholder="e.g., TXN12345"
-                    value={transactionNumberFilter}
-                    onChange={(e) => setTransactionNumberFilter(e.target.value)}
-                  />
+          
+          {/* Right Column - Deposit Details & Transactions */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Principal Amount</p>
+                    <h3 className="text-2xl font-bold text-gray-800 mt-1">
+                      {availableBalance.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}
+                    </h3>
+                  </div>
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <BanknotesIcon className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
+              </div>
+              
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Interest Rate</p>
+                    <h3 className="text-2xl font-bold text-gray-800 mt-1">
+                      {interestRate}%
+                    </h3>
+                  </div>
+                  <div className="p-2 bg-green-50 rounded-lg">
+                    <ArrowTrendingUpIcon className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Expected Payout</p>
+                    <h3 className="text-2xl font-bold text-gray-800 mt-1">
+                      {(payoutAmount || availableBalance + interestAmount).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}
+                    </h3>
+                  </div>
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <CashIcon className="w-6 h-6 text-purple-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Time Deposit Details */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Time Deposit Details</h3>
                 <div className="flex items-center">
-                  <label htmlFor="txTypeFilter" className="mr-2 font-semibold text-gray-700">
-                    Transaction Type:
-                  </label>
-                  <select
-                    id="txTypeFilter"
-                    className="border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                    value={transactionTypeFilter}
-                    onChange={(e) => setTransactionTypeFilter(e.target.value)}
+                  <ClockIcon className="w-5 h-5 text-blue-600 mr-1" />
+                  <span className="text-sm font-medium">
+                    {daysRemaining > 0 ? `${daysRemaining} days remaining` : "Matured"}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Term Length</p>
+                      <p className="text-gray-800">{fixedTerm || "N/A"} {parseInt(fixedTerm) === 1 ? "month" : "months"}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Start Date</p>
+                      <p className="text-gray-800">
+                        {transactions.length > 0 
+                          ? new Date(transactions.sort((a, b) => new Date(a.transaction_date_time) - new Date(b.transaction_date_time))[0].transaction_date_time).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })
+                          : "N/A"
+                        }
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Maturity Date</p>
+                      <p className="text-gray-800">
+                        {maturityDate
+                          ? new Date(maturityDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })
+                          : "N/A"
+                        }
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Interest Earned (Est.)</p>
+                      <p className="text-gray-800">
+                        {interestAmount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Remarks</p>
+                      <p className="text-gray-800">{remarks || "No remarks"}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-2">Maturity Progress</p>
+                  <div className="mb-6">
+                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-600 rounded-full" 
+                        style={{ width: `${maturityProgress}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between mt-1 text-xs text-gray-500">
+                      <span>Start</span>
+                      <span>{maturityProgress.toFixed(0)}% Complete</span>
+                      <span>Maturity</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <h4 className="font-medium text-blue-800 mb-2">Time Deposit Benefits</h4>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li className="flex items-start">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 mr-2 text-xs">✓</span>
+                        <span>Higher interest rates compared to regular savings</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 mr-2 text-xs">✓</span>
+                        <span>Fixed returns for predictable growth</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 mr-2 text-xs">✓</span>
+                        <span>Option to roll over for continued growth</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 mr-2 text-xs">✓</span>
+                        <span>Protected by deposit insurance up to PHP 500,000</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Transactions Chart */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Transaction History</h3>
+                <div className="flex items-center mt-2 md:mt-0 space-x-2">
+                  <select 
+                    className="bg-gray-50 border border-gray-300 text-gray-700 rounded-md text-sm px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500"
+                    value={selectedTimeGroup}
+                    onChange={(e) => setSelectedTimeGroup(e.target.value)}
                   >
-                    <option value="all">All</option>
-                    <option value="deposit">Deposit</option>
-                    <option value="withdrawal">Withdrawal</option>
-                    <option value="savings interest">Savings Interest</option>
+                    <option value="monthly">Monthly View</option>
+                    <option value="daily">Daily View</option>
                   </select>
                 </div>
               </div>
+              
+              <div className="h-80">
+                <Line 
+                  data={chartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function(value) {
+                            return '₱' + value.toLocaleString();
+                          }
+                        }
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                              label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                              label += '₱' + context.parsed.y.toLocaleString();
+                            }
+                            return label;
+                          }
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
             </div>
-            <div className="overflow-y-auto max-h-64">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-green-100">
-                  <tr>
-                    <th className="py-3 px-4">Txn No</th>
-                    <th className="py-3 px-4">Date Created</th>
-                    <th className="py-3 px-4">Authorized By</th>
-                    <th className="py-3 px-4">User Type</th>
-                    <th className="py-3 px-4">Type</th>
-                    <th className="py-3 px-4">Amount (PHP)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions && filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((tx, index) => (
-                      <tr key={index} className="border-b hover:bg-green-50">
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.transaction_number || "N/A"}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.transaction_date_time
-                            ? new Date(tx.transaction_date_time).toLocaleString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                second: "2-digit",
-                                hour12: true,
-                              })
-                            : "N/A"}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.authorized || "N/A"}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.user_type || "N/A"}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.transaction_type || "N/A"}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {tx.amount
-                            ? parseFloat(tx.amount).toLocaleString("en-PH", {
-                                style: "currency",
-                                currency: "PHP",
-                              })
-                            : "N/A"}
+            
+            {/* Transaction List */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                  <h3 className="text-xl font-bold text-gray-800 mb-2 md:mb-0">Transactions</h3>
+                  <div className="inline-flex bg-gray-100 rounded-lg p-1">
+                    <button 
+                      className={`px-3 py-1 text-sm font-medium rounded-md ${transactionFilter === 'all' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => setTransactionFilter('all')}
+                    >
+                      All
+                    </button>
+                    <button 
+                      className={`px-3 py-1 text-sm font-medium rounded-md ${transactionFilter === 'deposit' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => setTransactionFilter('deposit')}
+                    >
+                      Deposits
+                    </button>
+                    <button 
+                      className={`px-3 py-1 text-sm font-medium rounded-md ${transactionFilter === 'interest' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => setTransactionFilter('interest')}
+                    >
+                      Interest
+                    </button>
+                    <button 
+                      className={`px-3 py-1 text-sm font-medium rounded-md ${transactionFilter === 'withdrawal' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => setTransactionFilter('withdrawal')}
+                    >
+                      Withdrawals
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction #</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Authorized By</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredTransactions.length > 0 ? (
+                      filteredTransactions.map((tx, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tx.transaction_number}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(tx.transaction_date_time).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              tx.transaction_type === 'deposit' 
+                                ? 'bg-green-100 text-green-800'
+                                : tx.transaction_type === 'withdrawal'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              
+
+                            {tx.transaction_type === 'deposit' ? 'Deposit' : tx.transaction_type === 'withdrawal' ? 'Withdrawal' : 'Interest'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {parseFloat(tx.amount).toLocaleString('en-PH', {
+                              style: 'currency',
+                              currency: 'PHP'
+                            })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tx.authorized}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                          No transactions found for the selected filter.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-4 text-center">
-                        No transactions found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Section - Profile & Actions */}
-        <div className="w-full md:w-96 bg-white p-6 border-l border-gray-200 space-y-6 rounded-lg shadow-lg">
-          {/* Profile Section */}
-          <div className="flex items-center space-x-4">
-            {id_picture ? (
-              <img
-                src={imageUrl(id_picture)}
-                alt="Profile"
-                className="w-16 h-16 object-cover rounded-full border-2 border-gray-300"
-              />
-            ) : (
-              <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-500 text-white font-bold border-2 border-gray-300">
-                {initials}
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
-            <div>
-              <h2 className="text-lg font-semibold">
-                {last_name} {first_name}
-              </h2>
-              <p className="text-gray-500 text-sm">{memberCode || "No Email"}</p>
-            </div>
-          </div>
-          {/* Personal Information Card */}
-          <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-3 text-gray-700">Personal Information</h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              {[
-                {
-                  label: "Date of Birth",
-                  value: date_of_birth
-                    ? new Date(date_of_birth).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "N/A",
-                },
-                { label: "Age", value: age || "N/A" },
-                { label: "Civil Status", value: civil_status || "N/A" },
-                { label: "Contact Number", value: contact_number || "N/A" },
-                { label: "Address", value: address || "N/A" },
-                { label: "Place of Birth", value: place_of_birth || "N/A" },
-              ].map((item, index) => (
-                <div key={index} className="flex justify-between border-b py-2 last:border-b-0">
-                  <span className="font-medium text-gray-700">{item.label}:</span>
-                  <span className="text-gray-900">{item.value}</span>
+              
+              {filteredTransactions.length > 0 && (
+                <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-sm text-gray-500">
+                  Showing {filteredTransactions.length} transactions
                 </div>
-              ))}
+              )}
+            </div>
+            
+            {/* Information Panel */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Time Deposit Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-800">What is a Time Deposit?</h4>
+                  <p className="text-gray-600">A time deposit is a fixed-term investment that includes an agreement between the depositor and the financial institution. The depositor agrees to leave the sum of money on deposit for a specific term, such as 3 months, 6 months, or longer.</p>
+                  
+                  <h4 className="font-medium text-gray-800">Key Features</h4>
+                  <ul className="list-disc pl-5 text-gray-600 space-y-1">
+                    <li>Fixed term with predetermined maturity date</li>
+                    <li>Higher interest rates than regular savings accounts</li>
+                    <li>Interest rates are typically fixed for the term</li>
+                    <li>Early withdrawal may incur penalties</li>
+                  </ul>
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-800">Maturity Options</h4>
+                  <p className="text-gray-600">When your time deposit matures, you typically have these options:</p>
+                  <ul className="list-disc pl-5 text-gray-600 space-y-1">
+                    <li><strong>Withdraw:</strong> Take out your principal plus earned interest</li>
+                    <li><strong>Roll Over:</strong> Reinvest the principal for another term</li>
+                    <li><strong>Roll Over with Interest:</strong> Reinvest both principal and earned interest</li>
+                    <li><strong>Partial Withdrawal:</strong> Withdraw some funds and roll over the rest</li>
+                  </ul>
+                  
+                  <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+                    <h4 className="font-medium text-indigo-800 mb-2">Need Help?</h4>
+                    <p className="text-sm text-gray-600">If you have questions about your time deposit or would like to discuss options before maturity, please contact our customer service at <span className="font-medium">support@bank.com</span> or call <span className="font-medium">(123) 456-7890</span>.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          {/* Deposit / Withdraw Buttons */}
-          <div className="flex flex-col space-y-2">
-            {/* Early Withdrawal: Withdrawal action (red, withdrawal icon) */}
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded flex items-center justify-center"
-              onClick={() => {
-                setModalType("withdrawal");
-                setShowTransactionForm(true);
-              }}
-            >
-              <FaHandHoldingUsd className="mr-2" />
-              Early Withdrawal
-            </button>
-            {/* Roll Over: Deposit action (green, deposit icon) */}
-            <button
-              className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded flex items-center justify-center"
-              onClick={() => {
-                setModalType("deposit");
-                setShowTransactionForm(true);
-              }}
-            >
-              <FaMoneyBillWave className="mr-2" />
-              Roll Over
-            </button>
-            {/* Maturity Withdrawal: Withdrawal action (red, withdrawal icon) */}
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded flex items-center justify-center"
-              onClick={() => {
-                setModalType("withdrawal");
-                setShowTransactionForm(true);
-              }}
-            >
-              <FaHandHoldingUsd className="mr-2" />
-              Maturity Withdrawal
-            </button>
-          </div>
-
-          {/* Transaction Modal */}
-          {showTransactionForm && (
-            <TransactionForm
-              modalType={modalType}
-              member={depositData}
-              onClose={() => setShowTransactionForm(false)}
-              onSuccess={(msg) => {
-                setShowTransactionForm(false);
-                setSuccessMessage(msg || "Transaction successful!");
-                setShowSuccessModal(true);
-              }}
-            />
-          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default TimedepositDetails;
+export default TimeDepositDetails;

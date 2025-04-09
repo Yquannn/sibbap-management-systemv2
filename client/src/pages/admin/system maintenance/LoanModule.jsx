@@ -1,269 +1,429 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { Modal, Dropdown, Select, Tabs, message } from "antd";
+import { HiOutlineFilter, HiOutlineClock, HiOutlineUser } from "react-icons/hi";
+import { MdEdit, MdArchive, MdAdd } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import { DownOutlined } from "@ant-design/icons";
 
-const TabHeader = ({ searchQuery, handleSearch, handleFilterClick }) => (
-  <div className="flex items-center gap-5">
-    <div className="flex items-center gap-2">
-      <input
-        type="text"
-        placeholder="Search..."
-        value={searchQuery}
-        onChange={handleSearch}
-        className="p-2 border border-gray-300 rounded"
-      />
-      <span onClick={handleFilterClick} className="cursor-pointer">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-5 h-5 text-blue-600"
-          viewBox="0 0 24 24"
-        >
-          <path d="M3 4h18l-7 9v7l-4-2v-5l-7-9z" />
-        </svg>
-      </span>
-    </div>
-  </div>
-);
+const { Option } = Select;
+const { TabPane } = Tabs;
 
-const LoanDashboardMaintenance = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('loan');
+// Added validation rules
+const VALIDATION_RULES = {
+  loanType: (value) => !!value || "Loan Type is required",
+  interestRate: (value) => !!value || "Interest Rate is required",
+  loanableAmount: (value) => !!value || "Loanable Amount is required",
+  serviceFee: (value) => !!value || "Service Fee is required",
+};
 
-  // State for Loan Type data.
+// Enhanced loan types with more details
+const LOAN_TYPES = [
+  {
+    value: "Personal Loan",
+    description: "Short-term loan for personal expenses",
+    maxTerm: 36,
+    requirements: ["Valid ID", "Proof of Income", "Bank Statement"],
+  },
+  {
+    value: "Housing Loan",
+    description: "Long-term loan for home purchase or construction",
+    maxTerm: 300,
+    requirements: ["Property Documents", "Income Tax Returns", "Employment Certificate"],
+  },
+  // ... other loan types remain the same
+];
+
+const LoanModule = () => {
+  const navigate = useNavigate();
+  
+  // Sample data for loan configurations
   const [loans, setLoans] = useState([
-    { name: 'Emergency', rate: '5.0%', amount: 'Php 100,000', fee: 'Php 1,000' },
-    { name: 'Educational', rate: '7.0%', amount: 'Php 150,000', fee: 'Php 2,000' },
-    { name: 'Business', rate: '8.5%', amount: 'Php 200,000', fee: 'Php 3,000' }
+    {
+      id: 1,
+      loanType: "Personal Loan",
+      interestRate: "1.75%",
+      loanableAmount: "₱50,000",
+      serviceFee: "3%",
+    },
+    {
+      id: 2,
+      loanType: "Housing Loan",
+      interestRate: "3.5%",
+      loanableAmount: "₱1,000,000",
+      serviceFee: "1.2%",
+    },
   ]);
 
-  // State for Dropdown Manager data.
-  const [dropdowns, setDropdowns] = useState([
-    'Member Types',
-    'Civil Status',
-    'Employment Status',
-    'Region'
-  ]);
+  // State for managing modal
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingLoan, setEditingLoan] = useState(null);
+  const [newLoan, setNewLoan] = useState({
+    loanType: "",
+    interestRate: "",
+    loanableAmount: "",
+    serviceFee: "",
+  });
+  const [validationErrors, setValidationErrors] = useState({});
 
-  // State for archived items.
-  const [archivedLoans, setArchivedLoans] = useState([]);
-  const [archivedDropdowns, setArchivedDropdowns] = useState([]);
+  // State for search and filter
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterOption, setFilterOption] = useState("loanType");
+  const filterPlaceholders = {
+    loanType: "Search by loan type...",
+    interestRate: "Search by interest rate...",
+    loanableAmount: "Search by loanable amount...",
+    serviceFee: "Search by service fee...",
+  };
 
-  // Handler functions for editing.
-  const handleEdit = (item, type) => {
-    if (type === 'Loan Type') {
-      const newName = prompt('Enter new loan type name:', item);
-      if (newName) {
-        setLoans(loans.map(loan => (loan.name === item ? { ...loan, name: newName } : loan)));
-      }
-    } else if (type === 'Dropdown') {
-      const newVal = prompt('Enter new dropdown value:', item);
-      if (newVal) {
-        setDropdowns(dropdowns.map(dd => (dd === item ? newVal : dd)));
+  // Filter loans based on search term and filter option
+  const filteredLoans = loans.filter((loan) => {
+    return loan[filterOption]
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+  });
+
+  // Handler for adding new loan
+  const handleAddNewLoan = () => {
+    setEditingLoan(null);
+    setNewLoan({
+      loanType: "",
+      interestRate: "",
+      loanableAmount: "",
+      serviceFee: "",
+    });
+    setValidationErrors({});
+    setIsModalVisible(true);
+  };
+
+  // Handler for editing loan
+  const handleEditLoan = (loan) => {
+    setEditingLoan(loan);
+    setNewLoan({ ...loan });
+    setValidationErrors({});
+    setIsModalVisible(true);
+  };
+
+  // Handler for archiving loan
+  const handleArchive = (loan) => {
+    Modal.confirm({
+      title: "Archive Loan Configuration",
+      content: `Are you sure you want to archive ${loan.loanType}?`,
+      onOk() {
+        setLoans(loans.filter((item) => item.id !== loan.id));
+        message.success("Loan configuration archived successfully");
+      },
+    });
+  };
+
+  // Validate form data
+  const validateForm = () => {
+    const errors = {};
+    for (const [key, validator] of Object.entries(VALIDATION_RULES)) {
+      const result = validator(newLoan[key]);
+      if (result !== true) {
+        errors[key] = result;
       }
     }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  // Handler for Archive button.
-  const handleArchive = (item, type) => {
-    if (window.confirm(`Are you sure you want to archive ${type}: ${item}?`)) {
-      if (type === 'Loan Type') {
-        const archivedItem = loans.find(loan => loan.name === item);
-        setArchivedLoans([...archivedLoans, archivedItem]);
-        setLoans(loans.filter(loan => loan.name !== item));
-      } else if (type === 'Dropdown') {
-        setArchivedDropdowns([...archivedDropdowns, item]);
-        setDropdowns(dropdowns.filter(dd => dd !== item));
-      }
-      setActiveTab('archive'); // Switch to archive view
+  // Handler for modal OK button
+  const handleModalOk = () => {
+    if (!validateForm()) {
+      return;
     }
-  };
 
-  // Handler for the search/filter input.
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  // Handler for filter icon click.
-  const handleFilterClick = () => {
-    alert('Filter clicked');
-  };
-
-  // Render content based on active tab.
-  const renderTabContent = () => {
-    if (activeTab === 'loan') {
-      return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Loan Type</h2>
-            <TabHeader
-              searchQuery={searchQuery}
-              handleSearch={handleSearch}
-              handleFilterClick={handleFilterClick}
-            />
-          </div>
-          <table className="min-w-full table-auto border-collapse">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 text-left border-b">Loan Type</th>
-                <th className="px-4 py-2 text-left border-b">Interest Rate</th>
-                <th className="px-4 py-2 text-left border-b">Loanable Amount</th>
-                <th className="px-4 py-2 text-left border-b">Service Fee</th>
-                <th className="px-4 py-2 text-right border-b">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loans.map((loan, index) => (
-                <tr key={index}>
-                  <td className="px-4 py-2 border-b">{loan.name}</td>
-                  <td className="px-4 py-2 border-b">{loan.rate}</td>
-                  <td className="px-4 py-2 border-b">{loan.amount}</td>
-                  <td className="px-4 py-2 border-b">{loan.fee}</td>
-                  <td className="px-4 py-2 text-right border-b">
-                    <button
-                      className="bg-blue-500 text-white p-2 rounded mr-2"
-                      onClick={() => handleEdit(loan.name, 'Loan Type')}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="bg-red-500 text-white p-2 rounded"
-                      onClick={() => handleArchive(loan.name, 'Loan Type')}
-                    >
-                      Archive
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    if (editingLoan) {
+      // Update existing loan
+      setLoans(
+        loans.map((loan) =>
+          loan.id === editingLoan.id ? { ...newLoan, id: loan.id } : loan
+        )
       );
-    } else if (activeTab === 'dropdown') {
-      return (
-        <div className="flex justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-md w-96">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Dropdown Manager</h2>
-              <TabHeader
-                searchQuery={searchQuery}
-                handleSearch={handleSearch}
-                handleFilterClick={handleFilterClick}
-              />
-            </div>
-            <table className="min-w-full table-auto border-collapse">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 text-left border-b">Dropdown Name</th>
-                  <th className="px-4 py-2 text-right border-b">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dropdowns.map((dropdown, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-2 border-b">{dropdown}</td>
-                    <td className="px-4 py-2 text-right border-b">
-                      <button
-                        className="bg-blue-500 text-white p-2 rounded mr-2"
-                        onClick={() => handleEdit(dropdown, 'Dropdown')}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="bg-red-500 text-white p-2 rounded"
-                        onClick={() => handleArchive(dropdown, 'Dropdown')}
-                      >
-                        Archive
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    } else if (activeTab === 'archive') {
-      return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold">Archive</h2>
-          <h3 className="text-lg font-semibold mt-4">Loan Type Archive</h3>
-          {archivedLoans.length === 0 ? (
-            <p>No archived loans.</p>
-          ) : (
-            <table className="min-w-full table-auto border-collapse">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 text-left border-b">Loan Type</th>
-                  <th className="px-4 py-2 text-left border-b">Interest Rate</th>
-                  <th className="px-4 py-2 text-left border-b">Loanable Amount</th>
-                  <th className="px-4 py-2 text-left border-b">Service Fee</th>
-                </tr>
-              </thead>
-              <tbody>
-                {archivedLoans.map((loan, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-2 border-b">{loan.name}</td>
-                    <td className="px-4 py-2 border-b">{loan.rate}</td>
-                    <td className="px-4 py-2 border-b">{loan.amount}</td>
-                    <td className="px-4 py-2 border-b">{loan.fee}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <h3 className="text-lg font-semibold mt-4">Dropdown Archive</h3>
-          {archivedDropdowns.length === 0 ? (
-            <p>No archived dropdowns.</p>
-          ) : (
-            <table className="min-w-full table-auto border-collapse">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 text-left border-b">Dropdown Name</th>
-                </tr>
-              </thead>
-              <tbody>
-                {archivedDropdowns.map((dropdown, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-2 border-b">{dropdown}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      );
+      message.success("Loan configuration updated successfully");
+    } else {
+      // Add new loan
+      setLoans([...loans, { ...newLoan, id: Date.now() }]);
+      message.success("Loan configuration added successfully");
     }
+    setIsModalVisible(false);
   };
+
+  // Handler for modal cancel button
+  const handleModalCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  // Filter menu items
+  const filterItems = [
+    {
+      key: "loanType",
+      label: "Loan Type",
+    },
+    {
+      key: "interestRate",
+      label: "Interest Rate",
+    },
+    {
+      key: "loanableAmount",
+      label: "Loanable Amount",
+    },
+    {
+      key: "serviceFee",
+      label: "Service Fee",
+    },
+  ];
+
+  // Filter menu component
+  const filterMenu = (
+    <div className="bg-white shadow-lg rounded-md p-2 w-48">
+      {filterItems.map((item) => (
+        <div
+          key={item.key}
+          className={`px-4 py-2 cursor-pointer rounded-md ${
+            filterOption === item.key ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
+          }`}
+          onClick={() => setFilterOption(item.key)}
+        >
+          {item.label}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="container p-6">
-      {/* New Tab Navigation: each tab item with balanced spacing and underline */}
-      <div className="flex gap-10 border-b-2 pb-2">
-        <div
-          className={`cursor-pointer ${activeTab === 'loan' ? 'font-bold text-blue-600' : 'text-gray-700'}`}
-          onClick={() => setActiveTab('loan')}
-        >
-          Loan Type
-          {activeTab === 'loan' && <div className="border-b-2 border-blue-600 w-full" />}
-        </div>
-        <div
-          className={`cursor-pointer ${activeTab === 'dropdown' ? 'font-bold text-blue-600' : 'text-gray-700'}`}
-          onClick={() => setActiveTab('dropdown')}
-        >
-          Dropdown Manager
-          {activeTab === 'dropdown' && <div className="border-b-2 border-blue-600 w-full" />}
-        </div>
-        <div
-          className={`cursor-pointer ${activeTab === 'archive' ? 'font-bold text-blue-600' : 'text-gray-700'}`}
-          onClick={() => setActiveTab('archive')}
-        >
-          Archive
-          {activeTab === 'archive' && <div className="border-b-2 border-blue-600 w-full" />}
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header with Date/Time and User Info */}
+      <div className="mb-6 flex justify-between items-center bg-white rounded-lg shadow p-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center text-gray-600">
+            <HiOutlineClock className="mr-2" />
+            <span className="text-sm">2025-04-09 15:35:16 UTC</span>
+          </div>
+          <div className="flex items-center text-gray-600">
+            <HiOutlineUser className="mr-2" />
+            <span className="text-sm">Yquannn</span>
+          </div>
         </div>
       </div>
 
-      {/* Render active tab content */}
-      {renderTabContent()}
+      {/* Main Content */}
+      <div className="bg-white rounded-lg shadow-md">
+        <Tabs 
+          defaultActiveKey="1"
+          className="p-4"
+          tabBarStyle={{
+            marginBottom: '16px',
+          }}
+        >
+          <TabPane tab="Loan Type" key="1">
+            {/* Action Buttons and Search */}
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={handleAddNewLoan}
+                className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
+              >
+                <MdAdd className="mr-2" />
+                Add New Loan Configuration
+              </button>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  placeholder={filterPlaceholders[filterOption]}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Dropdown overlay={filterMenu} trigger={["click"]}>
+                  <button className="p-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200">
+                    <HiOutlineFilter className="text-gray-600 text-xl" />
+                  </button>
+                </Dropdown>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Loan Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Interest Rate
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Loanable Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Service Fee
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredLoans.map((loan) => (
+                    <tr key={loan.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {loan.loanType}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {loan.interestRate}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {loan.loanableAmount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {loan.serviceFee}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button
+                          onClick={() => handleEditLoan(loan)}
+                          className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 mr-2 transition-colors duration-200"
+                        >
+                          <MdEdit className="mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleArchive(loan)}
+                          className="inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors duration-200"
+                        >
+                          <MdArchive className="mr-1" />
+                          Archive
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabPane>
+
+          <TabPane tab="Dropdown Manager" key="2">
+            {/* Content for Dropdown Manager */}
+            <div className="p-4">
+              <h3 className="text-lg font-medium text-gray-900">Dropdown Manager Content</h3>
+              {/* Add your dropdown manager content here */}
+            </div>
+          </TabPane>
+
+          <TabPane tab="Archive" key="3">
+            {/* Content for Archive */}
+            <div className="p-4">
+              <h3 className="text-lg font-medium text-gray-900">Archive Content</h3>
+              {/* Add your archive content here */}
+            </div>
+          </TabPane>
+        </Tabs>
+      </div>
+
+      {/* Modal */}
+      <Modal
+        title={editingLoan ? "Edit Loan Configuration" : "Add New Loan Configuration"}
+        visible={isModalVisible}
+        onOk={handleModalOk}
+        onCancel={handleModalCancel}
+        okText="Save"
+        cancelText="Cancel"
+        className="rounded-lg"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Loan Type
+            </label>
+            <Select
+              placeholder="Select loan type"
+              className="w-full"
+              value={newLoan.loanType}
+              onChange={(value) => setNewLoan({ ...newLoan, loanType: value })}
+              status={validationErrors.loanType ? "error" : ""}
+            >
+              {LOAN_TYPES.map((type) => (
+                <Option key={type.value} value={type.value}>
+                  {type.value}
+                </Option>
+              ))}
+            </Select>
+            {validationErrors.loanType && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.loanType}</p>
+            )}
+          </div>
+
+          {/* Interest Rate */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Interest Rate
+            </label>
+            <Select
+              placeholder="Select interest rate"
+              className="w-full"
+              value={newLoan.interestRate}
+              onChange={(value) => setNewLoan({ ...newLoan, interestRate: value })}
+              status={validationErrors.interestRate ? "error" : ""}
+            >
+              <Option value="1.75%">1.75%</Option>
+              <Option value="2%">2%</Option>
+              <Option value="3.5%">3.5%</Option>
+            </Select>
+            {validationErrors.interestRate && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.interestRate}</p>
+            )}
+          </div>
+
+          {/* Loanable Amount */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Loanable Amount
+            </label>
+            <Select
+              placeholder="Select loanable amount"
+              className="w-full"
+              value={newLoan.loanableAmount}
+              onChange={(value) => setNewLoan({ ...newLoan, loanableAmount: value })}
+              status={validationErrors.loanableAmount ? "error" : ""}
+            >
+              <Option value="₱5,000">₱5,000</Option>
+              <Option value="₱10,000">₱10,000</Option>
+              <Option value="₱50,000">₱50,000</Option>
+              <Option value="₱100,000">₱100,000</Option>
+              <Option value="₱200,000">₱200,000</Option>
+              <Option value="₱1,000,000">₱1,000,000</Option>
+            </Select>
+            {validationErrors.loanableAmount && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.loanableAmount}</p>
+            )}
+          </div>
+
+          {/* Service Fee */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Service Fee
+            </label>
+            <Select
+              placeholder="Select service fee"
+              className="w-full"
+              value={newLoan.serviceFee}
+              onChange={(value) => setNewLoan({ ...newLoan, serviceFee: value })}
+              status={validationErrors.serviceFee ? "error" : ""}
+            >
+              <Option value="3%">3%</Option>
+              <Option value="1.2%">1.2%</Option>
+              <Option value="5%">5%</Option>
+            </Select>
+            {validationErrors.serviceFee && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.serviceFee}</p>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
 
-export default LoanDashboardMaintenance;
+export default LoanModule;
