@@ -163,7 +163,7 @@ exports.fetchedMemberById = async (req, res) => {
       const purchaseHistory = await queryDatabase(purchaseQuery, [id]);
   
       // Fetch loan history for the member (assuming the table is "loan_applications").
-      const loanQuery = `SELECT * FROM loan_applications WHERE memberId = ?`;
+      const loanQuery = `SELECT * FROM loan_applications WHERE memberId = ? AND loan_status = 'Paid Off'`;
       const loanHistory = await queryDatabase(loanQuery, [id]);
   
       // Fetch beneficiaries for the member.

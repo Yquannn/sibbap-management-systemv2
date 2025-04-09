@@ -165,12 +165,14 @@ const LoanApproval = () => {
               <th className="py-3 px-4 border-b border-gray-300">Full Name</th>
               <th className="py-3 px-4 border-b border-gray-300">Loan Type</th>
               <th className="py-3 px-4 border-b border-gray-300">Application</th>
-              <th className="py-3 px-4 border-b border-gray-300">Loan Amount</th>
-              <th className="py-3 px-4 border-b border-gray-300">Interest</th>
+              {/* <th className="py-3 px-4 border-b border-gray-300">Loan Amount</th>
+              <th className="py-3 px-4 border-b border-gray-300">Loanable Amount</th>
+
+              <th className="py-3 px-4 border-b border-gray-300">Interest</th> */}
               <th className="py-3 px-4 border-b border-gray-300">Terms</th>
               <th className="py-3 px-4 border-b border-gray-300">Application Date</th>
               <th className="py-3 px-4 border-b border-gray-300">Status</th>
-              <th className="py-3 px-4 border-b border-gray-300">Remarks</th>
+              {/* <th className="py-3 px-4 border-b border-gray-300">Remarks</th> */}
               <th className="py-3 px-4 border-b border-gray-300">Actions</th>
             </tr>
           </thead>
@@ -193,14 +195,19 @@ const LoanApproval = () => {
                   <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
                     {borrower.application || "N/A"}
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                  {/* <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
                     {borrower.loan_amount 
                       ? Number(borrower.loan_amount).toLocaleString("en-US", { maximumFractionDigits: 2 })
                       : "N/A"}
                   </td>
                   <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
-                    {borrower.interest || "N/A"}
+                    {borrower.loan_amount 
+                      ? Number(borrower.loanable_amount).toLocaleString("en-US", { maximumFractionDigits: 2 })
+                      : "N/A"}
                   </td>
+                  <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
+                    {borrower.interest || "N/A"}
+                  </td> */}
                   <td className="py-3 px-4 border-b border-gray-300 text-center text-gray-700">
                     {borrower.terms || "N/A"}
                   </td>
@@ -217,7 +224,7 @@ const LoanApproval = () => {
                       {borrower.status}
                     </span>
                   </td>
-                  <td className="py-3 px-4 border-b border-gray-300 text-center">
+                  {/* <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <span
                       className={`inline-block px-2 py-1 rounded-full font-semibold ${
                         borrower.remarks === "Updated"
@@ -229,7 +236,7 @@ const LoanApproval = () => {
                     >
                       {borrower.remarks}
                     </span>
-                  </td>
+                  </td> */}
                   <td className="py-3 px-4 border-b border-gray-300 text-center">
                     <div className="flex justify-center space-x-3">
                       <button

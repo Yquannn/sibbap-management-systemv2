@@ -560,7 +560,7 @@ export default function AdminLoanMonitorUI() {
                 <tr>
                   <th>Voucher</th>
                   <th>Type</th>
-                  <th>Interest</th>
+                  <th>Loan type</th>
                   <th>Terms</th>
                   <th>Fee</th>
                   <th>Loan Status</th>
@@ -572,7 +572,7 @@ export default function AdminLoanMonitorUI() {
                   <tr key={app.loan_application_id}>
                     <td>{app.client_voucher_number}</td>
                     <td>{app.application}</td>
-                    <td>₱{formatCurrency(app.interest)}</td>
+                    <td>{app.loan_type}</td>
                     <td>{Number(app.terms).toLocaleString()}</td>
                     <td>₱{formatCurrency(app.service_fee)}</td>
                     <td>{app.loan_status}</td>

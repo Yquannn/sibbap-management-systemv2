@@ -445,32 +445,35 @@ const MemberProfilePage = () => {
     }
     return (
       <div className="p-6">
-        <h3 className="text-xl font-bold mb-4 text-gray-800">Loan History</h3>
-        <div className="space-y-4">
-          {member.loan_history.map((loan, index) => (
-            <div
-              key={index}
-              className="border border-gray-200 p-4 rounded-md bg-gray-50"
-            >
-              <p>
-                <strong>Loan Type:</strong> {loan.loan_type}
-              </p>
-              <p>
-                <strong>Amount:</strong> ₱{loan.loan_amount}
-              </p>
-              <p>
-                <strong>Term:</strong> {loan.terms} months
-              </p>
-              <p>
-                <strong>Status:</strong> {loan.status}
-              </p>
-              <p className="text-sm text-gray-500">
-                Applied on: {formatDate(loan.application_date)}
-              </p>
-            </div>
-          ))}
-        </div>
+  <h3 className="text-xl font-bold mb-4 text-gray-800">Loan History</h3>
+  <div className="space-y-4">
+    {member.loan_history.map((loan, index) => (
+      <div
+        key={index}
+        className="bg-white shadow-sm"
+      >
+        <p className="text-gray-700">
+          <strong className="font-medium">Loan Type:</strong> {loan.loan_type}
+        </p>
+        <p className="text-gray-700">
+          <strong className="font-medium">Amount:</strong> ₱
+          {parseFloat(loan.loan_amount).toLocaleString()}
+        </p>
+        <p className="text-gray-700">
+          <strong className="font-medium">Term:</strong> {loan.terms} months
+        </p>
+        <p className="text-gray-700">
+          <strong className="font-medium">Loan Status:</strong> {loan.loan_status}
+        </p>
+        <p className="text-sm text-gray-500 mt-1">
+          Applied on: {formatDate(loan.created_at)}
+        </p>
       </div>
+    ))}
+  </div>
+</div>
+
+
     );
   };
 

@@ -378,10 +378,10 @@ const LoanApprovalProfile = () => {
           <h3 className="text-xl font-bold text-center mb-4">Accounts</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-gray-700 mb-2">
+              {/* <p className="text-gray-700 mb-2">
                 <strong className="font-bold">Account Number:</strong>{" "}
-                {loanApplication ? loanApplication.accountNumber : "N/A"}
-              </p>
+                {loanApplication ? loanApplication.account_number : "N/A"}
+              </p> */}
               <p className="text-gray-700 mb-2">
                 <strong className="font-bold">Code Number:</strong>{" "}
                 {loanApplication ? loanApplication.memberCode : "N/A"}
@@ -464,6 +464,12 @@ const LoanApprovalProfile = () => {
                         {formatCurrency(loan.loan_amount)}
                       </span>
                     </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 font-medium">Loanable Amount:</span>
+                      <span className="font-semibold text-green-600">
+                        {formatCurrency(loan.loanable_amount)}
+                      </span>
+                    </div>
                   </div>
                   {/* Right Column */}
                   <div className="space-y-4">
@@ -492,7 +498,7 @@ const LoanApprovalProfile = () => {
       )}
 
       {activeTab === "loanApplication" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4">
+        //<div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-4"> 
           <div className="card bg-white shadow-md rounded-lg p-4" style={{ maxHeight: "300px" }}>
             <div className="card-title text-lg font-bold mb-2">Loan Applications</div>
             <p className="text-sm text-gray-500 mb-4">Details of loan applications.</p>
@@ -505,6 +511,11 @@ const LoanApprovalProfile = () => {
                     <th>Type</th>
                     <th>Application</th>
                     <th>Loan Amt</th>
+                    <th>Max sacks</th>
+                    <th>Sacks Avail</th>
+
+                    <th>Loanable Amt</th>
+
                     <th>Interest</th>
                     <th>Terms</th>
                     <th>Balance</th>
@@ -522,6 +533,10 @@ const LoanApprovalProfile = () => {
                       <td>{app.loan_type}</td>
                       <td>{app.application}</td>
                       <td>{formatCurrency(app.loan_amount)}</td>
+                      <td>{(app.details.max_sacks || 'NA')}</td>
+                      <td>{(app.details.sacks || 'NA')}</td>
+                      <td>{formatCurrency(app.loanable_amount)}</td>
+
                       <td>{app.interest}</td>
                       <td>{app.terms}</td>
                       <td>{formatCurrency(app.balance)}</td>
@@ -544,7 +559,7 @@ const LoanApprovalProfile = () => {
               </table>
             </div>
           </div>
-        </div>
+      //  </div>
       )}
 
       {activeTab === "loanDocuments" && (
