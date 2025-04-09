@@ -240,6 +240,8 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
 };
 
 
+
+
 // In memberModel.js
 exports.addPurchaseHistory = async (memberId, service, amount) => {
   const sql = `

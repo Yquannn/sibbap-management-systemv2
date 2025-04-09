@@ -4,6 +4,7 @@ import axios from "axios";
 import PersonalInformation from "./components/PersonalInformation";
 import ContactInformation from "../RegisterMemberPages/ContactInformation";
 import LoanInformation from "./LoanInformation";
+import AccountInformation from "./AccountInformation";
 
 export const FormDataContext = createContext();
 
@@ -23,6 +24,7 @@ const ApplyForLoan = () => {
     contactInfo: {},
     legalBeneficiaries: {},
     initialContribution: {},
+    AccountInformation: {},
     documents: {},
     mobilePortal: {},
   });
@@ -35,7 +37,8 @@ const ApplyForLoan = () => {
     "PERSONAL INFORMATION",
     "CONTACT INFORMATION",
     "LOAN INFORMATION",
-    "CO-MAKER/CO-BORROWER"
+    "ACCOUNT INFORMATION",
+    "CO‑MAKER/CO‑BORROWER"
   ];
 
   // Fetch data from the API when memberId is available
@@ -150,8 +153,40 @@ const ApplyForLoan = () => {
                 fetchedData={fetchedData}
               />
             )}
-            
-            {/* Add additional steps as needed */}
+
+            {activeTab === 3 && (
+              <AccountInformation 
+                handleNext={handleNext} 
+                handlePrevious={handlePrevious} 
+                formData={formData} 
+                setFormData={setFormData} 
+                fetchedData={fetchedData}
+              />
+            )}
+
+            {activeTab === 4 && (
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Co‑Maker / Co‑Borrower Information</h2>
+                {/* Placeholder: add your Co‑Maker/Co‑Borrower component or form fields here */}
+                <p>Co‑Maker/Co‑Borrower form goes here.</p>
+                <div className="flex justify-end mt-6 space-x-4">
+                  <button
+                    className="bg-red-700 text-white text-lg px-8 py-3 rounded-lg"
+                    onClick={handlePrevious}
+                    type="button"
+                  >
+                    <span className="text-2xl">&#187;&#187;</span> Previous
+                  </button>
+                  <button
+                    className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg"
+                    onClick={handleSave}
+                    type="button"
+                  >
+                    <span className="text-2xl">&#187;&#187;</span> Submit Application
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -7,13 +7,13 @@ import MobilePortal from "./MemberPortal";
 import Success from "./Success";
 import { useParams } from "react-router-dom";
 
-// Default values for initial contribution to ensure all keys exist.
+// Use numeric defaults for financial values.
 const defaultInitialContribution = {
-  share_capital: "",
-  membership_fee: "",
-  identification_card_fee: "",
-  kalinga_fund_fee: "",
-  initial_savings: "",
+  share_capital: 0,
+  membership_fee: 300,
+  identification_card_fee: 150,
+  kalinga_fund_fee: 100,
+  initial_savings: 100,
 };
 
 const MemberRegistration = () => {
@@ -70,7 +70,7 @@ const MemberRegistration = () => {
             first_name: fetchedData.first_name || "",
             middle_name: fetchedData.middle_name || "",
             last_name: fetchedData.last_name || "",
-            extension_name: fetchedData.extension_name || "", // if available
+            extension_name: fetchedData.extension_name || "",
             maiden_name: fetchedData.maiden_name || "",
             date_of_birth: fetchedData.date_of_birth || "",
             age: fetchedData.age || "",
@@ -89,6 +89,7 @@ const MemberRegistration = () => {
               fetchedData.spouse_occupation_source_of_income || "",
             tin_number: fetchedData.tin_number || "",
             number_of_dependents: fetchedData.number_of_dependents || "",
+            annual_income: fetchedData.annual_income || "",
           },
           contactInfo: {
             house_no_street: fetchedData.house_no_street || "",
@@ -109,24 +110,24 @@ const MemberRegistration = () => {
               relationship: fetchedData.secondary_beneficiary_relationship || "",
               contactNumber: fetchedData.secondary_beneficiary_contact || "",
             },
-            additional: [], // Adjust if your API returns additional beneficiaries.
+            additional: [],
             characterReferences: [
               { fullName: "", position: "", contactNumber: "" },
               { fullName: "", position: "", contactNumber: "" },
             ],
           },
           initialContribution: {
-            share_capital: fetchedData.share_capital || "",
-            membership_fee: fetchedData.membership_fee || "",
-            identification_card_fee: fetchedData.identification_card_fee || "",
-            kalinga_fund_fee: fetchedData.kalinga_fund_fee || "",
-            initial_savings: fetchedData.initial_savings || "",
+            share_capital: fetchedData.share_capital || defaultInitialContribution.share_capital,
+            membership_fee: fetchedData.membership_fee || defaultInitialContribution.membership_fee,
+            identification_card_fee: fetchedData.identification_card_fee || defaultInitialContribution.identification_card_fee,
+            kalinga_fund_fee: fetchedData.kalinga_fund_fee || defaultInitialContribution.kalinga_fund_fee,
+            initial_savings: fetchedData.initial_savings || defaultInitialContribution.initial_savings,
           },
           documents: {
             membership_agreement: fetchedData.membership_agreement || null,
             id_picture: fetchedData.id_picture || null,
             barangay_clearance: fetchedData.barangay_clearance || null,
-            tax_identification: fetchedData.tax_identification_id || null, // note: mapping to tax_identification_id
+            tax_identification: fetchedData.tax_identification_id || null,
             valid_id: fetchedData.valid_id || null,
           },
           mobilePortal: {
@@ -157,58 +158,27 @@ const MemberRegistration = () => {
     }
   };
 
-  // handleSave builds a plain JSON object matching the backend update query
-  const handleSave = async () => {
-    // Build the combined JSON object based on the fields your backend expects.
-    let combinedData = {
-      registration_type: formData.personalInfo.registration_type || "",
-      last_name: formData.personalInfo.last_name || "",
-      first_name: formData.personalInfo.first_name || "",
-      middle_name: formData.personalInfo.middle_name || "",
-      extension_name: formData.personalInfo.extension_name || "", // default empty if not provided
-      tin_number: formData.personalInfo.tin_number || "",
-      date_of_birth: formData.personalInfo.date_of_birth || "",
-      birthplace_province: formData.personalInfo.birthplace_province || "",
-      number_of_dependents: formData.personalInfo.number_of_dependents || "",
-      age: formData.personalInfo.age || "",
-      sex: formData.personalInfo.sex || "",
-      civil_status: formData.personalInfo.civil_status || "",
-      religion: formData.personalInfo.religion || "",
-      highest_educational_attainment:
-        formData.personalInfo.highest_educational_attainment || "",
-      annual_income: formData.personalInfo.annual_income || "",
-      occupation_source_of_income:
-        formData.personalInfo.occupation_source_of_income || "",
-      spouse_name: formData.personalInfo.spouse_name || "",
-      spouse_occupation_source_of_income:
-        formData.personalInfo.spouse_occupation_source_of_income || "",
-      contact_number: formData.contactInfo.contact_number || "",
-      house_no_street: formData.contactInfo.house_no_street || "",
-      barangay: formData.contactInfo.barangay || "",
-      city: formData.contactInfo.city || "",
-      // Documents fields: note that files are not handled here;
-      // if a file exists, we simply send null (or you can set up a separate file upload logic)
-      barangay_clearance: formData.documents.barangay_clearance || null,
-      tax_identification_id: formData.documents.tax_identification || null,
-      valid_id: formData.documents.valid_id || null,
-      membership_agreement: formData.documents.membership_agreement || null,
+  // Modified handleSave now accepts local contribution data.
+  const handleSave = async (localContributionData) => {
+    // Use the passed contribution data; if not provided, fallback to parent's state.
+    const financials = localContributionData || formData.initialContribution;
+    const combinedData = {
+      share_capital: financials.share_capital,
+      membership_fee: financials.membership_fee,
+      identification_card_fee: financials.identification_card_fee,
+      kalinga_fund_fee: financials.kalinga_fund_fee,
+      initial_savings: financials.initial_savings,
     };
 
-    // Replace any undefined values with null
-    combinedData = Object.fromEntries(
-      Object.entries(combinedData).map(([key, value]) => [key, value === undefined ? null : value])
-    );
-
-    // Log the combined JSON object so you can inspect it.
-    console.log("Combined Data (JSON):", combinedData);
+    console.log("Combined financial data:", combinedData);
 
     try {
-      const response = await axios.put(
-        `http://localhost:3001/api/member/update-info/${memberId}`,
+      const response = await axios.patch(
+        `http://localhost:3001/api/members/${memberId}/financials`,
         combinedData,
         { headers: { "Content-Type": "application/json" } }
       );
-      setSuccessMessage("Member updated successfully!");
+      setSuccessMessage("Membership successfully!");
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error updating member data:", error);
@@ -250,9 +220,7 @@ const MemberRegistration = () => {
           {activeTab === 1 && (
             <LegalAndDocuments
               handlePrevious={handlePrevious}
-              handleNext={
-                activeTab === tabs.length - 1 ? handleSave : handleNext
-              }
+              handleNext={activeTab === tabs.length - 1 ? handleSave : handleNext}
               formData={formData}
               setFormData={setFormData}
               isReadOnly={false}
@@ -262,7 +230,7 @@ const MemberRegistration = () => {
           {!removeInitialContribution && activeTab === 2 && (
             <InitialContribution
               handlePrevious={handlePrevious}
-              handleNext={handleSave}
+              handleNext={handleSave}  // Pass handleSave as the callback.
               formData={formData}
               setFormData={setFormData}
               isReadOnly={false}

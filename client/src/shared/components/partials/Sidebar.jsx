@@ -269,14 +269,14 @@ const SideBar = ({ mode }) => {
                       "Loan Application"
                     )}
                   </li>
-                  <li>
+                  {/* <li>
                     {renderItem(
                       loanSubAllowed["loan-applicant"],
                       "/loan-applicant",
                       <IoPeople />,
                       "Loan Applicant"
                     )}
-                  </li>
+                  </li> */}
                   <li>
                     {renderItem(
                       loanSubAllowed["loan-approval"],
@@ -304,6 +304,7 @@ const SideBar = ({ mode }) => {
             </li>
           )}
 
+<<<<<<< HEAD
           {/* System Maintenance Dropdown */}
           {allowed.maintenance && (
             <>
@@ -350,6 +351,14 @@ const SideBar = ({ mode }) => {
             </>
           )}
 
+=======
+          {/* {renderItem(
+            allowed.fileMaintenance,
+            "/file-maintenance",
+            <HiOutlineDocumentText />,
+            "File Maintenance"
+          )} */}
+>>>>>>> 5d8b10f5df1ab1705d18c069d523585a10ccea2b
           {renderItem(allowed.report, "/report", <HiOutlineChartBar />, "Report")}
           {renderItem(allowed.users, "/users", <HiOutlineUserGroup />, "Users")}
           {renderItem(allowed.announcement, "/announcement", <HiOutlineBell />, "Announcement")}

@@ -195,12 +195,12 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                     <td className="py-3 px-4 border-b border-gray-300">
                       <span
                         className={`px-2 py-1 rounded-full font-semibold ${
-                          (!depositor.remarks || depositor.remarks === "ACTIVE")
+                          (!depositor.account_status || depositor.account_status === "ACTIVE")
                             ? "bg-green-500 text-white"
                             : "bg-red-500 text-white"
                         }`}
                       >
-                        {depositor.remarks}
+                        {depositor.account_status}
                       </span>
                     </td>
                     {/* Actions */}

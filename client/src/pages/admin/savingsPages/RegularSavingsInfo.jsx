@@ -222,7 +222,7 @@ const RegularSavingsInfo = () => {
   const interestChange = computeMonthlyChange("interest", monthlyGrouped);
 
   return (
-    <div className="bg-gray-100 min-h-screen p-6">
+    <div className="bg-gray-100">
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left Section: Combined Card & Transactions */}
         <div className="flex-1 space-y-6">
