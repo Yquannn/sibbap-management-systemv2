@@ -118,7 +118,7 @@ const Dashboard = () => {
         throw new Error("User email not found. Please log in again.");
       }
       const response = await axios.get(
-        `http://192.168.254.100:3001/api/member/email/${email}`
+        `http://192.168.254.111:3001/api/member/email/${email}`
       );
       if (response.data) {
         setMember(response.data);
@@ -174,7 +174,7 @@ const Dashboard = () => {
         <div className="flex items-center">
           {member?.id_picture ? (
             <img
-              src={`http://192.168.254.100:3001/uploads/${member.id_picture}`}
+              src={`http://192.168.254.111:3001/uploads/${member.id_picture}`}
               alt="Profile"
               className="w-10 h-10 rounded-full border-2 border-green-500 cursor-pointer"
               onClick={() => navigate("/member-profile")}

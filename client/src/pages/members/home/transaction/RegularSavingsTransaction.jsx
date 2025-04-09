@@ -31,7 +31,7 @@ const RegularSavingsTransactionHistory = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://192.168.254.100:3001/api/member/email/${email}`
+          `http://192.168.254.111:3001/api/member/email/${email}`
         );
 
         if (response.data && response.data.transactions) {

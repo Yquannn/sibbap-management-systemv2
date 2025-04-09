@@ -55,6 +55,9 @@ import MemberRegistrationList from "./pages/admin/RegisterMemberPages/MemberRegi
 import MemberRegistration from "./pages/admin/RegisterMemberPages/MemberRegistration";
 import MemberRegistrationParent from "./pages/admin/RegisterMemberPages/MemberRegistrationParent";
 import MemberApplicant from "./pages/admin/RegisterMemberPages/MemberApplicant";
+import LoanModule from "./pages/admin/system maintenance/LoanModule";
+import SavingsModule from "./pages/admin/system maintenance/SavingsModule";
+import MembersModule from "./pages/admin/system maintenance/MembersModule";
 
 function App() {
   return (
@@ -82,7 +85,9 @@ function App() {
     <Route path="member-registration/:mode/:memberId" element={<MemberRegistration />} />
 
 
-
+    <Route path="system-maintenance/loan" element={<LoanModule />} />
+    <Route path="system-maintenance/savings" element={<SavingsModule />} />
+    <Route path="system-maintenance/members" element={<MembersModule />} />
 
     <Route path="members" element={<Members />} />
     <Route path="member-profile/:memberId" element={<MemberProfilePage />} />

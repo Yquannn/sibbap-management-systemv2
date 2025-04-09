@@ -19,7 +19,7 @@ const MemberLoanTracker = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          `http://192.168.254.100:3001/api/member-loan-application/${memberId}`
+          `http://192.168.254.111:3001/api/member-loan-application/${memberId}`
         );
         setLoans(response.data);
         console.log("Loans:", response.data);
