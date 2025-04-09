@@ -29,6 +29,7 @@ const SideBar = ({ mode }) => {
   const [loanDropdown, setLoanDropdown] = useState(false);
   const [savingsDropdown, setSavingsDropdown] = useState(false);
   const [membersDropdown, setMembersDropdown] = useState(false);
+  const [maintenanceDropdown, setMaintenanceDropdown] = useState(false); // new state for maintenance dropdown
   const [userType, setUserType] = useState("");
   const [activePath, setActivePath] = useState("");
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
@@ -167,7 +168,6 @@ const SideBar = ({ mode }) => {
           </li>
           {membersDropdown && (
             <ul className="ml-6 space-y-1">
-              {/* Conditionally render based on mode */}
               {mode !== "memberRegistration" &&
                 renderItem(
                   allowed.members,
@@ -304,16 +304,55 @@ const SideBar = ({ mode }) => {
             </li>
           )}
 
-          {/* {renderItem(
-            allowed.fileMaintenance,
-            "/file-maintenance",
-            <HiOutlineDocumentText />,
-            "File Maintenance"
-          )} */}
+          {/* System Maintenance Dropdown */}
+          {allowed.maintenance && (
+            <>
+              <li
+                className="flex items-center w-full p-2 rounded hover:bg-gray-200 cursor-pointer transition-colors"
+                onClick={() => setMaintenanceDropdown(!maintenanceDropdown)}
+              >
+                {cloneElement(<HiOutlineCog />, { className: "mr-2 text-gray-700" })}
+                <span className="flex-grow text-gray-700">System Maintenance</span>
+                {maintenanceDropdown ? (
+                  <HiOutlineChevronUp className="text-gray-700" />
+                ) : (
+                  <HiOutlineChevronDown className="text-gray-700" />
+                )}
+              </li>
+              {maintenanceDropdown && (
+                <ul className="ml-6 space-y-1">
+                  <li>
+                    {renderItem(
+                      allowed.maintenance,
+                      "/system-maintenance/loan",
+                      <HiBriefcase />,
+                      "Loan Module"
+                    )}
+                  </li>
+                  <li>
+                    {renderItem(
+                      allowed.maintenance,
+                      "/system-maintenance/savings",
+                      <HiOutlineBanknotes />,
+                      "Savings Module"
+                    )}
+                  </li>
+                  <li>
+                    {renderItem(
+                      allowed.maintenance,
+                      "/system-maintenance/members",
+                      <HiOutlineUserGroup />,
+                      "Members Module"
+                    )}
+                  </li>
+                </ul>
+              )}
+            </>
+          )}
+
           {renderItem(allowed.report, "/report", <HiOutlineChartBar />, "Report")}
           {renderItem(allowed.users, "/users", <HiOutlineUserGroup />, "Users")}
           {renderItem(allowed.announcement, "/announcement", <HiOutlineBell />, "Announcement")}
-          {renderItem(allowed.maintenance, "/maintenance", <HiOutlineCog />, "Maintenance")}
           <li>
             <div
               onClick={handleLogout}

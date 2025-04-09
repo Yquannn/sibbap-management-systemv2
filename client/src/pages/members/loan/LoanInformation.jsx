@@ -14,7 +14,7 @@ const LoanInformation = () => {
   // Fetch data from the endpoint using the provided memberId
   useEffect(() => {
     axios
-      .get(`http://192.168.254.100:3001/api/member-loan/${memberId}`)
+      .get(`http://192.168.254.111:3001/api/member-loan/${memberId}`)
       .then((response) => {
         setLoanData(response.data);
         setLoading(false);

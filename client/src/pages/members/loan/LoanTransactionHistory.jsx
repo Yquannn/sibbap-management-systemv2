@@ -27,7 +27,7 @@ const LoanTransactionHistory = () => {
 
       try {
         const response = await axios.get(
-          `http://192.168.254.100:3001/api/member-loan/${memberId}`
+          `http://192.168.254.111:3001/api/member-loan/${memberId}`
         );
 
         let data;
