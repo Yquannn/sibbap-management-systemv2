@@ -29,7 +29,7 @@ const SideBar = ({ mode }) => {
   const [loanDropdown, setLoanDropdown] = useState(false);
   const [savingsDropdown, setSavingsDropdown] = useState(false);
   const [membersDropdown, setMembersDropdown] = useState(false);
-  const [maintenanceDropdown, setMaintenanceDropdown] = useState(false); // new state for maintenance dropdown
+  const [maintenanceDropdown, setMaintenanceDropdown] = useState(false);
   const [userType, setUserType] = useState("");
   const [activePath, setActivePath] = useState("");
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
@@ -81,7 +81,7 @@ const SideBar = ({ mode }) => {
     dashboard: true,
     members: isSystemAdmin || userType === "Account Officer",
     savings: isSystemAdmin || userType === "Account Officer",
-    loan: isSystemAdmin || (userType === "Loan Manager" || userType === "Treasurer"),
+    loan: isSystemAdmin || (userType === "General Manager" || userType === "Loan Officer"),
     fileMaintenance: isSystemAdmin,
     report: isSystemAdmin || userType === "General Manager",
     users: isSystemAdmin,
@@ -108,13 +108,13 @@ const SideBar = ({ mode }) => {
   // Helper function to render a menu item with active styling
   const renderItem = (allowedFlag, to, icon, label, onClick = null) => {
     const isActive = activePath === to;
-    const baseClasses = "flex items-center w-full p-2 rounded transition-colors";
+    const baseClasses = "flex items-center w-full px-4 py-2 rounded-md transition-colors duration-200";
     const activeClasses = isActive
-      ? "bg-green-500 text-white"
-      : "text-gray-600 hover:text-green-500 hover:bg-gray-200";
+      ? "bg-green-600 text-white font-medium shadow-md"
+      : "text-gray-700 hover:text-green-600 hover:bg-green-50";
     const iconElement = icon
       ? cloneElement(icon, {
-          className: `${isActive ? "text-white" : "text-gray-700"} mr-2`,
+          className: `${isActive ? "text-white" : "text-gray-600"} mr-3 text-lg`,
         })
       : null;
     const handleClick = (e) => {
@@ -126,246 +126,250 @@ const SideBar = ({ mode }) => {
       return (
         <Link to={to} onClick={handleClick} className={`${baseClasses} ${activeClasses}`}>
           {iconElement}
-          <span>{label}</span>
+          <span className="text-sm">{label}</span>
         </Link>
       );
     } else {
       return (
-        <div className="flex items-center w-full p-2 rounded bg-gray-200 cursor-not-allowed">
-          {icon && cloneElement(icon, { className: "text-gray-500 mr-2" })}
-          <span className="text-gray-500">{label}</span>
-          <HiOutlineLockClosed className="text-gray-500 ml-auto" />
+        <div className="flex items-center w-full px-4 py-2 rounded-md bg-gray-100 cursor-not-allowed">
+          {icon && cloneElement(icon, { className: "text-gray-400 mr-3 text-lg" })}
+          <span className="text-gray-400 text-sm">{label}</span>
+          <HiOutlineLockClosed className="text-gray-400 ml-auto" />
         </div>
       );
     }
   };
 
+  // Helper function to render dropdown headers
+  const renderDropdownHeader = (isOpen, setIsOpen, icon, label, isAllowed = true) => {
+    const baseClasses = "flex items-center w-full px-4 py-2 rounded-md transition-colors duration-200";
+    const classes = isAllowed
+      ? `${baseClasses} text-gray-700 hover:text-green-600 hover:bg-green-50 cursor-pointer`
+      : `${baseClasses} bg-gray-100 cursor-not-allowed`;
+    
+    return (
+      <div
+        className={classes}
+        onClick={() => isAllowed && setIsOpen(!isOpen)}
+      >
+        {cloneElement(icon, { className: `${isAllowed ? "text-gray-600" : "text-gray-400"} mr-3 text-lg` })}
+        <span className={`flex-grow text-sm ${isAllowed ? "text-gray-700" : "text-gray-400"}`}>{label}</span>
+        {isAllowed && (
+          isOpen ? (
+            <HiOutlineChevronUp className="text-gray-600" />
+          ) : (
+            <HiOutlineChevronDown className="text-gray-600" />
+          )
+        )}
+        {!isAllowed && <HiOutlineLockClosed className="text-gray-400 ml-auto" />}
+      </div>
+    );
+  };
+
   return (
-    <div className="w-56 h-screen flex flex-col mr-4">
+    <div className="w-64 h-screen flex flex-col bg-gray-50 border-r border-gray-200">
       {/* Logo Container */}
-      <div className="p-4 bg-white rounded shadow mb-4 flex items-center justify-center">
-        <img src={logo} alt="sibbap logo" className="w-12 h-auto mr-2" />
-        <h1 className="font-bold text-base text-gray-800">Sibbap Cooperative</h1>
+      <div className="p-4 bg-white border-b border-gray-200 flex items-center">
+        <img src={logo} alt="Sibbap logo" className="w-10 h-auto mr-3" />
+        <h1 className="font-bold text-lg text-gray-800">Sibbap Cooperative</h1>
+      </div>
+
+      {/* User Info */}
+      <div className="px-4 py-3 bg-green-50 border-b border-gray-200">
+        <div className="text-sm font-medium text-green-800">{userType}</div>
+        <div className="text-xs text-gray-500">Logged in</div>
       </div>
 
       {/* Sidebar Menu Container */}
-      <div className="flex-1 p-4 overflow-y-auto bg-white rounded shadow">
-        <ul className="space-y-2">
+      <div className="flex-1 py-4 overflow-y-auto">
+        <div className="px-3 mb-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Main Menu</div>
+        <ul className="space-y-1 px-2 mb-6">
           <li>{renderItem(allowed.dashboard, "/dashboard", <HiOutlineHome />, "Dashboard")}</li>
 
           {/* Members Dropdown */}
-          <li
-            className="flex items-center w-full p-2 rounded hover:bg-gray-200 cursor-pointer transition-colors"
-            onClick={() => setMembersDropdown(!membersDropdown)}
-          >
-            {cloneElement(<HiOutlineUserGroup />, { className: "mr-2 text-gray-700" })}
-            <span className="flex-grow text-gray-700">Members</span>
-            {membersDropdown ? (
-              <HiOutlineChevronUp className="text-gray-700" />
-            ) : (
-              <HiOutlineChevronDown className="text-gray-700" />
+          <li>
+            {renderDropdownHeader(
+              membersDropdown, 
+              setMembersDropdown, 
+              <HiOutlineUserGroup />, 
+              "Members", 
+              allowed.members
+            )}
+            {membersDropdown && allowed.members && (
+              <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">
+                {mode !== "memberRegistration" &&
+                  renderItem(
+                    allowed.members,
+                    "/member-application",
+                    <FaEnvelopeOpenText />,
+                    "Member Application"
+                  )}
+                {mode !== "memberApplication" &&
+                  renderItem(
+                    allowed.members,
+                    "/members-registration",
+                    <HiCheckCircle />,
+                    "Member Registration"
+                  )}
+                {renderItem(allowed.members, "/members", <HiOutlineUserGroup />, "Member List")}
+              </ul>
             )}
           </li>
-          {membersDropdown && (
-            <ul className="ml-6 space-y-1">
-              {mode !== "memberRegistration" &&
-                renderItem(
-                  allowed.members,
-                  "/member-application",
-                  <FaEnvelopeOpenText />,
-                  "Member Application"
-                )}
-              {mode !== "memberApplication" &&
-                renderItem(
-                  allowed.members,
-                  "/members-registration",
-                  <HiCheckCircle />,
-                  "Member Registration"
-                )}
-              {renderItem(allowed.members, "/members", <HiOutlineUserGroup />, "Member List")}
-            </ul>
-          )}
 
           {/* Savings Dropdown */}
-          <li
-            className="flex items-center w-full p-2 rounded hover:bg-gray-200 cursor-pointer transition-colors"
-            onClick={() => setSavingsDropdown(!savingsDropdown)}
-          >
-            {cloneElement(<HiOutlineBanknotes />, { className: "mr-2 text-gray-700" })}
-            <span className="flex-grow text-gray-700">Savings</span>
-            {savingsDropdown ? (
-              <HiOutlineChevronUp className="text-gray-700" />
-            ) : (
-              <HiOutlineChevronDown className="text-gray-700" />
+          <li>
+            {renderDropdownHeader(
+              savingsDropdown, 
+              setSavingsDropdown, 
+              <HiOutlineBanknotes />, 
+              "Savings", 
+              allowed.savings
+            )}
+            {savingsDropdown && allowed.savings && (
+              <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">
+                <li>
+                  {renderItem(
+                    savingsSubAllowed["savings-dashboard"],
+                    "/savings-dashboard",
+                    <RiDashboard3Fill />,
+                    "Savings Dashboard"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    savingsSubAllowed["share-capital"],
+                    "/share-capital",
+                    <FaShareFromSquare />,
+                    "Share Capital"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    savingsSubAllowed["regular-savings"],
+                    "/regular-savings",
+                    <HiCurrencyDollar />,
+                    "Regular Savings"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    savingsSubAllowed["time-deposit"],
+                    "/time-deposit",
+                    <IoTimerSharp />,
+                    "Time Deposit"
+                  )}
+                </li>
+              </ul>
             )}
           </li>
-          {savingsDropdown && (
-            <ul className="ml-6 space-y-1">
-              <li>
-                {renderItem(
-                  savingsSubAllowed["savings-dashboard"],
-                  "/savings-dashboard",
-                  <RiDashboard3Fill />,
-                  "Savings Dashboard"
-                )}
-              </li>
-              <li>
-                {renderItem(
-                  savingsSubAllowed["share-capital"],
-                  "/share-capital",
-                  <FaShareFromSquare />,
-                  "Share Capital"
-                )}
-              </li>
-              <li>
-                {renderItem(
-                  savingsSubAllowed["regular-savings"],
-                  "/regular-savings",
-                  <HiCurrencyDollar />,
-                  "Regular Savings"
-                )}
-              </li>
-              <li>
-                {renderItem(
-                  savingsSubAllowed["time-deposit"],
-                  "/time-deposit",
-                  <IoTimerSharp />,
-                  "Time Deposit"
-                )}
-              </li>
-            </ul>
-          )}
 
           {/* Loan Dropdown */}
-          {allowed.loan ? (
-            <>
-              <li
-                className="flex items-center w-full p-2 rounded hover:bg-gray-200 cursor-pointer transition-colors"
-                onClick={() => setLoanDropdown(!loanDropdown)}
-              >
-                {cloneElement(<HiBriefcase />, { className: "mr-2 text-gray-700" })}
-                <span className="flex-grow text-gray-700">Loan</span>
-                {loanDropdown ? (
-                  <HiOutlineChevronUp className="text-gray-700" />
-                ) : (
-                  <HiOutlineChevronDown className="text-gray-700" />
-                )}
-              </li>
-              {loanDropdown && (
-                <ul className="ml-6 space-y-1">
-                  <li>
-                    {renderItem(
-                      loanSubAllowed["loan-dashboard"],
-                      "/loan-dashboard",
-                      <MdDashboardCustomize />,
-                      "Loan Dashboard"
-                    )}
-                  </li>
-                  <li>
-                    {renderItem(
-                      loanSubAllowed["loan-application"],
-                      "/loan-application",
-                      <HiOutlineDocumentText />,
-                      "Loan Application"
-                    )}
-                  </li>
-                  {/* <li>
-                    {renderItem(
-                      loanSubAllowed["loan-applicant"],
-                      "/loan-applicant",
-                      <IoPeople />,
-                      "Loan Applicant"
-                    )}
-                  </li> */}
-                  <li>
-                    {renderItem(
-                      loanSubAllowed["loan-approval"],
-                      "/loan-approval",
-                      <HiCheckCircle />,
-                      "Loan Approval"
-                    )}
-                  </li>
-                  <li>
-                    {renderItem(
-                      loanSubAllowed["borrower"],
-                      "/borrower",
-                      <HiOutlineUserGroup />,
-                      "Borrowers"
-                    )}
-                  </li>
-                </ul>
-              )}
-            </>
-          ) : (
-            <li className="flex items-center w-full p-2 rounded bg-gray-200 cursor-not-allowed">
-              {cloneElement(<HiBriefcase />, { className: "mr-2 text-gray-500" })}
-              <span className="text-gray-500">Loan</span>
-              <HiOutlineLockClosed className="text-gray-500 ml-auto" />
-            </li>
-          )}
-
-          {/* System Maintenance Dropdown */}
-          {allowed.maintenance && (
-            <>
-              <li
-                className="flex items-center w-full p-2 rounded hover:bg-gray-200 cursor-pointer transition-colors"
-                onClick={() => setMaintenanceDropdown(!maintenanceDropdown)}
-              >
-                {cloneElement(<HiOutlineCog />, { className: "mr-2 text-gray-700" })}
-                <span className="flex-grow text-gray-700">System Maintenance</span>
-                {maintenanceDropdown ? (
-                  <HiOutlineChevronUp className="text-gray-700" />
-                ) : (
-                  <HiOutlineChevronDown className="text-gray-700" />
-                )}
-              </li>
-              {maintenanceDropdown && (
-                <ul className="ml-6 space-y-1">
-                  <li>
-                    {renderItem(
-                      allowed.maintenance,
-                      "/system-maintenance/loan",
-                      <HiBriefcase />,
-                      "Loan Module"
-                    )}
-                  </li>
-                  <li>
-                    {renderItem(
-                      allowed.maintenance,
-                      "/system-maintenance/savings",
-                      <HiOutlineBanknotes />,
-                      "Savings Module"
-                    )}
-                  </li>
-                  <li>
-                    {renderItem(
-                      allowed.maintenance,
-                      "/system-maintenance/members",
-                      <HiOutlineUserGroup />,
-                      "Members Module"
-                    )}
-                  </li>
-                </ul>
-              )}
-            </>
-          )}
-
-          {renderItem(allowed.report, "/report", <HiOutlineChartBar />, "Report")}
-          {renderItem(allowed.users, "/users", <HiOutlineUserGroup />, "Users")}
-          {renderItem(allowed.announcement, "/announcement", <HiOutlineBell />, "Announcement")}
           <li>
-            <div
-              onClick={handleLogout}
-              className="flex items-center w-full p-2 rounded bg-red-500 text-white cursor-pointer hover:bg-red-600"
-            >
-              <HiOutlineLogout className="mr-2" />
-              <span>Logout</span>
-            </div>
+            {renderDropdownHeader(
+              loanDropdown, 
+              setLoanDropdown, 
+              <HiBriefcase />, 
+              "Loan", 
+              allowed.loan
+            )}
+            {loanDropdown && allowed.loan && (
+              <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">
+                <li>
+                  {renderItem(
+                    loanSubAllowed["loan-dashboard"],
+                    "/loan-dashboard",
+                    <MdDashboardCustomize />,
+                    "Loan Dashboard"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    loanSubAllowed["loan-application"],
+                    "/loan-application",
+                    <HiOutlineDocumentText />,
+                    "Loan Application"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    loanSubAllowed["loan-approval"],
+                    "/loan-approval",
+                    <HiCheckCircle />,
+                    "Loan Approval"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    loanSubAllowed["borrower"],
+                    "/borrower",
+                    <HiOutlineUserGroup />,
+                    "Borrowers"
+                  )}
+                </li>
+              </ul>
+            )}
           </li>
+        </ul>
+
+        <div className="px-3 mb-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Administration</div>
+        <ul className="space-y-1 px-2">
+          {/* System Maintenance Dropdown */}
+          <li>
+            {renderDropdownHeader(
+              maintenanceDropdown, 
+              setMaintenanceDropdown, 
+              <HiOutlineCog />, 
+              "System Maintenance", 
+              allowed.maintenance
+            )}
+            {maintenanceDropdown && allowed.maintenance && (
+              <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">
+                <li>
+                  {renderItem(
+                    allowed.maintenance,
+                    "/system-maintenance/loan",
+                    <HiBriefcase />,
+                    "Loan Module"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    allowed.maintenance,
+                    "/system-maintenance/savings",
+                    <HiOutlineBanknotes />,
+                    "Savings Module"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    allowed.maintenance,
+                    "/system-maintenance/members",
+                    <HiOutlineUserGroup />,
+                    "Members Module"
+                  )}
+                </li>
+              </ul>
+            )}
+          </li>
+
+          <li>{renderItem(allowed.report, "/report", <HiOutlineChartBar />, "Report")}</li>
+          <li>{renderItem(allowed.users, "/users", <HiOutlineUserGroup />, "Users")}</li>
+          <li>{renderItem(allowed.announcement, "/announcement", <HiOutlineBell />, "Announcement")}</li>
         </ul>
       </div>
 
-      {/* Logout Confirmation Modal using Antd v5 "open" prop */}
+      {/* Logout Button */}
+      <div className="p-4 border-t border-gray-200">
+        <button
+          onClick={handleLogout}
+          className="flex items-center justify-center w-full px-4 py-2 rounded-md bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200"
+        >
+          <HiOutlineLogout className="mr-2" />
+          <span>Logout</span>
+        </button>
+      </div>
+
+      {/* Logout Confirmation Modal */}
       <Modal
         title="Confirm Logout"
         open={isLogoutModalVisible}

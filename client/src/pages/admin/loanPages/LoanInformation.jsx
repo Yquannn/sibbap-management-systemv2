@@ -270,6 +270,9 @@ const LoanInformation = ({
     }));
   };
 
+  const userType = sessionStorage.getItem("userType");
+
+  // Updated handleSave function with push notification using the browser's Notification API.
   const handleSave = async () => {
     // Validate required fields.
     if (!memberInfo.memberId) {
@@ -286,7 +289,6 @@ const LoanInformation = ({
     }
 
     const payload = transformFormData();
-    console.log("Payload to be sent:", payload);
 
     try {
       const response = await axios.post(
@@ -294,6 +296,36 @@ const LoanInformation = ({
         payload
       );
       console.log("Loan application submitted successfully:", response.data);
+
+      // After successful submission, send a backend notification.
+      const notificationPayload = {
+        userId: userType,
+        message: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name}`,
+      };
+
+      const notifResponse = await axios.post(
+        "http://localhost:3001/api/notifications",
+        notificationPayload
+      );
+      console.log("Notification sent successfully:", notifResponse.data);
+
+      // Add push notification using the browser's Notification API.
+      if ("Notification" in window) {
+        if (Notification.permission === "granted") {
+          new Notification("Loan Application", {
+            body: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name}`
+          });
+        } else if (Notification.permission !== "denied") {
+          Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+              new Notification("Loan Application", {
+                body: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name}`
+              });
+            }
+          });
+        }
+      }
+
       // Show modal on successful submission.
       setModalVisible(true);
     } catch (error) {

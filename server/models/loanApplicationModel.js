@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const notificationController = require('../controllers/notificationController');
 
 
 function generateVoucherNumber() {
@@ -193,8 +194,6 @@ async function createLoanApplication(data) {
       default:
         throw new Error('Invalid loan type provided.');
     }
-  
-    // Commit the transaction after successful queries.
     await conn.commit();
   
     return { loanApplicationId };

@@ -120,9 +120,12 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
     }
   };
 
+
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Build the details object based on the selected loan type.
     let details = {};
     if (loanType === "feeds" || loanType === "rice") {
@@ -149,7 +152,8 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
       };
     }
     // (Additional cases for other loan types as needed.)
-
+  
+    // Prepare the payload for the loan application.
     const payload = {
       memberId: member.memberId,
       loan_type: loanType,
@@ -157,16 +161,20 @@ const LoanApplicationForm = ({ isOpen, setIsOpen, member }) => {
       terms: terms,
       details: details,
     };
-
+  
     try {
-      const response = await axios.post("http://localhost:3001/api/loan-application", payload);
-      console.log("Loan application submitted successfully:", response.data);
+      // Post the loan application.
+      const loanResponse = await axios.post("http://localhost:3001/api/loan-application", payload);
+      console.log("Loan application submitted successfully:", loanResponse.data);
+      
       alert("Application submitted successfully!");
       setIsOpen(false);
     } catch (error) {
-      console.error("Error submitting loan application:", error);
+      console.error("Error submitting loan application or sending notification:", error);
+      alert("There was an error submitting your application. Please try again.");
     }
   };
+
 
   if (!isOpen) return null;
 

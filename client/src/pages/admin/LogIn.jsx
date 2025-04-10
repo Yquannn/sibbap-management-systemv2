@@ -31,7 +31,7 @@ const LogIn = () => {
     try {
       // Authenticate the user
       const authResponse = await axios.post(
-        'http://192.168.254.111:3001/api/auth',
+        'http://192.168.254.100:3001/api/auth',
         { email: email.trim(), password: password.trim() },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -40,11 +40,14 @@ const LogIn = () => {
         const { user } = authResponse.data;
         sessionStorage.setItem('userLoggedIn', 'true');
         sessionStorage.setItem('userEmail', user.email);
+        // sessionStorage.setItem('userId', user.id);
+        // console.log(user.id)
+
 
         // Call both endpoints concurrently
         const endpoints = [
-          `http://192.168.254.111:3001/api/member/email/${user.email}`,
-          `http://192.168.254.111:3001/api/user/email/${user.email}`
+          `http://192.168.254.100:3001/api/member/email/${user.email}`,
+          `http://192.168.254.100:3001/api/user/email/${user.email}`
         ];
         const requests = endpoints.map(url => axios.get(url));
         const results = await Promise.allSettled(requests);
