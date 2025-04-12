@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+
 import axios from "axios";
 import { 
   ConciergeBell, 
@@ -20,37 +21,40 @@ export let memberId = "";
 // Skeleton component to mimic the dashboard UI
 const DashboardSkeleton = () => {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen p-4">
       {/* Header Skeleton */}
-      <div className="flex items-center justify-between bg-gray-200 p-2 rounded-lg animate-pulse">
+      <div className="flex items-center justify-between bg-gray-200 p-3 rounded-lg animate-pulse">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+          <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
           <div className="ml-3">
-            <div className="w-32 h-4 bg-gray-300 rounded"></div>
-            <div className="w-24 h-3 bg-gray-300 rounded mt-1"></div>
+            <div className="w-32 h-5 bg-gray-300 rounded"></div>
+            <div className="w-24 h-4 bg-gray-300 rounded mt-2"></div>
           </div>
         </div>
-        <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+        <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
       </div>
+      
       {/* Balance Cards Skeleton */}
-      <div className="mt-4 space-y-4">
+      <div className="mt-6 space-y-6">
         <div className="flex space-x-4 overflow-x-auto">
-          {[...Array(1)].map((_, index) => (
-            <div key={index} className="w-[300px] h-32 bg-gray-300 rounded-lg animate-pulse"></div>
+          {[...Array(2)].map((_, index) => (
+            <div key={index} className="w-full min-w-[280px] h-40 bg-gray-300 rounded-lg animate-pulse"></div>
           ))}
         </div>
+        
         {/* Math Tools Skeleton */}
-        <div className="mt-4">
-          <div className="w-40 h-7 bg-gray-300 rounded mb-2"></div>
-          <div className="flex space-x-2 overflow-x-auto">
+        <div className="mt-6">
+          <div className="w-40 h-6 bg-gray-300 rounded mb-3"></div>
+          <div className="flex space-x-3 overflow-x-auto">
             {[...Array(2)].map((_, index) => (
-              <div key={index} className="w-[220px] h-32 bg-gray-300 rounded-lg animate-pulse"></div>
+              <div key={index} className="w-[220px] h-36 bg-gray-300 rounded-lg animate-pulse"></div>
             ))}
           </div>
         </div>
+        
         {/* Announcements Skeleton */}
-        <div className="mt-4">
-          <div className="w-48 h-7 bg-gray-300 rounded mb-2"></div>
+        <div className="mt-6">
+          <div className="w-48 h-6 bg-gray-300 rounded mb-3"></div>
           <div className="grid grid-cols-2 gap-4">
             {[...Array(2)].map((_, index) => (
               <div key={index} className="h-32 bg-gray-300 rounded-lg animate-pulse"></div>
@@ -73,6 +77,12 @@ const Dashboard = () => {
   const scrollRef = useRef(null);
   const scrollRef2 = useRef(null);
   const [modalOpen, setModalOpen] = useState(false);
+  
+  // Refs for pull-to-refresh functionality
+  const pullStartY = useRef(0);
+  const pullMoveY = useRef(0);
+  const refreshDistance = 100; // Distance required to trigger refresh in pixels
+  const isDragging = useRef(false);
 
   let notificationCount = count;
 
@@ -87,7 +97,7 @@ const Dashboard = () => {
   const handleScroll2 = () => {
     if (scrollRef2.current) {
       const scrollLeft = scrollRef2.current.scrollLeft;
-      const cardWidth = 320; // Adjust based on actual card width + margin
+      const cardWidth = scrollRef2.current.clientWidth; // Responsive width
       const index = Math.round(scrollLeft / cardWidth);
       setActiveIndex2(index);
     }
@@ -96,7 +106,7 @@ const Dashboard = () => {
   const handleScroll = () => {
     if (scrollRef.current) {
       const scrollLeft = scrollRef.current.scrollLeft;
-      const cardWidth = 220; // Adjust based on actual card width + margin
+      const cardWidth = 220; // Width of cards
       const index = Math.round(scrollLeft / cardWidth);
       setActiveIndex(index);
     }
@@ -118,7 +128,7 @@ const Dashboard = () => {
         throw new Error("User email not found. Please log in again.");
       }
       const response = await axios.get(
-        `http://192.168.254.111:3001/api/member/email/${email}`
+        `http://192.168.254.100:3001/api/member/email/${email}`
       );
       if (response.data) {
         setMember(response.data);
@@ -140,59 +150,144 @@ const Dashboard = () => {
     fetchMemberData();
   }, []);
 
-  const lastScrollY = useRef(window.pageYOffset);
+  // Improved pull-to-refresh functionality
   useEffect(() => {
-    const threshold = 50;
-    const handleWindowScroll = () => {
-      const currentScrollY = window.pageYOffset;
-      if (!loading && !refreshing && lastScrollY.current - currentScrollY > threshold) {
+    // Touch start event - record the starting position
+    const handleTouchStart = (e) => {
+      // Only enable pull to refresh at the top of the page
+      if (window.scrollY <= 5) {
+        pullStartY.current = e.touches[0].clientY;
+        isDragging.current = true;
+      }
+    };
+
+    // Touch move event - calculate the pull distance
+    const handleTouchMove = (e) => {
+      if (!isDragging.current) return;
+      
+      pullMoveY.current = e.touches[0].clientY;
+      const pullDistance = pullMoveY.current - pullStartY.current;
+      
+      // Only consider downward pulls (positive distance)
+      if (pullDistance > 0 && window.scrollY <= 0) {
+        // Prevent default to disable browser's native pull-to-refresh
+        e.preventDefault();
+        
+        // Visual feedback could be added here
+        if (pullDistance > refreshDistance && !refreshing && !loading) {
+          // Show a visual indicator that release will trigger refresh
+        }
+      }
+    };
+
+    // Touch end event - trigger refresh if pulled enough
+    const handleTouchEnd = () => {
+      if (!isDragging.current) return;
+      
+      const pullDistance = pullMoveY.current - pullStartY.current;
+      
+      if (pullDistance > refreshDistance && !refreshing && !loading && window.scrollY <= 0) {
         fetchMemberData(true);
       }
-      lastScrollY.current = currentScrollY;
+      
+      isDragging.current = false;
+      pullStartY.current = 0;
+      pullMoveY.current = 0;
     };
-    window.addEventListener("scroll", handleWindowScroll);
-    return () => window.removeEventListener("scroll", handleWindowScroll);
-  }, [loading, refreshing]);
+
+    // For desktop - using mouse events to simulate pull-to-refresh
+    const handleMouseDown = (e) => {
+      if (window.scrollY <= 5) {
+        pullStartY.current = e.clientY;
+        isDragging.current = true;
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDragging.current) return;
+      
+      pullMoveY.current = e.clientY;
+      const pullDistance = pullMoveY.current - pullStartY.current;
+      
+      if (pullDistance > 0 && window.scrollY <= 0) {
+        // Visual feedback could be added here
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (!isDragging.current) return;
+      
+      const pullDistance = pullMoveY.current - pullStartY.current;
+      
+      if (pullDistance > refreshDistance && !refreshing && !loading && window.scrollY <= 0) {
+        fetchMemberData(true);
+      }
+      
+      isDragging.current = false;
+      pullStartY.current = 0;
+      pullMoveY.current = 0;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    // Add event listeners
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('mousedown', handleMouseDown);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [refreshing, loading]);
 
   if (loading) return <DashboardSkeleton />;
-  if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
+  if (error) return <p className="text-center p-4 text-red-500 font-medium">{error}</p>;
 
   // Compute member initials
   const initials = `${member?.first_name?.charAt(0) || ""}${member?.last_name?.charAt(0) || ""}`.toUpperCase();
 
   return (
-    <div className="min-h-screen relative">
+    <div className="">
       {/* Refreshing Indicator */}
       {refreshing && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mb-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
-        </div>
-      )}
+  <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
+    <div className="animate-spin h-6 w-6 border-2 border-slate-300 border-t-blue-500 rounded-full backdrop-blur-sm bg-white/50 p-px" />
+  </div>
+)}
 
       {/* Header Section */}
-      <div className="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
+      <div className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border border-gray-100">
         <div className="flex items-center">
           {member?.id_picture ? (
             <img
-              src={`http://192.168.254.111:3001/uploads/${member.id_picture}`}
+              src={`http://192.168.254.100:3001/uploads/${member.id_picture}`}
               alt="Profile"
-              className="w-10 h-10 rounded-full border-2 border-green-500 cursor-pointer"
+              className="w-12 h-12 rounded-full border-2 border-green-500 object-cover shadow-sm cursor-pointer"
               onClick={() => navigate("/member-profile")}
             />
           ) : (
             <div
-              className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold border-2 border-green-500 cursor-pointer"
+              className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-cyan-500 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm cursor-pointer"
               onClick={() => navigate("/member-profile")}
             >
               {initials || "NA"}
             </div>
           )}
           <div className="ml-3">
-            <p className="text-lg font-semibold">
+            <p className="text-lg font-semibold text-gray-800">
               {member?.first_name} {member?.last_name}
             </p>
-            <p className="text-sm">
-              Code No. <span className="text-gray-500 text-sm">{member.memberCode}</span>
+            <p className="text-sm text-gray-500">
+              Code No. <span className="font-medium">{member.memberCode}</span>
             </p>
           </div>
         </div>
@@ -200,14 +295,14 @@ const Dashboard = () => {
         {/* Notification Button with Count Badge */}
         <div className="relative">
           <button
-            className="text-green-600 p-2 rounded-full bg-green-50 flex items-center justify-center"
+            className="text-green-600 p-2 rounded-full bg-green-50 hover:bg-green-100 transition-colors flex items-center justify-center shadow-sm"
             onClick={() => navigate("/member-notification")}
           >
             <ConciergeBell className="w-6 h-6" />
             {count > 0 && (
               <span
-                className={`absolute top-1 -right-0.5 bg-red-500 text-white font-bold rounded-full flex items-center justify-center 
-                  px-2 py-0.5 ${count >= 100 ? "text-[10px] min-w-[28px]" : "text-xs min-w-[20px]"}`}
+                className={`absolute -top-1 -right-1 bg-red-500 text-white font-bold rounded-full flex items-center justify-center 
+                  px-2 py-0.5 ${count >= 100 ? "text-[10px] min-w-[28px]" : "text-xs min-w-[20px]"} shadow-sm`}
               >
                 {count > 99 ? "99+" : count}
               </span>
@@ -216,118 +311,172 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Pull to refresh indicator */}
+      <div className="text-center pt-1 pb-1 text-xs text-gray-500">
+        Pull down to refresh
+      </div>
+
       {/* Balance Cards Section */}
-      <div className="relative w-full max-w-md mx-auto mt-4">
+      <div className="relative mt-2">
         <div
           ref={scrollRef2}
           onScroll={handleScroll2}
-          className="flex overflow-x-auto space-x-4 snap-x snap-mandatory pb-4 scrollbar-hide"
+          className="flex overflow-x-auto space-x-4 snap-x snap-mandatory pb-6 hide-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {/* Regular Savings */}
-          <motion.div className="snap-center shrink-0 w-[300px]">
-            <div className="bg-green-600 text-white p-6 rounded-lg w-full">
-            <p className="text-sm text-gray-100 mt-1">
-    Account No.: {member?.account_number 
-        ? member.account_number.replace(/(\d{4})/g, '$1-').replace(/-$/, '') 
-        : "N/A"}
-</p>
-              {/* <p className="text-sm text-gray-100">Regular Savings Balance</p> */}
-              <p className="text-4xl font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.savingsAmount || 0)}
+          <motion.div
+            className="snap-center shrink-0 w-full min-w-[280px] max-w-sm"
+            onClick={() => navigate("/member-regular-savings-analytics")}
+          >
+            <div className="bg-gradient-to-br from-green-600 to-green-700 text-white p-6 rounded-xl w-full shadow-md">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-100 font-medium">Regular Savings</p>
+                  <p className="text-4xl font-bold mt-1">
+                    ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.savingsAmount || 0)}
+                  </p>
+                </div>
+                <PiggyBank className="w-8 h-8 text-green-300" />
+              </div>
+
+              <p className="text-sm text-gray-100 mt-2">
+                Account No.: {member?.account_number 
+                  ? member.account_number.replace(/(\d{4})/g, '$1-').replace(/-$/, '') 
+                  : "N/A"}
               </p>
 
+              <hr className="my-4 border-t border-white/30" />
 
-              <hr className="my-3 border-t border-white/30" />
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-100">Total Earnings</p>
+                <div>
+                  <p className="text-sm text-gray-100">Total Earnings</p>
+                  <p className="text-xl font-bold">
+                    ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
+                  </p>
+                </div>
                 <button
-                  className="text-white text-sm font-semibold"
-                  onClick={() => navigate("/member-regular-savings-transaction")}
+                  className="text-white text-sm font-semibold bg-white/20 py-1.5 px-3 rounded-lg hover:bg-white/30 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevents triggering the card click
+                    navigate("/member-regular-savings-transaction");
+                  }}
                 >
                   View history
                 </button>
               </div>
-              <p className="text-sm font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
-              </p>
             </div>
           </motion.div>
 
+
           {/* Share Capital */}
-          <motion.div className="snap-center shrink-0 w-[300px]">
-            <div className="bg-cyan-600 text-white p-6 rounded-lg w-full">
-              <p className="text-sm text-gray-100">Share Capital</p>
-              <p className="text-4xl font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.shareCapital || 0)}
-              </p>
-              <hr className="my-3 border-t border-white/30" />
+          <motion.div className="snap-center shrink-0 w-full min-w-[280px] max-w-sm">
+            <div className="bg-gradient-to-br from-cyan-600 to-cyan-700 text-white p-6 rounded-xl w-full shadow-md">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-100 font-medium">Share Capital</p>
+                  <p className="text-4xl font-bold mt-1">
+                    ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.shareCapital || 0)}
+                  </p>
+                </div>
+                <DollarSign className="w-8 h-8 text-cyan-300" />
+              </div>
+
+              <hr className="my-4 border-t border-white/30" />
+              
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-100">Collected Dividends</p>
+                <div>
+                  <p className="text-sm text-gray-100">Collected Dividends</p>
+                  <p className="text-xl font-bold">
+                    ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
+                  </p>
+                </div>
                 <button
-                  className="text-white text-sm font-semibold"
+                  className="text-white text-sm font-semibold bg-white/20 py-1.5 px-3 rounded-lg hover:bg-white/30 transition-colors"
                   onClick={() => navigate("/member-regular-savings-transaction")}
                 >
                   View history
                 </button>
               </div>
-              <p className="text-sm font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
-              </p>
             </div>
           </motion.div>
 
           {/* Time Deposit */}
-          <motion.div className="snap-center shrink-0 w-[300px]">
-            <div className="bg-green-600 text-white p-6 rounded-lg w-full">
-              <p className="text-sm text-gray-100">Time Deposit Balance</p>
-              <p className="text-4xl font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.timeDepositAmount || 0)}
-              </p>
-              <hr className="my-3 border-t border-white/30" />
+          <motion.div className="snap-center shrink-0 w-full min-w-[280px] max-w-sm">
+            <div className="bg-gradient-to-br from-green-600 to-green-700 text-white p-6 rounded-xl w-full shadow-md">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-100 font-medium">Time Deposit</p>
+                  <p className="text-4xl font-bold mt-1">
+                    ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.timeDepositAmount || 0)}
+                  </p>
+                </div>
+                <Briefcase className="w-8 h-8 text-green-300" />
+              </div>
+
+              <hr className="my-4 border-t border-white/30" />
+              
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-100">Total Earnings</p>
+                <div>
+                  <p className="text-sm text-gray-100">Total Earnings</p>
+                  <p className="text-xl font-bold">
+                    ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
+                  </p>
+                </div>
                 <button
-                  className="text-white text-sm font-semibold"
+                  className="text-white text-sm font-semibold bg-white/20 py-1.5 px-3 rounded-lg hover:bg-white/30 transition-colors"
                   onClick={() => navigate("/member-regular-savings-transaction")}
                 >
                   View history
                 </button>
               </div>
-              <p className="text-sm font-bold">
-                ₱{new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2 }).format(member?.totalEarnings || 0.0)}
-              </p>
             </div>
           </motion.div>
         </div>
 
         {/* Indicator Dots */}
-        <div className="flex justify-center mt-1 space-x-2">
+        <div className="flex justify-center mt-2 space-x-2">
           {[0, 1, 2].map((index) => (
-            <span
+            <button
               key={index}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${activeIndex2 === index ? "bg-gray-500 w-2.3 h-2.3" : "bg-gray-300"}`}
-            ></span>
+              onClick={() => {
+                if (scrollRef2.current) {
+                  const cardWidth = scrollRef2.current.clientWidth;
+                  scrollRef2.current.scrollTo({
+                    left: index * cardWidth,
+                    behavior: 'smooth'
+                  });
+                }
+              }}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                activeIndex2 === index ? "bg-green-600 w-6" : "bg-gray-300"
+              }`}
+            ></button>
           ))}
         </div>
       </div>
 
+      {/* Rest of the component remains the same */}
       {/* Math Tools Section */}
-      <div className="mt-4">
-        <div className="mb-2">
-          <div className="text-sm font-medium text-gray-700 font-semibold">Let’s Do Some Math!</div>
+      <div className="mt-8">
+        <div className="mb-3">
+          <div className="text-lg font-semibold text-gray-800">Let's Do Some Math!</div>
         </div>
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto space-x-2 mt-2 pb-2 scrollbar-hide"
+          className="flex overflow-x-auto space-x-3 pb-4 hide-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {/* Savings Card */}
-          <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200 text-center min-w-[220px]">
-            <PiggyBank size={40} className="text-green-500 mx-auto" />
-            <h3 className="text-md font-semibold mt-2">Savings</h3>
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center min-w-[220px] transition-transform hover:transform hover:scale-105">
+            <div className="bg-green-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mx-auto">
+              <PiggyBank size={32} className="text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold mt-3 text-gray-800">Savings</h3>
             <p className="text-gray-600 text-sm">Save money and earn interest.</p>
             <button
-              className="mt-3 flex items-center justify-center w-full bg-green-500 text-white py-2 px-4 rounded-lg shadow hover:bg-green-600"
+              className="mt-4 flex items-center justify-center w-full bg-green-600 text-white py-2.5 px-4 rounded-lg shadow-sm hover:bg-green-700 transition-colors"
               onClick={() => navigate("/regular-savings-calculator")}
             >
               Calculate <ArrowRight size={18} className="ml-2" />
@@ -335,35 +484,41 @@ const Dashboard = () => {
           </div>
 
           {/* Loan Card */}
-          <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200 text-center min-w-[220px]">
-            <Banknote size={40} className="text-cyan-500 mx-auto" />
-            <h3 className="text-md font-semibold mt-2">Loan</h3>
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center min-w-[220px] transition-transform hover:transform hover:scale-105">
+            <div className="bg-cyan-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mx-auto">
+              <Banknote size={32} className="text-cyan-600" />
+            </div>
+            <h3 className="text-lg font-semibold mt-3 text-gray-800">Loan</h3>
             <p className="text-gray-600 text-sm">Apply for a loan with low interest.</p>
-            <button className="mt-3 flex items-center justify-center w-full bg-cyan-500 text-white py-2 px-4 rounded-lg shadow hover:bg-cyan-600">
+            <button className="mt-4 flex items-center justify-center w-full bg-cyan-600 text-white py-2.5 px-4 rounded-lg shadow-sm hover:bg-cyan-700 transition-colors">
               Calculate <ArrowRight size={18} className="ml-2" />
             </button>
           </div>
 
           {/* Time Deposit Card */}
-          <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200 text-center min-w-[220px]">
-            <Briefcase size={40} className="text-green-500 mx-auto" />
-            <h3 className="text-md font-semibold mt-2">Time Deposit</h3>
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center min-w-[220px] transition-transform hover:transform hover:scale-105">
+            <div className="bg-green-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mx-auto">
+              <Briefcase size={32} className="text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold mt-3 text-gray-800">Time Deposit</h3>
             <p className="text-gray-600 text-sm">Grow your money with fixed returns.</p>
             <button
               onClick={() => navigate("/timedeposit-calculator")}
-              className="mt-3 flex items-center justify-center w-full bg-green-500 text-white py-2 px-4 rounded-lg shadow hover:bg-green-600"
+              className="mt-4 flex items-center justify-center w-full bg-green-600 text-white py-2.5 px-4 rounded-lg shadow-sm hover:bg-green-700 transition-colors"
             >
               Calculate <ArrowRight size={18} className="ml-2" />
             </button>
           </div>
 
           {/* Share Capital Card */}
-          <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200 text-center min-w-[220px]">
-            <DollarSign size={40} className="text-cyan-500 mx-auto" />
-            <h3 className="text-md font-semibold mt-2">Share Capital</h3>
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center min-w-[220px] transition-transform hover:transform hover:scale-105">
+            <div className="bg-cyan-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mx-auto">
+              <DollarSign size={32} className="text-cyan-600" />
+            </div>
+            <h3 className="text-lg font-semibold mt-3 text-gray-800">Share Capital</h3>
             <p className="text-gray-600 text-sm">Investing today secures tomorrow.</p>
             <button
-              className="mt-3 flex items-center justify-center w-full bg-cyan-500 text-white py-2 px-4 rounded-lg shadow hover:bg-cyan-600"
+              className="mt-4 flex items-center justify-center w-full bg-cyan-600 text-white py-2.5 px-4 rounded-lg shadow-sm hover:bg-cyan-700 transition-colors"
               onClick={() => setModalOpen(true)}
             >
               Calculate <ArrowRight size={18} className="ml-2" />
@@ -372,42 +527,73 @@ const Dashboard = () => {
         </div>
 
         {/* Active Indicator Dots */}
-        <div className="flex justify-center mt-1 space-x-2">
+        <div className="flex justify-center mt-2 space-x-2">
           {[0, 1, 2, 3].map((index) => (
-            <span
+            <button
               key={index}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${activeIndex === index ? "bg-gray-500 w-2.3 h-2.3" : "bg-gray-300"}`}
-            ></span>
+              onClick={() => {
+                if (scrollRef.current) {
+                  const cardWidth = 220;
+                  scrollRef.current.scrollTo({
+                    left: index * cardWidth,
+                    behavior: 'smooth'
+                  });
+                }
+              }}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                activeIndex === index ? "bg-cyan-600 w-6" : "bg-gray-300"
+              }`}
+            ></button>
           ))}
         </div>
       </div>
 
-      {/* Announcements & Badge Section */}
-      <div className="mb-3">
-        <div className="mt-3">
-          <div className="mb-2">
-            <div className="text-sm font-medium text-gray-700 font-semibold">Important Announcement!</div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            {(member?.announcements?.length ? member.announcements : dummyMember.announcements).map(
-              (announcement, index) => (
-                <div key={index} className="bg-gray-100 p-4 rounded-lg shadow-md">
-                  <h3 className="text-md font-semibold">{announcement.title}</h3>
-                  <p className="text-gray-600 text-sm">{announcement.description}</p>
-                </div>
-              )
-            )}
-          </div>
+      {/* Announcements & Analytics Section */}
+      <div className="mt-8 mb-6">
+        <div className="mb-3">
+          <div className="text-lg font-semibold text-gray-800">Important Announcement!</div>
         </div>
-
-        <div className="mt-3 bg-gray-100 p-4 rounded-lg text-center">
-          <p className="text-gray-700 text-sm">Earned a Badge</p>
-          <p className="text-lg font-bold">{member?.badge || dummyMember.badge}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+          {(member?.announcements?.length ? member.announcements : dummyMember.announcements).map(
+            (announcement, index) => (
+              <div key={index} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="flex items-start">
+                  <CircleAlert className="w-5 h-5 text-amber-500 mr-2 mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-800">{announcement.title}</h3>
+                    <p className="text-gray-600 text-sm mt-1">{announcement.description}</p>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+        
+        {/* Analytics and Badge Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+            <div className="bg-yellow-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mx-auto">
+              <span className="text-2xl">🏆</span>
+            </div>
+            <p className="text-gray-700 text-md font-medium mt-3">Earned a Badge</p>
+            <p className="text-lg font-bold text-amber-600 mt-1">{member?.badge || dummyMember.badge}</p>
+          </div>
         </div>
       </div>
 
       {/* Share Capital Calculator Modal */}
       <ShareCapitalCalculator isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+      
+      {/* Custom CSS for hiding scrollbars */}
+      <style jsx>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;  
+        }
+      `}</style>
     </div>
   );
 };

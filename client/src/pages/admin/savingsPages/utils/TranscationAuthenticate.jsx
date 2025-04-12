@@ -16,6 +16,7 @@ const TransactionAuthenticate = ({ onAuthenticate, onClose }) => {
     const storedPass = sessionStorage.getItem("password") || "1234";
     setCurrentPass(storedPass);
 
+    console.log("Current Password:", storedPass); // Debugging line
     const savedAttempts = parseInt(localStorage.getItem("authAttempts")) || 0;
     setAttempts(savedAttempts);
 

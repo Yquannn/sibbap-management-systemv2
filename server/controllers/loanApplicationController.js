@@ -91,6 +91,29 @@ async function updateLoanStatus(req, res) {
 
 
 
+async function disburseLoan(req, res) {
+  try {
+    const { loanApplicationId } = req.params;
+    // Set the new status for disbursement (you could also pass this via req.body if needed)
+    const newStatus = "Disbursed";
+
+    // Call the disburseLoan function in your model
+    await loanApplicationModel.disburseLoan(loanApplicationId, newStatus);
+    return res.status(200).json({
+      success: true,
+      message: "Loan disbursed and installment schedule created successfully."
+    });
+  } catch (error) {
+    console.error("Error disbursing loan:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to disburse loan",
+      error: error.message,
+    });
+  }
+}
+
+
 // Controller to update only the feedback (remarks)
 // async function updateFeedback(req, res) {
 //   try {
@@ -159,6 +182,8 @@ async function getLoanByInformationId(req, res) {
     res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 }
+
+
 async function getLoanByInformationIdForAdmin(req, res) {
   try {
     // Extract "id" from URL parameters (which represents the memberId)
@@ -197,6 +222,34 @@ async function getExistingLoan(req, res) {
 
 
 
+// Controller function (in your controller file)
+async function disburseLoan(req, res) {
+  try {
+    // Extract the loan application ID from the URL parameters
+    const loanApplicationId = req.params.loanApplicationId;
+    if (!loanApplicationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Loan application ID is required"
+      });
+    }
+    
+    // Call the model function to process the disbursement
+    await loanApplicationModel.disburseLoan(loanApplicationId);
+    
+    return res.status(200).json({
+      success: true,
+      message: "Loan disbursed and installment schedule created successfully."
+    });
+  } catch (error) {
+    console.error("Error disbursing loan:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to disburse loan",
+      error: error.message,
+    });
+  }
+}
 
 
 
@@ -211,5 +264,6 @@ module.exports = {
   updateLoanStatus,
   getExistingLoan,
   getLoanByInformationId,
-  getLoanByInformationIdForAdmin
+  getLoanByInformationIdForAdmin,
+  disburseLoan
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   FaCog, 
   FaQuestionCircle, 
@@ -18,17 +18,18 @@ const UserHeader = ({ name, userType }) => {
   const notificationRef = useRef(null);
   const navigate = useNavigate();
 
-  // Get initials from name
-  const initials = React.useMemo(() => {
+  // Get initials from name (filtering out empty strings to avoid errors)
+  const initials = useMemo(() => {
     if (!name) return '?';
     return name
       .split(' ')
+      .filter(part => part) // remove empty parts
       .map((n) => n[0].toUpperCase())
       .join('');
   }, [name]);
 
-  // Generate a consistent color based on name
-  const avatarColor = React.useMemo(() => {
+  // Generate a consistent avatar background color based on name
+  const avatarColor = useMemo(() => {
     if (!name) return "#A0C4FF";
     const pastelColors = [
       "#FFADAD", "#FFD6A5", "#FDFFB6", 
@@ -39,10 +40,10 @@ const UserHeader = ({ name, userType }) => {
     return pastelColors[charCodeSum % pastelColors.length];
   }, [name]);
 
-  // Get userId from session storage; if no userId exists, the user is not logged in.
-  const userId = sessionStorage.getItem('userId');
+  // Get userId from session storage
+  const userId = sessionStorage.getItem('userid');
 
-  // Helper to compute "time ago" from createdAt timestamp
+  // Helper function to compute relative "time ago" from a timestamp
   const getTimeAgo = (dateString) => {
     const now = new Date();
     const past = new Date(dateString);
@@ -64,14 +65,12 @@ const UserHeader = ({ name, userType }) => {
   };
 
   // Fetch notifications from API and transform the data
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
     setError(null);
-
     try {
       const response = await axios.get(`http://localhost:3001/api/notifications/${userId}`);
-      // Transform the API response to match the expected structure
       const transformedNotifications = response.data.map((notif) => ({
         id: notif.id,
         title: 'Notification',
@@ -82,7 +81,7 @@ const UserHeader = ({ name, userType }) => {
       setNotifications(transformedNotifications);
     } catch (err) {
       setError('Failed to load notifications');
-      // For demo purposes, set sample notifications if API call fails
+      // For demo purposes, use sample notifications if API call fails
       setNotifications([
         { id: 1, title: 'Notification', content: 'You have a new message from Admin', time: '5 min ago', read: false },
         { id: 2, title: 'System update', content: 'System maintenance scheduled for tonight', time: '1 hour ago', read: false },
@@ -91,40 +90,44 @@ const UserHeader = ({ name, userType }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
-  // Automatically fetch notifications if the user is logged in
+  // Fetch notifications upon mounting (if userId exists) and whenever userId changes
   useEffect(() => {
     if (userId) {
       fetchNotifications();
     }
-  }, [userId]);
+  }, [userId, fetchNotifications]);
 
-  // Close notifications when clicking outside
+  // Re-fetch notifications when the dropdown is opened
+  useEffect(() => {
+    if (showNotifications && userId) {
+      fetchNotifications();
+    }
+  }, [showNotifications, userId, fetchNotifications]);
+
+  // Close the notifications dropdown if click occurs outside its area
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Toggle notifications visibility
+  // Toggle notifications dropdown visibility
   const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
+    setShowNotifications((prev) => !prev);
   };
 
   // Mark a single notification as read via API call
   const markAsRead = async (id) => {
     try {
       await axios.put(`http://localhost:3001/api/notifications/${id}/read`);
-      setNotifications(
-        notifications.map(notif =>
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notif) =>
           notif.id === id ? { ...notif, read: true } : notif
         )
       );
@@ -136,29 +139,31 @@ const UserHeader = ({ name, userType }) => {
   // Mark all notifications as read via multiple API calls
   const markAllAsRead = async () => {
     try {
-      // For each unread notification, call the API endpoint
       await Promise.all(
         notifications
-          .filter(notif => !notif.read)
-          .map(notif =>
+          .filter((notif) => !notif.read)
+          .map((notif) =>
             axios.put(`http://localhost:3001/api/notifications/${notif.id}/read`)
           )
       );
-      setNotifications(notifications.map(notif => ({ ...notif, read: true })));
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notif) => ({ ...notif, read: true }))
+      );
     } catch (error) {
       console.error("Error marking all notifications as read", error);
     }
   };
 
-  // Delete notification via local state update (and optionally call an API endpoint)
+  // Delete a notification (only from local state in this demo)
   const deleteNotification = (id, e) => {
     e.stopPropagation();
-    setNotifications(notifications.filter(notif => notif.id !== id));
-    // In a real app, also delete the notification from the backend.
+    setNotifications((prevNotifications) =>
+      prevNotifications.filter((notif) => notif.id !== id)
+    );
   };
 
   // Count unread notifications
-  const unreadCount = notifications.filter(notif => !notif.read).length;
+  const unreadCount = notifications.filter((notif) => !notif.read).length;
 
   return (
     <div className="px-6 py-4 mb-4 flex justify-between items-center bg-white shadow-sm border border-gray-100">
@@ -259,18 +264,6 @@ const UserHeader = ({ name, userType }) => {
                   </ul>
                 )}
               </div>
-              
-              {/* <div className="p-2 border-t border-gray-200 text-center">
-                <button 
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                  onClick={() => {
-                    setShowNotifications(false);
-                    navigate('/notifications');
-                  }}
-                >
-                  View all notifications
-                </button>
-              </div> */}
             </div>
           )}
         </div>

@@ -270,7 +270,7 @@ const LoanInformation = ({
     }));
   };
 
-  const userType = sessionStorage.getItem("userType");
+  // const userType = sessionStorage.getItem("userType");
 
   // Updated handleSave function with push notification using the browser's Notification API.
   const handleSave = async () => {
@@ -299,7 +299,7 @@ const LoanInformation = ({
 
       // After successful submission, send a backend notification.
       const notificationPayload = {
-        userId: userType,
+        userType: ["System Admin", "Loan Manager", "General Manager"],
         message: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name}`,
       };
 

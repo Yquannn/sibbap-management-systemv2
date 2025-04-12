@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { FaEye, FaUsers, FaArrowDown, FaArrowUp, FaUserTie } from 'react-icons/fa';
-import { UserPlus } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import { UserPlus, Search, Filter, ChevronDown, Edit, UserCheck, Plus } from 'lucide-react';
 import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdAttachMoney } from 'react-icons/md';
 
 const apiBaseURL = 'http://localhost:3001/api';
@@ -16,6 +15,8 @@ const Members = () => {
   const [filterCompletion, setFilterCompletion] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [totalMember, setTotalMember] = useState(0);
+  const [activeMembers, setActiveMembers] = useState(25000); // Placeholder
+  const [inactiveMembers, setInactiveMembers] = useState(15000); // Placeholder
 
   const navigate = useNavigate();
 
@@ -89,165 +90,263 @@ const Members = () => {
 
   return (
     <div className="">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Membership Management</h1>
+        <p className="text-gray-600">View and manage all member applicants</p>
+      </div>
+
       {/* Dashboard Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-white text-black">
-          <div className="card-body flex items-center">
-            <MdPeople className="text-5xl mr-4 text-green-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-green-100 p-3 mr-4">
+              <MdPeople className="text-2xl text-green-600" />
+            </div>
             <div>
-              <h2 className="card-title text-sm">Total Members</h2>
+              <p className="text-sm text-gray-500 font-medium">Total Members</p>
               <p className="text-xl font-bold">{totalMember.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card bg-white text-black">
-          <div className="card-body flex items-center">
-            <MdCheckCircle className="text-5xl mr-4 text-blue-600" />
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-blue-100 p-3 mr-4">
+              <MdCheckCircle className="text-2xl text-blue-600" />
+            </div>
             <div>
-              <h2 className="card-title text-sm">Active Members</h2>
-              <p className="text-xl font-bold">25,000</p>
+              <p className="text-sm text-gray-500 font-medium">Active Members</p>
+              <p className="text-xl font-bold">{activeMembers.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card bg-white text-black">
-          <div className="card-body flex items-center">
-            <MdRemoveCircleOutline className="text-5xl mr-4 text-red-600" />
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-red-100 p-3 mr-4">
+              <MdRemoveCircleOutline className="text-2xl text-red-600" />
+            </div>
             <div>
-              <h2 className="card-title text-sm">Inactive Members</h2>
-              <p className="text-xl font-bold">15,000</p>
+              <p className="text-sm text-gray-500 font-medium">Inactive Members</p>
+              <p className="text-xl font-bold">{inactiveMembers.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card bg-white text-black">
-          <div className="card-body flex items-center">
-            <MdAttachMoney className="text-5xl mr-4 text-purple-600" />
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-purple-100 p-3 mr-4">
+              <MdAttachMoney className="text-2xl text-purple-600" />
+            </div>
             <div>
-              <h2 className="card-title text-sm">Membership Fee</h2>
+              <p className="text-sm text-gray-500 font-medium">Membership Fee</p>
               <p className="text-xl font-bold">Php350</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row justify-end items-center bg-white p-4 rounded-lg mb-6 gap-4 mt-4">
+      {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+        <div className="flex items-center space-x-4 mb-4 sm:mb-0">
+          <button 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center font-medium hover:bg-blue-700 transition-colors"
+            onClick={() => navigate('/member-registration/new')}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add New Member
+          </button>
+        </div>
+
         {message.text && (
-          <div className={`font-medium mr-auto ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+          <div className={`font-medium px-4 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
             {message.text}
           </div>
         )}
-        <div className="flex items-center gap-4">
-          <select
-            className="select select-bordered"
-            value={filterCompletion}
-            onChange={(e) => setFilterCompletion(e.target.value)}
-          >
-            <option value="All">All</option>
-            <option value="Complete">Complete</option>
-            <option value="Incomplete">Incomplete</option>
-          </select>
-          <select
-            className="select select-bordered"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="All">All</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-4">
-          <input
-            type="text"
-            placeholder="Search member..."
-            className="input input-bordered w-full sm:w-80"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="flex flex-col md:flex-row justify-between gap-4">
+          <div className="relative w-full md:w-1/3">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="w-4 h-4 text-gray-500" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search members..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Filter className="w-4 h-4 text-gray-500" />
+              </div>
+              <select
+                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                value={filterCompletion}
+                onChange={(e) => setFilterCompletion(e.target.value)}
+              >
+                <option value="All">All Completion</option>
+                <option value="Complete">Complete</option>
+                <option value="Incomplete">Incomplete</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Filter className="w-4 h-4 text-gray-500" />
+              </div>
+              <select
+                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="All">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="w-full flex justify-center my-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+
       {/* Members Table */}
-      <div className="overflow-y-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
-        <table className="table w-full">
-          <thead>
-            <tr>
-              <th className="w-12">
-                <input type="checkbox" className="checkbox" />
-              </th>
-              {/* <th>Application Number</th> */}
-              <th>Name</th>
-              <th>Contact Number</th>
-              <th>Address</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member, index) => (
-              <tr key={`${member.memberId}-${index}`} className="hover">
-                <th>
-                  <label>
-                    <input type="checkbox" className="checkbox" />
-                  </label>
-                </th>
-                {/* <td>{member.application_number || member.memberId}</td> */}
-                <td>
-                  <div className="flex items-center gap-3">
-                    <div className="avatar">
-                      <div className="mask mask-squircle h-12 w-12">
-                        {imageUrl(member.id_picture) ? (
-                          <img src={imageUrl(member.id_picture)} alt="Avatar" />
-                        ) : (
-                          <div className={`flex items-center justify-center h-full w-full ${getMemberFallbackColor(member)}`}>
-                            <span className="text-lg font-bold text-white">
-                              {`${member.first_name?.charAt(0) || ''}${member.last_name?.charAt(0) || ''}`.toUpperCase()}
-                            </span>
+      {!loading && !error && (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Member
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Address
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {members.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                      No members found matching your criteria
+                    </td>
+                  </tr>
+                ) : (
+                  members.map((member, index) => (
+                    <tr key={`${member.memberId}-${index}`} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            {imageUrl(member.id_picture) ? (
+                              <img className="h-10 w-10 rounded-full object-cover" src={imageUrl(member.id_picture)} alt="" />
+                            ) : (
+                              <div className={`flex items-center justify-center h-10 w-10 rounded-full ${getMemberFallbackColor(member)}`}>
+                                <span className="text-sm font-medium text-white">
+                                  {`${member.first_name?.charAt(0) || ''}${member.last_name?.charAt(0) || ''}`.toUpperCase()}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="font-bold">{member.last_name} {member.first_name}</div>
-                      <div className="text-sm opacity-50">{member.country || ""}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>{member.contact_number}</td>
-                <td>{member.barangay}</td>
-                <td>
-                  <span className={`badge ${member.status?.toLowerCase() === "completed" ? 'badge-success' : 'badge-error'}`}>
-                    {member.status}
-                  </span>
-                </td>
-                <td>
-                  <div className="flex gap-2">
-                    <button 
-                      className="btn btn-warning" 
-                      onClick={() => navigate(`/member-registration/add/${member.memberId}`)}
-                    >
-                      Add
-                    </button>
-                    <button 
-                      className="btn btn-info" 
-                      onClick={() => navigate(`/member-registration/edit/${member.memberId}`)}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="btn btn-success" 
-                      onClick={() => navigate(`/member-registration/register/${member.memberId}`)}
-                      disabled={member.status.toLowerCase() === "incomplete"}
-                    >
-                      Register
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {`${member.first_name || ''} ${member.last_name || ''}`}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {member.country || ""}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {member.contact_number || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {member.barangay || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          member.status?.toLowerCase() === "completed" 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {member.status || "Unknown"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+                          <button 
+                            className="px-3 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition-colors inline-flex items-center"
+                            onClick={() => navigate(`/member-registration/add/${member.memberId}`)}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add
+                          </button>
+                          <button 
+                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors inline-flex items-center"
+                            onClick={() => navigate(`/member-registration/edit/${member.memberId}`)}
+                          >
+                            <Edit className="w-3 h-3 mr-1" />
+                            Edit
+                          </button>
+                          <button 
+                            className={`px-3 py-1 rounded inline-flex items-center ${
+                              member.status.toLowerCase() === "incomplete" 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                : 'bg-green-100 text-green-700 hover:bg-green-200 transition-colors'
+                            }`}
+                            onClick={() => member.status.toLowerCase() !== "incomplete" && navigate(`/member-registration/register/${member.memberId}`)}
+                            disabled={member.status.toLowerCase() === "incomplete"}
+                          >
+                            <UserCheck className="w-3 h-3 mr-1" />
+                            Register
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {/* Pagination Here if needed */}
+        </div>
+      )}
     </div>
   );
 };

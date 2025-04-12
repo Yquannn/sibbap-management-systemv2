@@ -58,6 +58,7 @@ import MemberApplicant from "./pages/admin/RegisterMemberPages/MemberApplicant";
 import LoanModule from "./pages/admin/system maintenance/LoanModule";
 import SavingsModule from "./pages/admin/system maintenance/SavingsModule";
 import MembersModule from "./pages/admin/system maintenance/MembersModule";
+import RegularAnalytics from "./pages/members/home/SavingsAnalytics";
 
 function App() {
   return (
@@ -154,6 +155,7 @@ function App() {
     <Route path="member-bills" element={<Bills />} />
     <Route path="bill-details/:billId" element={<TransactionDetails />} />
     <Route path="loan-transaction-history" element={<LoanTransactionHistory />} />
+    <Route path="member-regular-savings-analytics" element={<RegularAnalytics />} />
 
     {/* Member-Specific 404 (Navbar & Sidebar Still Visible) */}
     <Route path="*" element={<NotFoundPage />} />

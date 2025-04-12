@@ -742,13 +742,11 @@ WHERE
 
 
 
-
-
-async function createInstallments(loanApplicationId, terms, loan_amount, service_fee) {
-  let conn;
+async function createInstallments(loanApplicationId, terms, loan_amount, service_fee, providedConn = null) {
+  let conn = providedConn || await db.getConnection();
+  // If we are not provided a connection, we'll release it at the end.
+  const shouldRelease = providedConn ? false : true;
   try {
-    conn = await db.getConnection();
-
     // 1) Select the current status and memberId of the loan application.
     const [loanRows] = await conn.query(
       `SELECT status, memberId FROM loan_applications WHERE loan_application_id = ?`,
@@ -775,37 +773,38 @@ async function createInstallments(loanApplicationId, terms, loan_amount, service
     const totalAmount = principalAmount + fee;
 
     // 4) Compute fixed monthly amortization.
+    // (Here we use a fixed percentage multiplier and add a constant deposit.)
     const monthlyAmortization = Math.ceil(principalAmount * 0.0945596) + 100;
     console.log(`Monthly Amortization: ${monthlyAmortization}`);
 
+    // Convert terms to number once for clarity.
+    const numTerms = Number(terms);
     let begBalance = totalAmount;
     let previousPenalty = 0;
 
-    // 5) Establish a starting due date:
+    // 5) Establish a starting due date (first installment is due 30 days from today).
     let dueDate = new Date();
-    // Set first due date to 30 days from today
     dueDate.setDate(dueDate.getDate() + 30);
 
     // 6) Generate installments.
-    for (let i = 0; i < Number(terms); i++) {
-      // Use the current dueDate for this installment.
-      // Format dueDate as YYYY-MM-DD:
+    for (let i = 0; i < numTerms; i++) {
+      // Format the due date as YYYY-MM-DD.
       const formattedDueDate = dueDate.toISOString().split("T")[0];
 
-      // Check for penalty on previous installment.
-      let penalty = previousPenalty; // Carry over unpaid penalties
+      // Use the previous penalty (if any).
+      let penalty = previousPenalty;
 
-      // 7) Compute interest, principal, amortization, and end balance.
+      // 7) Compute interest, principal, amortization, and ending balance.
       const savingsDeposit = 100;
       let interest, principal, amortization, endBalance;
 
-      if (i < Number(terms) - 1) {
+      if (i < numTerms - 1) {
         interest = begBalance * 0.02;
-        amortization = monthlyAmortization + penalty; // Add previous penalty to next amortization
+        amortization = monthlyAmortization + penalty; // Add any carried over penalty.
         principal = amortization - interest - savingsDeposit;
         endBalance = begBalance - principal;
       } else {
-        // Last installment must clear balance
+        // Last installment: clear the remaining balance.
         interest = begBalance * 0.02;
         principal = begBalance;
         amortization = principal + interest + savingsDeposit + penalty;
@@ -844,27 +843,73 @@ async function createInstallments(loanApplicationId, terms, loan_amount, service
 
       console.log(`Installment ${i + 1} created with due date ${formattedDueDate}`);
 
+      // Optionally update the borrower's information (function must be defined elsewhere)
       await updateIsBorrower(memberId);
 
-      // 8) Compute penalty for next installment if payment is late.
-      let currentDate = new Date();
-      let daysLate = Math.floor((currentDate - dueDate) / (1000 * 60 * 60 * 24));
+      // 8) Compute penalty for the next installment if current installment is late.
+      const currentDate = new Date();
+      const daysLate = Math.floor((currentDate - dueDate) / (1000 * 60 * 60 * 24));
       if (daysLate > 35) {
-        previousPenalty = monthlyAmortization * 0.02; // 2% penalty on amortization
+        previousPenalty = monthlyAmortization * 0.02; // 2% penalty on the amortization amount.
       } else {
         previousPenalty = 0;
       }
 
-      // 9) Update the beginning balance for the next installment.
+      // 9) Set beginning balance for next installment.
       begBalance = endBalance;
 
-      // 10) Set due date for the next installment by adding 30 days.
+      // 10) Set due date for next installment (add 30 days).
       dueDate.setDate(dueDate.getDate() + 30);
     }
 
     console.log(`Created ${terms} installment(s) for loan application ID ${loanApplicationId}`);
   } catch (error) {
     console.error("Error creating installments:", error);
+    throw error;
+  } finally {
+    if (shouldRelease && conn) {
+      conn.release();
+    }
+  }
+}
+
+async function disburseLoan(loanApplicationId) {
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // 1) Update the loan application's status to "Disbursed"
+    const [result] = await conn.query(
+      `UPDATE loan_applications SET remarks = 'Disbursed' WHERE loan_application_id = ?`,
+      [loanApplicationId]
+    );
+    if (result.affectedRows === 0) {
+      throw new Error(`Loan application with ID ${loanApplicationId} not found.`);
+    }
+    console.log(`Loan application ${loanApplicationId} status updated to "Disbursed"`);
+
+    // 2) Fetch the required fields to create installments.
+    const [rows] = await conn.query(
+      `SELECT terms, loan_amount, service_fee FROM loan_applications WHERE loan_application_id = ?`,
+      [loanApplicationId]
+    );
+    if (rows.length === 0) {
+      throw new Error(`Loan application with ID ${loanApplicationId} not found for installment creation.`);
+    }
+
+    const { terms, loan_amount, service_fee } = rows[0];
+    console.log("Creating installments with:", { terms, loan_amount, service_fee });
+
+    // 3) Call createInstallments using the same connection.
+    await createInstallments(loanApplicationId, terms, loan_amount, service_fee, conn);
+
+    // 4) Commit the transaction if all queries succeed.
+    await conn.commit();
+    return true;
+  } catch (error) {
+    if (conn) await conn.rollback();
+    console.error("Error in disburseLoan:", error);
     throw error;
   } finally {
     if (conn) conn.release();
@@ -885,7 +930,9 @@ async function updateIsBorrower(memberId) {
 }
 
 
-  
+
+
+
 async function updateLoanStatus(id, newStatus) {
   let conn;
   try {
@@ -896,25 +943,6 @@ async function updateLoanStatus(id, newStatus) {
       [newStatus, id]
     );
     console.log("Update result:", result);
-
-
-    // If the new status is "approved", fetch additional fields to create installments.
-    if (String(newStatus).toLowerCase() === "approved") {
-      const [rows] = await conn.query(
-        `SELECT terms, loan_amount, service_fee FROM loan_applications WHERE loan_application_id = ?`,
-        [id]
-      );
-      if (rows.length > 0) {
-        const { terms, loan_amount, service_fee } = rows[0];
-        console.log("Creating installments with:", { terms, loan_amount, service_fee });
-        await createInstallments(id, terms, loan_amount, service_fee);
-      } else {
-        console.log("Loan application not found for installment creation.");
-      }
-    } else {
-      console.log("Loan is not approved. Skipping installment creation.");
-    }
-  
     return result.affectedRows > 0;
   } catch (error) {
     console.error("Error updating loan status for ID", id, ":", error);
@@ -1256,5 +1284,6 @@ module.exports = {
   updateLoanStatus,
   getExistingLoan,
   getLoanByInformationId,
-  getLoanByInformationIdForAdmin
+  getLoanByInformationIdForAdmin,
+  disburseLoan
 };

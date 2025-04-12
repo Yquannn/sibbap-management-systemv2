@@ -21,6 +21,7 @@ const LoanApprovalProfile = () => {
   const [message, setMessage] = useState("");
   const [feedback, setFeedback] = useState("");
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState(false);
 
   // Helper functions
   const formatCurrency = (value) => {
@@ -106,9 +107,48 @@ const LoanApprovalProfile = () => {
     ],
   };
 
-  // Check if actions should be disabled
-  const disableActions = loanApplication && 
+  // const userType = sessionStorage.getItem("userType");
+
+  // Check if actions should be disabled based on loan status or if a submission is in progress
+  const disableActions = loanApplication &&
     ["approved", "rejected"].includes(loanApplication.status?.toLowerCase());
+
+  // Notification helper function
+  const sendNotification = async (action) => {
+    if (!memberData) return; // Ensure we have member data before proceeding
+
+    const notificationPayload = {
+      userType: ["System Admin", "Loan Manager", "General Manager"],
+      message: `Loan application ${action} for: ${memberData.last_name} ${memberData.first_name}`,
+    };
+
+    try {
+      const notifResponse = await axios.post(
+        "http://localhost:3001/api/notifications",
+        notificationPayload
+      );
+      console.log("Notification sent successfully:", notifResponse.data);
+    } catch (notifError) {
+      console.error("Error sending notification:", notifError);
+    }
+
+    // Trigger push notification using the Notification API
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        new Notification("Loan Application", {
+          body: notificationPayload.message,
+        });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            new Notification("Loan Application", {
+              body: notificationPayload.message,
+            });
+          }
+        });
+      }
+    }
+  };
 
   // Event handlers
   const handleCloseMessage = () => {
@@ -117,7 +157,9 @@ const LoanApprovalProfile = () => {
     setMessageType("");
   };
 
-  const handleApproved = async () => {
+  const handleApproved = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+    setActionInProgress(true);
     try {
       await axios.put(
         `http://localhost:3001/api/loan-applicant/${loan_application_id}/approve`,
@@ -127,15 +169,21 @@ const LoanApprovalProfile = () => {
       setMessage("Loan application approved successfully.");
       setMessageType("success");
       setShowFeedbackInput(true);
+      
+      // Send notification on approval
+      sendNotification("Approved");
     } catch (error) {
       console.error("Error updating loan application:", error);
       setShowMessage(true);
       setMessage("Failed to update loan application status.");
       setMessageType("error");
+      setActionInProgress(false);
     }
   };
 
-  const handleRejected = async () => {
+  const handleRejected = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+    setActionInProgress(true);
     try {
       await axios.put(
         `http://localhost:3001/api/loan-applicant/${loan_application_id}/approve`,
@@ -145,11 +193,15 @@ const LoanApprovalProfile = () => {
       setMessage("Loan application rejected.");
       setMessageType("success");
       setShowFeedbackInput(false);
+      
+      // Send notification on rejection
+      sendNotification("Rejected");
     } catch (error) {
       console.error("Error updating loan application:", error);
       setShowMessage(true);
       setMessage("Failed to update loan application status.");
       setMessageType("error");
+      setActionInProgress(false);
     }
   };
 
@@ -389,13 +441,13 @@ const LoanApprovalProfile = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voucher</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Amount</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loanable Amount</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terms</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voucher</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loanable Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terms</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -518,7 +570,7 @@ const LoanApprovalProfile = () => {
           </div>
         )}
 
-        {/* Documents Tab */}
+        {/* Loan Documents Tab */}
         {activeTab === "loanDocuments" && (
           <div className="text-center py-10">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -535,10 +587,10 @@ const LoanApprovalProfile = () => {
       {/* Action Buttons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
-          disabled={disableActions}
+          disabled={disableActions || actionInProgress}
           onClick={handleApproved}
           className={`px-6 py-3 rounded-lg font-medium text-white ${
-            disableActions 
+            disableActions || actionInProgress
               ? "bg-gray-300 cursor-not-allowed" 
               : "bg-green-600 hover:bg-green-700 transition-colors"
           }`}
@@ -547,10 +599,10 @@ const LoanApprovalProfile = () => {
           Approve Application
         </button>
         <button
-          disabled={disableActions}
+          disabled={disableActions || actionInProgress}
           onClick={handleRejected}
           className={`px-6 py-3 rounded-lg font-medium text-white ${
-            disableActions 
+            disableActions || actionInProgress
               ? "bg-gray-300 cursor-not-allowed" 
               : "bg-red-600 hover:bg-red-700 transition-colors"
           }`}

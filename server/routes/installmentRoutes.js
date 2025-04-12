@@ -9,4 +9,6 @@ router.get("/installment/:loan_application_id", installmentsController.getInstal
 // Endpoint to record a repayment for an installment.
 router.post("/installment/:installment_id/repay", installmentsController.addRepayment);
 
+// router.post("loan-application/:memberId/disburse", installmentsController.disburseLoanApplication);
+
 module.exports = router;

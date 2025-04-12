@@ -2,7 +2,7 @@ import React from "react";
 import { X, Check } from "lucide-react";
 
 /**
- * A success modal styled like the provided screenshot:
+ * A success modal styled with modern UI elements:
  * - Large green circle with a white check icon
  * - "Success" heading
  * - Descriptive text
@@ -10,41 +10,38 @@ import { X, Check } from "lucide-react";
  */
 const SuccessModal = ({
   title = "Success",
-  message = "Check your email for a booking confirmation. We’ll see you soon!",
+  message = "Check your email for a booking confirmation. We'll see you soon!",
   onClose,
 }) => {
   return (
-    <div
-      className="modal modal-open flex items-center justify-center"
-      style={{
-        fontFamily:
-          'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      }}
-    >
-      <div className="modal-box relative w-80">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-100">
+      <div className="bg-white rounded-lg shadow-xl w-80 max-w-md mx-auto overflow-hidden">
         {/* Close button in top-right corner */}
         <button
-          className="btn btn-sm btn-circle absolute right-2 top-2"
+          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
           onClick={onClose}
         >
-          <X size={16} />
+          <X size={20} />
         </button>
 
         {/* Content Container */}
-        <div className="flex flex-col items-center text-center space-y-4 pt-4 pb-2">
+        <div className="flex flex-col items-center text-center p-6 pt-8">
           {/* Big green circle with white check icon */}
-          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
-            <Check size={28} className="text-white" />
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-6">
+            <Check size={32} className="text-white" />
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-bold">{title}</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">{title}</h2>
 
           {/* Subtext */}
-          <p className="text-sm text-gray-500 px-2">{message}</p>
+          <p className="text-gray-600 mb-8 px-4">{message}</p>
 
           {/* OK button */}
-          <button className="btn btn-success w-full" onClick={onClose}>
+          <button 
+            className="w-full py-3 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors"
+            onClick={onClose}
+          >
             OK
           </button>
         </div>
