@@ -267,7 +267,7 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                       {/* Account Type */}
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Time Deposit
+                          {depositor.account_type || "N/A"}
                         </span>
                       </td>
                       {/* Account Holder */}

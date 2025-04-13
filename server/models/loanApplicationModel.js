@@ -1273,6 +1273,23 @@ async function updateLoanRemarks(id, newStatus = "Waiting for Approval", remarks
 
 
 
+async function getLoanHistoryById(memberId) {
+  let conn;
+  try {
+    conn = await db.getConnection();
+    const [rows] = await conn.query(
+      `SELECT * FROM loan_applications WHERE memberId = ? AND loan_status = 'Paid Off'`,
+      [memberId] // ✅ comma added here
+    );
+    return rows;
+  } catch (error) {
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+
 
 
 // ✅ Ensure all functions are correctly exported
@@ -1288,5 +1305,6 @@ module.exports = {
   getExistingLoan,
   getLoanByInformationId,
   getLoanByInformationIdForAdmin,
-  disburseLoan
+  disburseLoan,
+  getLoanHistoryById
 };

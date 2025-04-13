@@ -30,6 +30,9 @@ router.put("/loan-applicant/:id/remarks", loanApplicationController.updateLoanRe
 
 router.put("/loan-applicant/:id/approve", loanApplicationController.updateLoanStatus);
 
+router.get('/loan-history/:memberId', loanApplicationController.getLoanHistoryById);
+
+
 // router.put("/loan-applicant/:id/feedback", loanApplicationController.updateFeedback);
 
 

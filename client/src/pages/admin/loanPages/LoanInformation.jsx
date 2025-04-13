@@ -300,7 +300,7 @@ const LoanInformation = ({
       // After successful submission, send a backend notification.
       const notificationPayload = {
         userType: ["System Admin", "Loan Manager", "General Manager"],
-        message: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name}`,
+        message: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name}}`,
       };
 
       const notifResponse = await axios.post(
@@ -313,7 +313,7 @@ const LoanInformation = ({
       if ("Notification" in window) {
         if (Notification.permission === "granted") {
           new Notification("Loan Application", {
-            body: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name}`
+            body: `New Loan application submitted successfully from : ${memberInfo.last_name} ${memberInfo.first_name} `,
           });
         } else if (Notification.permission !== "denied") {
           Notification.requestPermission().then(permission => {

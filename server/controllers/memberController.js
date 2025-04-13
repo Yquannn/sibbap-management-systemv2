@@ -135,56 +135,60 @@ exports.getMembers = async (req, res) => {
 // };
 
 
-
 exports.fetchedMemberById = async (req, res) => {
-    const id = req.params.id;
-    if (!id || typeof id !== 'string' || id.trim() === '') {
-      return res.status(400).json({ message: 'Invalid member ID' });
-    }
-  
-    try {
-      // Fetch the main member data (for active members) using the provided id.
-      const memberQuery = `
-        SELECT mi.*, ma.email, ma.password, ma.accountStatus, s.amount AS savingsAmount
-        FROM members mi
-        LEFT JOIN member_account ma ON mi.memberId = ma.memberId
-        LEFT JOIN regular_savings s ON mi.memberId = s.memberId
-        WHERE mi.status = 'Active' AND mi.memberId = ?
-      `;
-      const members = await queryDatabase(memberQuery, [id]);
-  
-      if (!members.length) {
-        return res.status(404).json({ message: 'Member not found' });
-      }
-      const member = members[0];
-  
-      // Fetch purchase history for the member.
-      const purchaseQuery = `SELECT * FROM purchase_history WHERE memberId = ?`;
-      const purchaseHistory = await queryDatabase(purchaseQuery, [id]);
-  
-      // Fetch loan history for the member (assuming the table is "loan_applications").
-      const loanQuery = `SELECT * FROM loan_applications WHERE memberId = ? AND loan_status = 'Paid Off'`;
-      const loanHistory = await queryDatabase(loanQuery, [id]);
+  const id = req.params.id;
 
-      // Fetch beneficiaries for the member.
-      const beneficiaryQuery = `SELECT * FROM beneficiaries WHERE memberId = ?`;
-      const beneficiaries = await queryDatabase(beneficiaryQuery, [id]);
-  
-      // Combine nested data into a single object.
-      const memberWithNested = {
-        ...member,
-        purchase_history: purchaseHistory,
-        loan_history: loanHistory,
-        beneficiaries: beneficiaries
-      };
-  
-      res.json(memberWithNested);
-    } catch (error) {
-      console.error("Error fetching data from MySQL:", error);
-      res.status(500).json({ message: "Internal Server Error" });
+  // Validate the member ID
+  if (!id || typeof id !== 'string' || id.trim() === '') {
+    return res.status(400).json({ message: 'Invalid member ID' });
+  }
+
+  try {
+    // Fetch the main member data (for active members) using the provided id.
+    const memberQuery = `
+      SELECT mi.*, ma.email, ma.password, ma.accountStatus, s.amount AS savingsAmount
+      FROM members mi
+      LEFT JOIN member_account ma ON mi.memberId = ma.memberId
+      LEFT JOIN regular_savings s ON mi.memberId = s.memberId
+      WHERE mi.status = 'Active' AND mi.memberId = ?
+    `;
+    const members = await queryDatabase(memberQuery, [id]);
+
+    // If no member is found, return a 404 response.
+    if (!members.length) {
+      return res.status(404).json({ message: 'Member not found' });
     }
-  };
-  
+
+    const member = members[0];
+
+    // Fetch purchase history for the member.
+    const purchaseQuery = `SELECT * FROM purchase_history WHERE memberId = ?`;
+    const purchaseHistory = await queryDatabase(purchaseQuery, [id]);
+
+    // Fetch loan history for the member (assuming the table is "loan_applications").
+    const loanQuery = `SELECT * FROM loan_applications WHERE memberId = ?`;
+    const loanHistory = await queryDatabase(loanQuery, [id]);
+
+    // Fetch beneficiaries for the member.
+    const beneficiaryQuery = `SELECT * FROM beneficiaries WHERE memberId = ?`;
+    const beneficiaries = await queryDatabase(beneficiaryQuery, [id]);
+
+    // Combine nested data into a single object.
+    const memberWithNested = {
+      ...member,
+      purchase_history: purchaseHistory,
+      loan_history: loanHistory,
+      beneficiaries: beneficiaries
+    };
+
+    // Send the combined data as a response.
+    res.json(memberWithNested);
+  } catch (error) {
+    console.error("Error fetching data from MySQL:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 
 exports.getMemberById = async (req, res) => {

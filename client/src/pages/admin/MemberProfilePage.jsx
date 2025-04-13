@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import SuccessModal from "./loanPages/components/SuccessModal";
@@ -1276,62 +1276,144 @@ const MemberProfilePage = () => {
 
   // LOAN HISTORY SECTION
   const LoanHistorySection = () => {
+    const [filters, setFilters] = useState({
+      voucherNumber: '',
+      loanStatus: ''
+    });
+  
+    const handleFilterChange = (e) => {
+      const { name, value } = e.target;
+      setFilters(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    };
+  
+    const filteredLoans = useMemo(() => {
+      if (!member.loan_history) return [];
+      
+      return member.loan_history.filter(loan => {
+        const matchesVoucher = !filters.voucherNumber || 
+          loan.client_voucher_number.toLowerCase().includes(filters.voucherNumber.toLowerCase());
+        
+        const matchesStatus = !filters.loanStatus || 
+          loan.loan_status.toLowerCase() === filters.loanStatus.toLowerCase();
+        
+        return matchesVoucher && matchesStatus;
+      });
+    }, [member.loan_history, filters]);
+  
     if (!member.loan_history || member.loan_history.length === 0) {
       return (
         <div className="p-6 text-center">
-          <div className="bg-gray-50 p-8 rounded-xl">
+          <div className="bg-gray-50 p-8 rounded-xl shadow-sm">
             <p className="text-gray-500 text-lg">No loan history available.</p>
           </div>
         </div>
       );
     }
-
+  
     return (
       <div className="p-6">
-        <h3 className="text-2xl font-bold mb-6 text-gray-800">Loan History</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {member.loan_history.map((loan, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    loan.loan_status === "APPROVED"
-                      ? "bg-green-100 text-green-800"
-                      : loan.loan_status === "PENDING"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : loan.loan_status === "REJECTED"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {loan.loan_status}
-                </span>
-                <span className="text-lg font-bold text-blue-600">
-                  ₱{parseFloat(loan.loan_amount).toLocaleString()}
-                </span>
-              </div>
-
-              <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                {loan.loan_type}
-              </h4>
-
-              <div className="space-y-2 text-gray-600 mb-4">
-                <p className="flex justify-between">
-                  <span className="text-gray-500">Term:</span>
-                  <span className="font-medium">{loan.terms} months</span>
-                </p>
-              </div>
-
-              <div className="border-t pt-3 text-xs text-gray-500 flex justify-between items-center">
-                <span>Applied on:</span>
-                <span>{formatDate(loan.created_at)}</span>
-              </div>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Loan History</h3>
+          
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="relative">
+              <input
+                type="text"
+                name="voucherNumber"
+                placeholder="Search voucher number"
+                value={filters.voucherNumber}
+                onChange={handleFilterChange}
+                className="w-full sm:w-64 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
             </div>
-          ))}
+            
+            <select
+              name="loanStatus"
+              value={filters.loanStatus}
+              onChange={handleFilterChange}
+              className="w-full sm:w-48 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            >
+              <option value="">All statuses</option>
+              <option value="Paid Off">Paid Off</option>
+              <option value="Active">Active</option>
+            </select>
+          </div>
         </div>
+  
+        {filteredLoans.length === 0 ? (
+          <div className="bg-gray-50 p-8 rounded-xl text-center shadow-sm">
+            <p className="text-gray-500 text-lg">No loans match your search criteria.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredLoans.map((loan, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
+              >
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        loan.loan_status === "Paid Off"
+                          ? "bg-green-100 text-green-800"
+                          : loan.status === "Approved"
+                          ? "bg-blue-100 text-blue-800"
+                          : loan.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : loan.status === "Rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {loan.loan_status}
+                    </span>
+                    <span className="text-lg font-bold text-blue-600">
+                      ₱{parseFloat(loan.loan_amount).toLocaleString()}
+                    </span>
+                  </div>
+  
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">
+                    {loan.loan_type}
+                  </h4>
+  
+                  <div className="space-y-3 text-gray-600 mb-4">
+                    <p className="flex justify-between">
+                      <span className="text-gray-500">Term:</span>
+                      <span className="font-medium">{loan.terms} months</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500">Interest:</span>
+                      <span className="font-medium">₱{parseFloat(loan.interest).toLocaleString()}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500">Balance:</span>
+                      <span className={`font-medium ${parseFloat(loan.balance) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        ₱{parseFloat(loan.balance).toLocaleString()}
+                      </span>
+                    </p>
+                    <p className="flex justify-between text-xs mt-2 pt-2 border-t border-gray-100">
+                      <span className="text-gray-500">Voucher:</span>
+                      <span className="font-medium text-gray-700">{loan.client_voucher_number}</span>
+                    </p>
+                  </div>
+  
+                  <div className="border-t pt-3 text-xs text-gray-500 flex justify-between items-center">
+                    <span>Applied on:</span>
+                    <span>{formatDate(loan.created_at)}</span>
+                  </div>
+                  <div className="border-t pt-3 text-xs text-gray-500 flex justify-between items-center">
+                    <span>Disbursed Date:</span>
+                    <span>{formatDate(loan.disbursed_date)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };

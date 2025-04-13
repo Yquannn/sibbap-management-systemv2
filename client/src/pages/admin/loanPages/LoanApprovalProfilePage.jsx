@@ -119,7 +119,7 @@ const LoanApprovalProfile = () => {
 
     const notificationPayload = {
       userType: ["System Admin", "Loan Manager", "General Manager"],
-      message: `Loan application ${action} for: ${memberData.last_name} ${memberData.first_name}`,
+      message: `Loan application ${action} for: ${memberData.last_name} ${memberData.first_name} CVN: ${loanApplication.client_voucher_number}`,
     };
 
     try {

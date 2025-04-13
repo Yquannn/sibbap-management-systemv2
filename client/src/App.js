@@ -59,6 +59,7 @@ import LoanModule from "./pages/admin/system maintenance/LoanModule";
 import SavingsModule from "./pages/admin/system maintenance/SavingsModule";
 import MembersModule from "./pages/admin/system maintenance/MembersModule";
 import RegularAnalytics from "./pages/members/home/SavingsAnalytics";
+import ShareCapitalInfo from "./pages/admin/savingsPages/shareCapital/SharecapitalInfo";
 
 function App() {
   return (
@@ -112,6 +113,7 @@ function App() {
     <Route path="share-capital" element={<ShareCapital />} />
     <Route path="regular-savings-deposit/:memberId" element={<TransactionForm />} />
     <Route path="regular-savings-withdrawal/:memberId" element={<TransactionForm />} />
+    <Route path="member/share-capital/:memberId" element={<ShareCapitalInfo />} />
 
 
 

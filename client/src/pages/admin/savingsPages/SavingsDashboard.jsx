@@ -686,7 +686,7 @@ const SavingsDashboard = () => {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen p-6">
+    <div className="bg-gray-50 p-6">
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
         <p className="text-gray-600 mt-1">Track and analyze savings, share capital, and time deposits</p>

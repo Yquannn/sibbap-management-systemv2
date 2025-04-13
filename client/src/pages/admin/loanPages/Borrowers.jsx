@@ -14,7 +14,6 @@ import {
 import {
   CheckCircle,
   XCircle,
- 
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
@@ -25,7 +24,7 @@ const Borrowers = () => {
   const [borrowers, setBorrowers] = useState([]);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [disbursementFilter, setDisbursementFilter] = useState("All");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
@@ -38,7 +37,8 @@ const Borrowers = () => {
   const [analytics, setAnalytics] = useState({
     totalBorrowers: 0,
     totalLoanAmount: 0,
-    pendingApplications: 0,
+    disbursedLoans: 0,
+    notDisbursedLoans: 0,
     outstandingBalance: 0
   });
 
@@ -52,8 +52,8 @@ const Borrowers = () => {
     "Special Loan", "Reconstruction Loan"
   ];
 
-  // Status options for filtering
-  const statusOptions = ["All", "Approved", "Pending", "Rejected"];
+  // Disbursement status options for filtering
+  const disbursementOptions = ["All", "Yes", "No"];
 
   useEffect(() => {
     fetchBorrowers();
@@ -83,6 +83,11 @@ const Borrowers = () => {
     }
   };
 
+  // Function to determine if a loan is disbursed based on the remarks field
+  const isLoanDisbursed = (loanApp) => {
+    return loanApp && loanApp.remarks && loanApp.remarks.toLowerCase() === "disbursed";
+  };
+
   // Calculate analytics from borrowers data
   const calculateAnalytics = () => {
     const totalBorrowers = borrowers.length;
@@ -91,9 +96,9 @@ const Borrowers = () => {
       return sum + (parseFloat(borrower.loan_amount) || 0);
     }, 0);
     
-    const pendingApplications = borrowers.filter(
-      borrower => borrower.status?.toLowerCase() === 'pending'
-    ).length;
+    // Count disbursed and not disbursed loans
+    const disbursedLoans = borrowers.filter(borrower => isLoanDisbursed(borrower)).length;
+    const notDisbursedLoans = borrowers.length - disbursedLoans;
     
     const outstandingBalance = borrowers.reduce((sum, borrower) => {
       return sum + (parseFloat(borrower.balance) || 0);
@@ -102,7 +107,8 @@ const Borrowers = () => {
     setAnalytics({
       totalBorrowers,
       totalLoanAmount,
-      pendingApplications,
+      disbursedLoans,
+      notDisbursedLoans,
       outstandingBalance
     });
   };
@@ -149,7 +155,7 @@ const Borrowers = () => {
     return sortableBorrowers;
   }, [borrowers, sortConfig]);
 
-  // Filter borrowers based on the selected loan type, search query, and status filter
+  // Filter borrowers based on the selected loan type, search query, and disbursement filter
   const filteredBorrowers = sortedBorrowers.filter(borrower => {
     const matchesLoanType = activeTab === "All" ? true : borrower.loan_type === activeTab;
 
@@ -162,12 +168,13 @@ const Borrowers = () => {
       (borrower.client_voucher_number &&
         borrower.client_voucher_number.toString().includes(searchQuery));
 
-    // Assume borrower.status holds the status (Approved, Pending, Rejected, etc.)
-    const matchesStatus = statusFilter === "All"
+    // Filter by disbursement status
+    const isDisbursed = isLoanDisbursed(borrower);
+    const matchesDisbursement = disbursementFilter === "All"
       ? true
-      : borrower.status && borrower.status.toLowerCase() === statusFilter.toLowerCase();
+      : (disbursementFilter === "Yes" && isDisbursed) || (disbursementFilter === "No" && !isDisbursed);
 
-    return matchesLoanType && matchesSearch && matchesStatus;
+    return matchesLoanType && matchesSearch && matchesDisbursement;
   });
 
   // Pagination logic
@@ -224,11 +231,6 @@ const Borrowers = () => {
     setCurrentPage(1); // Reset to first page when changing items per page
   };
 
-  // Function to determine if a loan is disbursed based on the remarks field
-  const isLoanDisbursed = (loanApp) => {
-    return loanApp && loanApp.remarks && loanApp.remarks.toLowerCase() === "disbursed";
-  };
-
   return (
     <div className="">
       <div className="">
@@ -260,14 +262,16 @@ const Borrowers = () => {
             </div>
           </div>
 
-          {/* Pending Applications Card */}
+          {/* Disbursed vs Not Disbursed Card */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start">
             <div className="mr-4 bg-yellow-100 p-3 rounded-full">
-              <FaExclamationCircle className="h-6 w-6 text-yellow-600" />
+              <CheckCircle className="h-6 w-6 text-yellow-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Pending Applications</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{analytics.pendingApplications}</p>
+              <p className="text-sm text-gray-500 font-medium">Disbursed vs Not</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {analytics.disbursedLoans} / {analytics.notDisbursedLoans}
+              </p>
             </div>
           </div>
 
@@ -333,22 +337,22 @@ const Borrowers = () => {
               </div>
             </div>
 
-            {/* Status Filter */}
+            {/* Disbursement Filter */}
             <div className="flex flex-col">
-              <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="disbursementFilter" className="block text-sm font-medium text-gray-700 mb-2">
                 <span className="flex items-center">
-                  <FaFilter className="mr-2 text-gray-500" /> Status
+                  <FaFilter className="mr-2 text-gray-500" /> Disbursed
                 </span>
               </label>
               <select
-                id="statusFilter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                id="disbursementFilter"
+                value={disbursementFilter}
+                onChange={(e) => setDisbursementFilter(e.target.value)}
                 className="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700"
               >
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
+                {disbursementOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
                   </option>
                 ))}
               </select>
@@ -426,9 +430,9 @@ const Borrowers = () => {
                         Status {getSortIndicator('status')}
                       </div>
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('status')}>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('remarks')}>
                       <div className="flex items-center">
-                        Disbursed {getSortIndicator('status')}
+                        Disbursed {getSortIndicator('remarks')}
                       </div>
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -491,12 +495,6 @@ const Borrowers = () => {
                             onClick={() => navigate(`/borrower-loan-information/${borrower.memberId}`)}
                           >
                             <FaEye className="mr-1.5" size={14} /> View
-                          </button>
-                          <button
-                            className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-100 transition-colors flex items-center"
-                            onClick={() => navigate(`/repayment/${borrower.id}`)}
-                          >
-                            <FaDollarSign className="mr-1.5" size={14} /> Pay
                           </button>
                         </div>
                       </td>

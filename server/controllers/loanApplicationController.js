@@ -252,6 +252,19 @@ async function disburseLoan(req, res) {
 }
 
 
+async function getLoanHistoryById(req, res) {
+  const memberId = req.params.memberId;
+
+  try {
+    const loanHistory = await loanApplicationModel.getLoanHistoryById(memberId);
+    res.status(200).json({ success: true, data: loanHistory });
+  } catch (error) {
+    console.error('Error fetching loan history:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+}
+
+
 
 module.exports = {
   createLoanApplication,
@@ -265,5 +278,6 @@ module.exports = {
   getExistingLoan,
   getLoanByInformationId,
   getLoanByInformationIdForAdmin,
-  disburseLoan
+  disburseLoan,
+  getLoanHistoryById
 };
