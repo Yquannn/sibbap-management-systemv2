@@ -491,61 +491,6 @@ const TimeDepositDetails = () => {
               </div>
             </div>
             
-            {/* Transactions Chart */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Transaction History</h3>
-                <div className="flex items-center mt-2 md:mt-0 space-x-2">
-                  <select 
-                    className="bg-gray-50 border border-gray-300 text-gray-700 rounded-md text-sm px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500"
-                    value={selectedTimeGroup}
-                    onChange={(e) => setSelectedTimeGroup(e.target.value)}
-                  >
-                    <option value="monthly">Monthly View</option>
-                    <option value="daily">Daily View</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="h-80">
-                <Line 
-                  data={chartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          callback: function(value) {
-                            return '₱' + value.toLocaleString();
-                          }
-                        }
-                      }
-                    },
-                    plugins: {
-                      legend: {
-                        position: 'top',
-                      },
-                      tooltip: {
-                        callbacks: {
-                          label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                              label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                              label += '₱' + context.parsed.y.toLocaleString();
-                            }
-                            return label;
-                          }
-                        }
-                      }
-                    }
-                  }}
-                />
-              </div>
-            </div>
             
             {/* Transaction List */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

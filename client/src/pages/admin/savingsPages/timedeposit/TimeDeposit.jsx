@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
-  FaEdit,
-  FaTrash,
-  FaEye,
-  FaSearch,
-  FaDollarSign,
-  FaPiggyBank,
-} from "react-icons/fa";
+  Eye,
+  Search,
+  Clock,
+  Plus,
+  BarChart4,
+  Users,
+  Loader
+} from "lucide-react";
 import MemberAccountModal from "../../childModal/MemberAccountModal";
 import { useNavigate } from "react-router-dom";
 
@@ -20,17 +21,16 @@ const formatCurrency = (value) => {
 };
 
 const TimeDeposit = ({ openModal, handleDelete }) => {
-  const [timeDeposits, setTimeDeposits] = useState([]); // Fetched time deposit records
+  const [timeDeposits, setTimeDeposits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState(""); // e.g. "deposit" or "withdraw"
+  const [modalType, setModalType] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
   const [filterQuery, setFilterQuery] = useState("");
 
   const navigate = useNavigate();
 
-  // Open modal with a selected type and record
   const handleOpenModal = (type, member = null) => {
     setModalType(type);
     setSelectedMember(member);
@@ -43,7 +43,6 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
     setSelectedMember(null);
   };
 
-  // Fetch active time deposits
   const fetchTimeDeposits = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -68,8 +67,6 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
     fetchTimeDeposits();
   }, [fetchTimeDeposits]);
 
-  // Filter time deposits by search query.
-  // NOTE: Use snake_case property names (e.g. first_name and last_name) as returned from your API.
   const filteredDeposits = timeDeposits.filter((depositor) => {
     const query = filterQuery.toLowerCase();
     const fullName = `${depositor.first_name} ${depositor.last_name}`.toLowerCase();
@@ -77,45 +74,113 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
     return query === "" || fullName.includes(query) || code.includes(query);
   });
 
-  // Sort filtered deposits by latest.
-  // Here, we assume that a higher timeDepositId indicates a more recent deposit.
   const sortedDeposits = [...filteredDeposits].sort(
     (a, b) => b.timeDepositId - a.timeDepositId
   );
 
+  // Calculate total deposits amount
+  const totalDepositsAmount = sortedDeposits.reduce((sum, depositor) => 
+    sum + (parseFloat(depositor.amount) || 0), 0
+  );
+  
+  // Get average deposit amount
+  const averageDepositAmount = sortedDeposits.length 
+    ? totalDepositsAmount / sortedDeposits.length 
+    : 0;
+
   return (
-    <div className="p-0">
-      <div className="p-4 bg-white shadow-lg rounded-lg mb-6">
+    <div className="">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Time Deposit</h1>
+        <p className="text-gray-600">Manage time deposit accounts and transactions</p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Total Accounts Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Total Accounts</p>
+              <p className="text-3xl font-bold text-gray-800">{sortedDeposits.length}</p>
+              <div className="flex items-center mt-2">
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                  Active
+                </span>
+              </div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <Users className="h-6 w-6 text-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Deposits Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Total Deposits</p>
+              <p className="text-3xl font-bold text-gray-800">₱{formatCurrency(totalDepositsAmount)}</p>
+              <div className="flex items-center mt-2">
+                <span className="text-xs text-gray-500">Across all accounts</span>
+              </div>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <Clock className="h-6 w-6 text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Average Deposit Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Average Deposit</p>
+              <p className="text-3xl font-bold text-gray-800">₱{formatCurrency(averageDepositAmount)}</p>
+              <div className="flex items-center mt-2">
+                <span className="text-xs text-gray-500">Per account</span>
+              </div>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <BarChart4 className="h-6 w-6 text-purple-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Actions Bar */}
+      <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-          {/* Title */}
-          <h4 className="text-xl font-bold">
-            Time Deposit Members - {sortedDeposits.length}
+          <h4 className="text-lg font-semibold text-gray-800">
+            Time Deposit Accounts
           </h4>
-          {/* Search and Open Account Button */}
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <div className="relative w-full md:w-64">
+          
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
               <input
                 type="text"
-                placeholder="Search by name or code number..."
+                placeholder="Search by name or code..."
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                className="w-full md:w-64 pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaSearch className="text-gray-400" />
-              </div>
             </div>
             <button
               onClick={() => handleOpenModal("deposit")}
-              className="bg-green-500 text-white font-semibold py-2 px-4 rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50"
+              className="flex items-center justify-center bg-green-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"
             >
+              <Plus className="h-4 w-4 mr-2" />
               Open Account
             </button>
           </div>
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal Component */}
       <MemberAccountModal
         openModal={openModal}
         handleDelete={handleDelete}
@@ -125,110 +190,154 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
         member={selectedMember}
       />
 
+      {/* Loading State */}
+      {loading && (
+        <div className="w-full flex justify-center my-12">
+          <div className="flex flex-col items-center">
+            <Loader className="h-10 w-10 text-green-600 animate-spin" />
+            <p className="mt-4 text-gray-600">Loading time deposits...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6">
+          <p className="flex items-center font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            Error
+          </p>
+          <p className="mt-1 ml-7">{error}</p>
+        </div>
+      )}
+
       {/* Data Table */}
-      <div className="overflow-y-auto max-h-[75vh] card bg-white shadow-md rounded-lg p-4">
-        {loading ? (
-          <p className="text-center text-gray-500 p-4">Loading...</p>
-        ) : (
-          <table className="table w-full">
-            <thead className="text-center">
-              <tr>
-                <th className="w-12">
-                  <input type="checkbox" className="checkbox" />
-                </th>
-                {[
-                  "Code Number",
-                  "Account No.",
-                  "Account Type",
-                  "Account Holder",
-                  "Co-Account Holder",
-                  "Deposited Amount",
-                  "Term",
-                  "Account Status",
-                  "Actions",
-                ].map((heading) => (
-                  <th key={heading} className="py-3 px-4 border-b border-gray-300">
-                    {heading}
+      {!loading && !error && (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Code Number
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedDeposits.length > 0 ? (
-                sortedDeposits.map((depositor, index) => (
-                  <tr
-                    key={`${depositor.id}-${index}`}
-                    className="text-center hover:bg-gray-100 cursor-pointer"
-                  >
-                    <th>
-                      <label>
-                        <input type="checkbox" className="checkbox" />
-                      </label>
-                    </th>
-                    {/* Code Number */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      {depositor.memberCode || "N/A"}
-                    </td>
-                    {/* Account No. */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      {depositor.accountNo || "N/A"}
-                    </td>
-                    {/* Account Type */}
-                    <td className="py-3 px-4 border-b border-gray-300">Time Deposit</td>
-                    {/* Account Holder */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      {depositor.first_name} {depositor.last_name} {depositor.middle_name}
-                    </td>
-                    {/* Co-Account Holder */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      {depositor.co_last_name} {depositor.co_first_name}
-                    </td>
-                    {/* Deposited Amount */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      ₱{formatCurrency(depositor.amount)}
-                    </td>
-                    {/* Term */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      {depositor.fixedTerm} Months
-                    </td>
-                    {/* Account Status */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      <span
-                        className={`px-2 py-1 rounded-full font-semibold ${
-                          (!depositor.account_status || depositor.account_status === "ACTIVE")
-                            ? "bg-green-500 text-white"
-                            : "bg-red-500 text-white"
-                        }`}
-                      >
-                        {depositor.account_status}
-                      </span>
-                    </td>
-                    {/* Actions */}
-                    <td className="py-3 px-4 border-b border-gray-300">
-                      <div className="flex justify-center space-x-3">
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Account No.
+                  </th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Account Type
+                  </th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Account Holder
+                  </th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Co-Account Holder
+                  </th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Deposited Amount
+                  </th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Term
+                  </th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {sortedDeposits.length > 0 ? (
+                  sortedDeposits.map((depositor, index) => (
+                    <tr
+                      key={`${depositor.id}-${index}`}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      {/* Code Number */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                        {depositor.memberCode || "N/A"}
+                      </td>
+                      {/* Account No. */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {depositor.accountNo || "N/A"}
+                      </td>
+                      {/* Account Type */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Time Deposit
+                        </span>
+                      </td>
+                      {/* Account Holder */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {depositor.first_name} {depositor.last_name}
+                      </td>
+                      {/* Co-Account Holder */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {depositor.co_last_name ? 
+                          `${depositor.co_last_name} ${depositor.co_first_name || ""}` : 
+                          "—"
+                        }
+                      </td>
+                      {/* Deposited Amount */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                        ₱{formatCurrency(depositor.amount)}
+                      </td>
+                      {/* Term */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          {depositor.fixedTerm} Months
+                        </span>
+                      </td>
+                      {/* Account Status */}
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            (!depositor.account_status || depositor.account_status === "ACTIVE")
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {depositor.account_status || "ACTIVE"}
+                        </span>
+                      </td>
+                      {/* Actions */}
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() =>
                             navigate(`/member/time-deposit-info/${depositor.timeDepositId}`)
                           }
-                          className="btn btn-success btn-sm flex items-center"
+                          className="inline-flex items-center px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-md hover:bg-green-100 transition-colors"
                         >
-                          <FaEye className="mr-1" /> View
+                          <Eye className="h-3.5 w-3.5 mr-1.5" /> View
                         </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <p className="text-gray-500 text-lg font-medium">
+                          No active time deposits
+                        </p>
+                        <p className="text-gray-400 mt-1">
+                          Click "Open Account" to create a new time deposit
+                        </p>
                       </div>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={10} className="py-4 text-center">
-                    No active time deposits found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

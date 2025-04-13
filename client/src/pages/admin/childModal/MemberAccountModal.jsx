@@ -24,7 +24,6 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
         setError(null);
       }
       setMembers(response.data.data);
-
     } catch (err) {
       setError("Error fetching members: " + (err.response?.data?.message || err.message));
     } finally {
@@ -35,85 +34,138 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
   useEffect(() => {
     if (showModal) {
       fetchMembers();
-
     }
   }, [showModal, fetchMembers]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchMembers();
+  };
 
   if (!showModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 relative">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-xl font-bold">Member List</h4>
-          <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
-            ✕
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl p-0 relative overflow-hidden">
+        {/* Header */}
+        <div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
+          <h4 className="text-xl font-semibold">Select Member for Time Deposit</h4>
+          <button 
+            onClick={closeModal} 
+            className="text-white hover:text-gray-200 transition-colors focus:outline-none"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        <div className="mb-4">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search members by name..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-          />
+        {/* Search Bar */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search members by name..."
+              className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+            <button 
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Search
+            </button>
+          </form>
         </div>
 
-        {loading && <p className="text-center text-gray-500">Loading members...</p>}
-        {error && <p className="text-center text-red-500">{error}</p>}
+        {/* Content */}
+        <div className="px-6 py-4">
+          {loading && (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
+              <p>{error}</p>
+            </div>
+          )}
 
-        {!loading && !error && (
-          <div className="overflow-y-auto max-h-[60vh] card bg-white shadow-md rounded-lg p-4">
-            <table className="table w-full">
-              <thead className="text-center">
-                <tr>
-                  {["Code Number", "Last Name", "First Name", "Contact Number", "Address", "Actions"].map((heading) => (
-                    <th key={heading} className="py-3 px-4 border-b border-gray-300">
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {members && members.length > 0 ? (
-                  members.map((member, index) => (
-                    <tr
-                      key={`${member.id}-${index}`}
-                      className="text-center hover:bg-gray-100 cursor-pointer"
-                    >
-                      <td className="py-3 px-4 border-b border-gray-300">{member.memberCode}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">{member.last_name}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">{member.first_name}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">{member.contact_number}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">{member.barangay}</td>
-                      <td className="py-3 px-4 border-b border-gray-300">
-                        <button
-                          onClick={() =>
-                            // 1) Pass selected member data to the next page
-                            navigate(`/apply-timedeposit/${member.memberId}`, {
-                              state: { selectedMember: member },
-                            })
-                          }
-                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                        >
-                          Apply for Time Deposit
-                        </button>
+          {!loading && !error && (
+            <div className="overflow-y-auto max-h-[60vh]">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {["Code", "Last Name", "First Name", "Contact", "Address", "Actions"].map((heading) => (
+                      <th 
+                        key={heading} 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {members && members.length > 0 ? (
+                    members.map((member, index) => (
+                      <tr
+                        key={`${member.id}-${index}`}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {member.memberCode}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {member.last_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {member.first_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {member.contact_number}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
+                          {member.barangay}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() =>
+                              navigate(`/apply-timedeposit/${member.memberId}`, {
+                                state: { selectedMember: member },
+                              })
+                            }
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                          >
+                            Apply
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                        No members found. Try adjusting your search.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-4 text-center">
-                      No members found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-200">
+          <button
+            onClick={closeModal}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 mr-2"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

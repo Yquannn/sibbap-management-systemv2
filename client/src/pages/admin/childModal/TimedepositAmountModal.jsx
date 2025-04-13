@@ -14,7 +14,7 @@ const formatNumber = (num) => {
   });
 };
 
-const TimedepositAmountModal = ({ member, modalType, onClose, formData }) => {
+const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formData }) => {
   // Get memberId from URL params if not provided via member prop.
   const { memberId: paramMemberId } = useParams();
   const navigate = useNavigate();
@@ -157,96 +157,150 @@ const TimedepositAmountModal = ({ member, modalType, onClose, formData }) => {
     navigate("/time-deposit");
   };
 
+  // Modal background colors based on action type
+  const actionColor = modalType === "withdraw" ? "red" : "blue";
+  const actionBgGradient = modalType === "withdraw" 
+    ? "from-red-500 to-red-600" 
+    : "from-blue-600 to-blue-700";
+
   return (
     <>
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-lg w-96 p-6">
-          <h2 className="text-2xl font-semibold text-center mb-4">
-            {modalType === "withdraw" ? "Withdraw Funds" : "Deposit Funds"}
-          </h2>
+      <div className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 mx-4 animate-fadeIn">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-2xl font-semibold text-gray-800">
+              {modalType === "withdraw" ? "Withdraw Funds" : "Deposit Funds"}
+            </h2>
+            <button 
+              onClick={onClose} 
+              className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
           {error && (
-            <div className="mb-4 p-2 bg-red-100 text-red-600 rounded">
-              <p>{error}</p>
+            <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg flex items-start">
+              <svg className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className="text-sm">{error}</p>
             </div>
           )}
-          <div className="mb-4">
-            <label
-              htmlFor="amount"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Amount
-            </label>
-            <input
-              id="amount"
-              type="text"
-              value={displayedAmount}
-              onChange={handleAmountChange}
-              onFocus={handleAmountFocus}
-              onBlur={handleAmountBlur}
-              className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter amount"
-            />
-          </div>
-          <div className="mb-4">
-            <label
-              htmlFor="fixedTerm"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Fixed Term (Months)
-            </label>
-            <select
-              id="fixedTerm"
-              value={fixedTerm}
-              onChange={(e) => setFixedTerm(e.target.value)}
-              className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="">Select a term</option>
-              <option value="6">6 Months</option>
-              <option value="12">12 Months</option>
-            </select>
-          </div>
-          <div className="mb-4 bg-gray-100 p-4 rounded-md">
-            <p className="text-sm">Computation:</p>
-            <p>
-              Maturity Date:{" "}
-              <strong>{computation.maturityDate || "-"}</strong>
-            </p>
-            <p>
-              Interest: <strong>{computation.interest}</strong>
-            </p>
-            <p>
-              Interest Rate (%):{" "}
-              <strong>{computation.interestRate || "-"}</strong>
-            </p>
-            <p>
-              Payout: <strong>{computation.payout}</strong>
-            </p>
-          </div>
-          <div className="flex justify-between space-x-3">
-            <button
-              onClick={handleTransaction}
-              disabled={loading}
-              className={`w-1/2 py-2 px-4 text-white font-semibold rounded-lg shadow hover:opacity-80 focus:outline-none ${
-                modalType === "withdraw"
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-green-500 hover:bg-green-600"
-              } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              {loading
-                ? "Processing..."
-                : modalType === "withdraw"
-                ? "Withdraw"
-                : "Deposit"}
-            </button>
-            <button
-              onClick={onClose}
-              className="w-1/2 py-2 px-4 bg-gray-300 text-gray-700 font-semibold rounded-lg shadow hover:bg-gray-400 focus:outline-none"
-            >
-              Close
-            </button>
+
+          <div className="space-y-5">
+            <div>
+              <label
+                htmlFor="amount"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Amount
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                  ₱
+                </span>
+                <input
+                  id="amount"
+                  type="text"
+                  value={displayedAmount}
+                  onChange={handleAmountChange}
+                  onFocus={handleAmountFocus}
+                  onBlur={handleAmountBlur}
+                  className="pl-8 w-full py-3 px-4 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-200"
+                  placeholder="Enter amount"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="fixedTerm"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Fixed Term
+              </label>
+              <select
+                id="fixedTerm"
+                value={fixedTerm}
+                onChange={(e) => setFixedTerm(e.target.value)}
+                className="w-full py-3 px-4 bg-gray-50 border border-gray-300 rounded-lg appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNSA3LjVMMTAgMTIuNUwxNSA3LjUiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 bg-center-y focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-200"
+              >
+                <option value="">Select a term</option>
+                <option value="6">6 Months</option>
+                <option value="12">12 Months</option>
+              </select>
+            </div>
+
+            {(rawAmount && fixedTerm) ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+                <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2 mb-2">Computation Summary</h3>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Maturity Date</p>
+                    <p className="font-medium">
+                      {computation.maturityDate ? new Date(computation.maturityDate).toLocaleDateString() : "-"}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-gray-500">Interest Rate</p>
+                    <p className="font-medium">
+                      {computation.interestRate}%
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-gray-500">Interest Amount</p>
+                    <p className="font-medium text-green-600">
+                      ₱{computation.interest}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-gray-500">Total Payout</p>
+                    <p className="font-medium text-green-600">
+                      ₱{computation.payout}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleTransaction}
+                disabled={loading}
+                className={`flex-1 py-3 px-4 text-white font-medium rounded-lg bg-gradient-to-r ${actionBgGradient} shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${actionColor}-500 ${
+                  loading ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  modalType === "withdraw" ? "Withdraw" : "Deposit"
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
       {showSuccessModal && (
         <SuccessModal
           message="Deposit Successful!"

@@ -13,7 +13,7 @@ const MemberAndCoAccountForm = () => {
 
   // Initialize form data with fetched member data where applicable.
   const [formData, setFormData] = useState({
-    // MEMBER’S PERSONAL INFORMATION
+    // MEMBER'S PERSONAL INFORMATION
     accountType: "",
     memberCode: selectedMember?.memberCode || "",
     memberLastName: selectedMember?.last_name || "",
@@ -64,21 +64,29 @@ const MemberAndCoAccountForm = () => {
     setShowAmountModal(true);
   };
 
+  // Common input style classes
+  const inputClass = "border border-gray-300 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full transition-all duration-200";
+  const selectClass = "border border-gray-300 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNSA3LjVMMTAgMTIuNUwxNSA3LjUiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 bg-center-y";
+  const labelClass = "text-sm font-medium text-gray-700 mb-1";
+  const readOnlyClass = "bg-gray-100 cursor-not-allowed";
+
   return (
-    <>
-      <form className="space-y-8" onSubmit={handleSubmit}>
-        {/* MEMBERS’ PERSONAL INFORMATION */}
-        <section className="bg-white p-4 rounded shadow">
-          <h2 className="text-xl font-bold mb-4">MEMBERS’ PERSONAL INFORMATION</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="">
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* MEMBERS' PERSONAL INFORMATION */}
+        <section className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <h2 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-3">
+            MEMBERS' PERSONAL INFORMATION
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Account Type */}
             <div className="flex flex-col">
-              <label className="font-semibold">Account Type:</label>
+              <label className={labelClass}>Account Type</label>
               <select
                 name="accountType"
                 value={formData.accountType}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={selectClass}
               >
                 <option value="">Select an item</option>
                 <option value="Savings">Individual</option>
@@ -87,115 +95,115 @@ const MemberAndCoAccountForm = () => {
             </div>
             {/* Member Code */}
             <div className="flex flex-col">
-              <label className="font-semibold">Member Code:</label>
+              <label className={labelClass}>Member Code</label>
               <input
                 type="text"
                 name="memberCode"
                 value={formData.memberCode}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="Member Code"
                 readOnly={isFetchedData}
               />
             </div>
             {/* Last Name */}
             <div className="flex flex-col">
-              <label className="font-semibold">Last Name:</label>
+              <label className={labelClass}>Last Name</label>
               <input
                 type="text"
                 name="memberLastName"
                 value={formData.memberLastName}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="Last Name"
                 readOnly={isFetchedData}
               />
             </div>
             {/* Middle Name */}
             <div className="flex flex-col">
-              <label className="font-semibold">Middle Name:</label>
+              <label className={labelClass}>Middle Name</label>
               <input
                 type="text"
                 name="memberMiddleName"
                 value={formData.memberMiddleName}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="Middle Name"
                 readOnly={isFetchedData}
               />
             </div>
             {/* First Name */}
             <div className="flex flex-col">
-              <label className="font-semibold">First Name:</label>
+              <label className={labelClass}>First Name</label>
               <input
                 type="text"
                 name="memberFirstName"
                 value={formData.memberFirstName}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="First Name"
                 readOnly={isFetchedData}
               />
             </div>
             {/* Extension Name */}
             <div className="flex flex-col">
-              <label className="font-semibold">Extension Name:</label>
+              <label className={labelClass}>Extension Name</label>
               <input
                 type="text"
                 name="memberExtension"
                 value={formData.memberExtension}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="e.g. Jr, Sr"
                 readOnly={isFetchedData}
               />
             </div>
             {/* Date of Birth */}
             <div className="flex flex-col">
-              <label className="font-semibold">Date of Birth:</label>
+              <label className={labelClass}>Date of Birth</label>
               <input
                 type="date"
                 name="memberDOB"
                 value={formData.memberDOB}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 readOnly={isFetchedData}
               />
             </div>
             {/* Place of Birth */}
             <div className="flex flex-col">
-              <label className="font-semibold">Place of Birth:</label>
+              <label className={labelClass}>Place of Birth</label>
               <input
                 type="text"
                 name="memberPlaceOfBirth"
                 value={formData.memberPlaceOfBirth}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="Place of Birth"
                 readOnly={isFetchedData}
               />
             </div>
             {/* Age */}
             <div className="flex flex-col">
-              <label className="font-semibold">Age:</label>
+              <label className={labelClass}>Age</label>
               <input
                 type="number"
                 name="memberAge"
                 value={formData.memberAge}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="Age"
                 readOnly={isFetchedData}
               />
             </div>
             {/* Gender */}
             <div className="flex flex-col">
-              <label className="font-semibold">Gender:</label>
+              <label className={labelClass}>Gender</label>
               <select
                 name="memberGender"
                 value={formData.memberGender}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${selectClass} ${isFetchedData ? readOnlyClass : ""}`}
                 disabled={isFetchedData}
               >
                 <option value="">Select an item</option>
@@ -205,12 +213,12 @@ const MemberAndCoAccountForm = () => {
             </div>
             {/* Civil Status */}
             <div className="flex flex-col">
-              <label className="font-semibold">Civil Status:</label>
+              <label className={labelClass}>Civil Status</label>
               <select
                 name="memberCivilStatus"
                 value={formData.memberCivilStatus}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${selectClass} ${isFetchedData ? readOnlyClass : ""}`}
                 disabled={isFetchedData}
               >
                 <option value="">Select an item</option>
@@ -222,26 +230,26 @@ const MemberAndCoAccountForm = () => {
             </div>
             {/* Contact Number */}
             <div className="flex flex-col">
-              <label className="font-semibold">Contact Number:</label>
+              <label className={labelClass}>Contact Number</label>
               <input
                 type="text"
                 name="memberContactNumber"
                 value={formData.memberContactNumber}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="Contact Number"
                 readOnly={isFetchedData}
               />
             </div>
             {/* Complete Address */}
-            <div className="flex flex-col">
-              <label className="font-semibold">Complete Address:</label>
+            <div className="flex flex-col lg:col-span-2">
+              <label className={labelClass}>Complete Address</label>
               <input
                 type="text"
                 name="memberCompleteAddress"
                 value={formData.memberCompleteAddress}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={`${inputClass} ${isFetchedData ? readOnlyClass : ""}`}
                 placeholder="Complete Address"
                 readOnly={isFetchedData}
               />
@@ -250,94 +258,94 @@ const MemberAndCoAccountForm = () => {
         </section>
 
         {/* CO‑ACCOUNT HOLDER PERSONAL INFORMATION */}
-        <section className="bg-white p-4 rounded shadow">
-          <h2 className="text-xl font-bold mb-4">
+        <section className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <h2 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-3">
             CO‑ACCOUNT HOLDER PERSONAL INFORMATION
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="flex flex-col">
-              <label className="font-semibold">Last Name:</label>
+              <label className={labelClass}>Last Name</label>
               <input
                 type="text"
                 name="coLastName"
                 value={formData.coLastName}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="Last Name"
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Middle Name:</label>
+              <label className={labelClass}>Middle Name</label>
               <input
                 type="text"
                 name="coMiddleName"
                 value={formData.coMiddleName}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="Middle Name"
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">First Name:</label>
+              <label className={labelClass}>First Name</label>
               <input
                 type="text"
                 name="coFirstName"
                 value={formData.coFirstName}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="First Name"
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Extension Name:</label>
+              <label className={labelClass}>Extension Name</label>
               <input
                 type="text"
                 name="coExtension"
                 value={formData.coExtension}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="e.g. Jr, Sr"
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Date of Birth:</label>
+              <label className={labelClass}>Date of Birth</label>
               <input
                 type="date"
                 name="coDOB"
                 value={formData.coDOB}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Place of Birth:</label>
+              <label className={labelClass}>Place of Birth</label>
               <input
                 type="text"
                 name="coPlaceOfBirth"
                 value={formData.coPlaceOfBirth}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="Place of Birth"
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Age:</label>
+              <label className={labelClass}>Age</label>
               <input
                 type="number"
                 name="coAge"
                 value={formData.coAge}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="Age"
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Gender:</label>
+              <label className={labelClass}>Gender</label>
               <select
                 name="coGender"
                 value={formData.coGender}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={selectClass}
               >
                 <option value="">Select an item</option>
                 <option value="Male">Male</option>
@@ -345,12 +353,12 @@ const MemberAndCoAccountForm = () => {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Civil Status:</label>
+              <label className={labelClass}>Civil Status</label>
               <select
                 name="coCivilStatus"
                 value={formData.coCivilStatus}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={selectClass}
               >
                 <option value="">Select an item</option>
                 <option value="Single">Single</option>
@@ -360,25 +368,23 @@ const MemberAndCoAccountForm = () => {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">Contact Number:</label>
+              <label className={labelClass}>Contact Number</label>
               <input
                 type="text"
                 name="coContactNumber"
                 value={formData.coContactNumber}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="Contact Number"
               />
             </div>
             <div className="flex flex-col">
-              <label className="font-semibold">
-                Relationship to Primary:
-              </label>
+              <label className={labelClass}>Relationship to Primary</label>
               <select
                 name="coRelationship"
                 value={formData.coRelationship}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={selectClass}
               >
                 <option value="">Select an item</option>
                 <option value="Spouse">Spouse</option>
@@ -389,14 +395,14 @@ const MemberAndCoAccountForm = () => {
                 <option value="Friend">Friend</option>
               </select>
             </div>
-            <div className="flex flex-col">
-              <label className="font-semibold">Complete Address:</label>
+            <div className="flex flex-col lg:col-span-2">
+              <label className={labelClass}>Complete Address</label>
               <input
                 type="text"
                 name="coCompleteAddress"
                 value={formData.coCompleteAddress}
                 onChange={handleChange}
-                className="border p-2 rounded"
+                className={inputClass}
                 placeholder="Complete Address"
               />
             </div>
@@ -404,13 +410,13 @@ const MemberAndCoAccountForm = () => {
         </section>
 
         {/* Submit Button */}
-        <div className="flex justify-end mt-6 w-full">
+        <div className="flex justify-end mt-8">
           <button
             type="button"
             onClick={handleSubmit}
-            className="bg-green-700 text-white text-lg px-8 py-3 rounded-lg flex items-center gap-3 shadow-md hover:bg-green-800 transition-all"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium px-8 py-3 rounded-lg flex items-center gap-2 shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300"
           >
-            <span className="text-2xl">&#187;&#187;</span> Next
+            Next <span className="text-xl">→</span>
           </button>
         </div>
       </form>
@@ -422,7 +428,7 @@ const MemberAndCoAccountForm = () => {
           member={selectedMember || { memberId }}
         />
       )}
-    </>
+    </div>
   );
 };
 
