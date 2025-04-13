@@ -261,15 +261,6 @@ const Members = () => {
 
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-          <button 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center font-medium hover:bg-blue-700 transition-colors"
-            onClick={() => openModal('addOpen')}
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add New Member
-          </button>
-        </div>
 
         {message.text && (
           <div className={`font-medium px-4 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>

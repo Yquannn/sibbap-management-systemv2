@@ -21,35 +21,35 @@ const RegularSavingsInfo = () => {
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const transactionsPerPage = 10;
+
   // Filters for the transactions table
   const [transactionNumberFilter, setTransactionNumberFilter] = useState("");
   const [transactionTypeFilter, setTransactionTypeFilter] = useState("all");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
 
-  // Fetch member data and transactions
+  // Always call useEffect unconditionally, then handle memberId check within the callback
   useEffect(() => {
-    if (!memberId) {
-      setError("No memberId provided in the route.");
-      setLoading(false);
-      return;
-    }
-    
     const fetchData = async () => {
+      if (!memberId) {
+        setError("No memberId provided in the route.");
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const memberResponse = await axios.get(
           `http://localhost:3001/api/member/savings/${memberId}`
         );
-        
         const member = memberResponse.data.data;
         setMemberData(member);
-        
         if (member.email) {
           const txResponse = await axios.get(
             `http://localhost:3001/api/member/email/${member.email}`
           );
-          
           if (txResponse.data && txResponse.data.transactions) {
             setTransactions(txResponse.data.transactions);
           }
@@ -60,11 +60,16 @@ const RegularSavingsInfo = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [memberId]);
 
-  // Loading and error states
+  // Reset current page when filters or transactions change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [transactionNumberFilter, transactionTypeFilter, startDateFilter, endDateFilter, transactions]);
+
+  // Early returns for loading and error states occur after all hooks have been called
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -75,7 +80,7 @@ const RegularSavingsInfo = () => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -86,7 +91,7 @@ const RegularSavingsInfo = () => {
       </div>
     );
   }
-  
+
   if (!memberData) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -136,6 +141,12 @@ const RegularSavingsInfo = () => {
       return true;
     });
 
+  // Pagination calculations
+  const indexOfLastTransaction = currentPage * transactionsPerPage;
+  const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
+  const currentTransactions = filteredTransactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
+  const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
+
   // Compute summary totals
   const totalDeposited = filteredTransactions.reduce(
     (acc, tx) => tx.transaction_type?.toLowerCase() === "deposit" ? acc + (parseFloat(tx.amount) || 0) : acc,
@@ -158,14 +169,14 @@ const RegularSavingsInfo = () => {
     data.forEach((tx) => {
       const date = new Date(tx.transaction_date_time);
       const key = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
-      
+
       if (!map[key]) {
         map[key] = { deposit: 0, withdraw: 0, interest: 0, timestamp: key };
       }
-      
+
       const amt = parseFloat(tx.amount) || 0;
       const type = tx.transaction_type?.toLowerCase();
-      
+
       if (type === "deposit") {
         map[key].deposit += amt;
       } else if (type === "withdrawal") {
@@ -199,10 +210,10 @@ const RegularSavingsInfo = () => {
   const currentBalanceChange = monthlyKeys.length < 2 ? null : (() => {
     const prevMonth = monthlyGrouped[monthlyKeys[monthlyKeys.length - 2]];
     const currMonth = monthlyGrouped[monthlyKeys[monthlyKeys.length - 1]];
-    
+
     const prevNet = prevMonth.deposit - prevMonth.withdraw + prevMonth.interest;
     const currNet = currMonth.deposit - currMonth.withdraw + currMonth.interest;
-    
+
     if (prevNet === 0) return null;
     return ((currNet - prevNet) / prevNet) * 100;
   })();
@@ -225,6 +236,15 @@ const RegularSavingsInfo = () => {
     });
   };
 
+  // Handlers for pagination
+  const handlePrevious = () => {
+    if (currentPage > 1) setCurrentPage(prev => prev - 1);
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+  };
+
   return (
     <div className="bg-gray-50 p-4 md:p-6">
       <div className="">
@@ -232,14 +252,24 @@ const RegularSavingsInfo = () => {
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-wrap items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <img
-                src={id_picture ? imageUrl(id_picture) : defaultProfileImage}
-                alt="Profile"
-                className="w-16 h-16 object-cover rounded-full bg-gray-100"
-              />
-              <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
-                account_status?.toLowerCase() === "active" ? "bg-green-500" : "bg-gray-400"
-              }`}></div>
+              {id_picture ? (
+                <img
+                  src={imageUrl(id_picture)}
+                  alt="Profile"
+                  className="w-16 h-16 object-cover rounded-full bg-gray-100"
+                />
+              ) : (
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-medium text-xl bg-gradient-to-br from-blue-500 to-indigo-600"
+                >
+                  {`${first_name?.charAt(0) || ''}${last_name?.charAt(0) || ''}`}
+                </div>
+              )}
+              <div 
+                className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
+                  account_status?.toLowerCase() === "active" ? "bg-green-500" : "bg-gray-400"
+                }`}
+              ></div>
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">
@@ -273,7 +303,6 @@ const RegularSavingsInfo = () => {
               <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white">
                 <p className="uppercase tracking-wide text-sm font-medium opacity-80">Current Balance</p>
                 <p className="mt-1 text-3xl font-bold">{formatCurrency(availableBalance)}</p>
-                
                 {currentBalanceChange !== null && (
                   <div className="flex items-center mt-2 text-xs font-medium">
                     <span className="bg-white bg-opacity-20 rounded-full px-2 py-0.5 flex items-center">
@@ -287,7 +316,6 @@ const RegularSavingsInfo = () => {
                   </div>
                 )}
               </div>
-              
               <div className="p-6">
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   <div className="text-center">
@@ -339,7 +367,6 @@ const RegularSavingsInfo = () => {
                     )}
                   </div>
                 </div>
-                
                 <div className="flex gap-2">
                   <button
                     className="w-1/2 bg-green-100 hover:bg-green-200 text-green-700 font-medium py-2.5 rounded-lg transition flex items-center justify-center"
@@ -366,8 +393,7 @@ const RegularSavingsInfo = () => {
                 </div>
               </div>
             </div>
-            
-            {/* Recommended addition: Quick Stats */}
+            {/* Quick Stats */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Stats</h3>
               <div className="space-y-4">
@@ -383,7 +409,6 @@ const RegularSavingsInfo = () => {
                     ></div>
                   </div>
                 </div>
-                
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">Deposit/Withdrawal Ratio</span>
@@ -402,7 +427,6 @@ const RegularSavingsInfo = () => {
                     ></div>
                   </div>
                 </div>
-                
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">Interest Earned</span>
@@ -438,7 +462,6 @@ const RegularSavingsInfo = () => {
                   {showFilters ? "Hide Filters" : "Show Filters"}
                 </button>
               </div>
-              
               {/* Filters Section */}
               {showFilters && (
                 <div className="bg-gray-50 p-4 border-b border-gray-100">
@@ -499,9 +522,8 @@ const RegularSavingsInfo = () => {
                   </div>
                 </div>
               )}
-              
-              {/* Transactions Table */}
-              <div className="overflow-x-auto">
+              {/* Transactions Table with max height and scroll */}
+              <div className="overflow-x-auto max-h-80 overflow-y-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <tr>
@@ -512,8 +534,8 @@ const RegularSavingsInfo = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredTransactions.length > 0 ? (
-                      filteredTransactions.map((tx, index) => (
+                    {currentTransactions.length > 0 ? (
+                      currentTransactions.map((tx, index) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
@@ -556,7 +578,6 @@ const RegularSavingsInfo = () => {
                                 ? "text-red-600" 
                                 : "text-green-600"
                             }`}>
-                              {tx.transaction_type?.toLowerCase() === "withdrawal" ? "" : ""}
                               {formatCurrency(tx.amount)}
                             </span>
                           </td>
@@ -578,19 +599,33 @@ const RegularSavingsInfo = () => {
                   </tbody>
                 </table>
               </div>
-              
-              {/* Pagination - Added feature */}
+              {/* Pagination */}
               {filteredTransactions.length > 0 && (
                 <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200">
                   <div className="text-xs text-gray-500">
-                    Showing <span className="font-medium">{Math.min(10, filteredTransactions.length)}</span> of{" "}
-                    <span className="font-medium">{filteredTransactions.length}</span> transactions
+                    Showing{" "}
+                    <span className="font-medium">
+                      {indexOfFirstTransaction + 1} - {Math.min(indexOfLastTransaction, filteredTransactions.length)}
+                    </span>{" "}
+                    of <span className="font-medium">{filteredTransactions.length}</span> transactions
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <button
+                      onClick={handlePrevious}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1 border border-gray-300 rounded-md text-sm font-medium ${
+                        currentPage === 1 ? "text-gray-400 bg-gray-50" : "text-gray-700 bg-white hover:bg-gray-50"
+                      }`}
+                    >
                       Previous
                     </button>
-                    <button className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <button
+                      onClick={handleNext}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-1 border border-gray-300 rounded-md text-sm font-medium ${
+                        currentPage === totalPages ? "text-gray-400 bg-gray-50" : "text-gray-700 bg-white hover:bg-gray-50"
+                      }`}
+                    >
                       Next
                     </button>
                   </div>

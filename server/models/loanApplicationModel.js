@@ -879,9 +879,11 @@ async function disburseLoan(loanApplicationId) {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    // 1) Update the loan application's status to "Disbursed"
+    // 1) Update the loan application's status to "Disbursed" and set disbursed_date to today
     const [result] = await conn.query(
-      `UPDATE loan_applications SET remarks = 'Disbursed' WHERE loan_application_id = ?`,
+      `UPDATE loan_applications 
+       SET remarks = 'Disbursed', disbursed_date = NOW() 
+       WHERE loan_application_id = ?`,
       [loanApplicationId]
     );
     if (result.affectedRows === 0) {
@@ -889,7 +891,7 @@ async function disburseLoan(loanApplicationId) {
     }
     console.log(`Loan application ${loanApplicationId} status updated to "Disbursed"`);
 
-    // 2) Fetch the required fields to create installments.
+    // 2) Fetch the required fields to create installments
     const [rows] = await conn.query(
       `SELECT terms, loan_amount, service_fee FROM loan_applications WHERE loan_application_id = ?`,
       [loanApplicationId]
@@ -901,10 +903,10 @@ async function disburseLoan(loanApplicationId) {
     const { terms, loan_amount, service_fee } = rows[0];
     console.log("Creating installments with:", { terms, loan_amount, service_fee });
 
-    // 3) Call createInstallments using the same connection.
+    // 3) Call createInstallments using the same connection
     await createInstallments(loanApplicationId, terms, loan_amount, service_fee, conn);
 
-    // 4) Commit the transaction if all queries succeed.
+    // 4) Commit the transaction
     await conn.commit();
     return true;
   } catch (error) {
@@ -915,6 +917,7 @@ async function disburseLoan(loanApplicationId) {
     if (conn) conn.release();
   }
 }
+
 
 
 

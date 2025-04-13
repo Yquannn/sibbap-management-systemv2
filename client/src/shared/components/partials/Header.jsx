@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { 
-  FaCog, 
-  FaQuestionCircle, 
-  FaBell, 
-  FaUserCircle, 
-  FaTimes, 
-  FaCircle 
-} from 'react-icons/fa';
+import { FaCog, FaQuestionCircle, FaBell, FaUserCircle, FaTimes, FaCircle } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,20 +17,8 @@ const UserHeader = ({ name, userType }) => {
     return name
       .split(' ')
       .filter(part => part) // remove empty parts
-      .map((n) => n[0].toUpperCase())
+      .map(n => n[0].toUpperCase())
       .join('');
-  }, [name]);
-
-  // Generate a consistent avatar background color based on name
-  const avatarColor = useMemo(() => {
-    if (!name) return "#A0C4FF";
-    const pastelColors = [
-      "#FFADAD", "#FFD6A5", "#FDFFB6", 
-      "#CAFFBF", "#9BF6FF", "#A0C4FF", 
-      "#BDB2FF", "#FFC6FF"
-    ];
-    const charCodeSum = name.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    return pastelColors[charCodeSum % pastelColors.length];
   }, [name]);
 
   // Get userId from session storage
@@ -76,7 +57,7 @@ const UserHeader = ({ name, userType }) => {
         title: 'Notification',
         content: notif.message,
         time: getTimeAgo(notif.createdAt),
-        read: notif.isRead === 1
+        read: notif.isRead === 1,
       }));
       setNotifications(transformedNotifications);
     } catch (err) {
@@ -85,7 +66,7 @@ const UserHeader = ({ name, userType }) => {
       setNotifications([
         { id: 1, title: 'Notification', content: 'You have a new message from Admin', time: '5 min ago', read: false },
         { id: 2, title: 'System update', content: 'System maintenance scheduled for tonight', time: '1 hour ago', read: false },
-        { id: 3, title: 'Welcome aboard!', content: 'Welcome to our platform! Let us know if you need help.', time: '1 day ago', read: true }
+        { id: 3, title: 'Welcome aboard!', content: 'Welcome to our platform! Let us know if you need help.', time: '1 day ago', read: true },
       ]);
     } finally {
       setIsLoading(false);
@@ -119,20 +100,20 @@ const UserHeader = ({ name, userType }) => {
 
   // Toggle notifications dropdown visibility
   const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev);
+    setShowNotifications(prev => !prev);
   };
 
   // Mark a single notification as read via API call
   const markAsRead = async (id) => {
     try {
       await axios.put(`http://localhost:3001/api/notifications/${id}/read`);
-      setNotifications((prevNotifications) =>
-        prevNotifications.map((notif) =>
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notif =>
           notif.id === id ? { ...notif, read: true } : notif
         )
       );
     } catch (error) {
-      console.error("Error marking notification as read", error);
+      console.error('Error marking notification as read', error);
     }
   };
 
@@ -141,39 +122,48 @@ const UserHeader = ({ name, userType }) => {
     try {
       await Promise.all(
         notifications
-          .filter((notif) => !notif.read)
-          .map((notif) =>
-            axios.put(`http://localhost:3001/api/notifications/${notif.id}/read`)
-          )
+          .filter(notif => !notif.read)
+          .map(notif => axios.put(`http://localhost:3001/api/notifications/${notif.id}/read`))
       );
-      setNotifications((prevNotifications) =>
-        prevNotifications.map((notif) => ({ ...notif, read: true }))
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notif => ({ ...notif, read: true }))
       );
     } catch (error) {
-      console.error("Error marking all notifications as read", error);
+      console.error('Error marking all notifications as read', error);
     }
   };
 
   // Delete a notification (only from local state in this demo)
   const deleteNotification = (id, e) => {
     e.stopPropagation();
-    setNotifications((prevNotifications) =>
-      prevNotifications.filter((notif) => notif.id !== id)
+    setNotifications(prevNotifications =>
+      prevNotifications.filter(notif => notif.id !== id)
     );
   };
 
   // Count unread notifications
-  const unreadCount = notifications.filter((notif) => !notif.read).length;
+  const unreadCount = notifications.filter(notif => !notif.read).length;
 
   return (
     <div className="px-6 py-4 mb-4 flex justify-between items-center bg-white shadow-sm border border-gray-100">
       {/* Left Section - User Info */}
       <div className="flex items-center space-x-4">
-        <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center text-gray-700 font-bold text-xl shadow-sm transition-transform hover:scale-105"
-          style={{ backgroundColor: avatarColor }}
+        {/* Modern Avatar with Initials */}
+        <div
+          className="relative w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-cyan-500 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm cursor-pointer"
         >
-          {initials}
+          <span className="z-10">{initials}</span>
+          {/* Modern overlay effect on hover */}
+          <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+          {/* Subtle pattern for depth */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 75%)',
+            }}
+          ></div>
+          {/* Subtle border for definition */}
+          <div className="absolute inset-0 rounded-full border border-white border-opacity-20"></div>
         </div>
         <div>
           <h2 className="font-bold text-lg text-gray-800">Welcome, {name || 'User'}!</h2>
@@ -191,7 +181,7 @@ const UserHeader = ({ name, userType }) => {
       <div className="flex items-center space-x-1 md:space-x-3">
         {/* Notifications */}
         <div className="relative" ref={notificationRef}>
-          <button 
+          <button
             className="relative p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
             onClick={toggleNotifications}
             aria-label="Notifications"
@@ -211,7 +201,7 @@ const UserHeader = ({ name, userType }) => {
                 <div className="flex justify-between items-center">
                   <h3 className="font-semibold text-gray-700">Notifications</h3>
                   {unreadCount > 0 && (
-                    <button 
+                    <button
                       className="text-xs text-blue-600 hover:text-blue-800"
                       onClick={markAllAsRead}
                     >
@@ -233,8 +223,8 @@ const UserHeader = ({ name, userType }) => {
                 ) : (
                   <ul>
                     {notifications.map((notif) => (
-                      <li 
-                        key={notif.id} 
+                      <li
+                        key={notif.id}
                         className={`border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-blue-50' : ''}`}
                         onClick={() => markAsRead(notif.id)}
                       >
@@ -247,7 +237,7 @@ const UserHeader = ({ name, userType }) => {
                           <div className={`flex-1 ${!notif.read ? 'pl-4' : ''}`}>
                             <div className="flex justify-between">
                               <p className="font-medium text-sm text-gray-800">{notif.title}</p>
-                              <button 
+                              <button
                                 className="text-gray-400 hover:text-gray-600"
                                 onClick={(e) => deleteNotification(notif.id, e)}
                                 aria-label="Delete notification"

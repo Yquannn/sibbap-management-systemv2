@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
 import { UserPlus, Search, Filter, ChevronDown, Edit, UserCheck, Plus } from 'lucide-react';
-import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdAttachMoney } from 'react-icons/md';
+import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdCalendarToday } from 'react-icons/md';
 
 const apiBaseURL = 'http://localhost:3001/api';
 
 const Members = () => {
   const [members, setMembers] = useState([]);
+  const [allMembers, setAllMembers] = useState([]); // Store all unfiltered members
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -15,8 +16,9 @@ const Members = () => {
   const [filterCompletion, setFilterCompletion] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [totalMember, setTotalMember] = useState(0);
-  const [activeMembers, setActiveMembers] = useState(25000); // Placeholder
-  const [inactiveMembers, setInactiveMembers] = useState(15000); // Placeholder
+  const [newRegistrationsThisMonth, setNewRegistrationsThisMonth] = useState(0);
+  const [completeMembers, setCompleteMembers] = useState(0);
+  const [incompleteMembers, setIncompleteMembers] = useState(0);
 
   const navigate = useNavigate();
 
@@ -44,49 +46,94 @@ const Members = () => {
     return bgColors[index];
   };
 
-  // Fetch members with filters
-  const fetchMembers = useCallback(async () => {
+  // Calculate dashboard statistics based on all members (not filtered)
+  const calculateStats = (membersData) => {
+    const complete = membersData.filter(member => 
+      member.status?.toLowerCase() === 'completed').length;
+    const incomplete = membersData.filter(member => 
+      member.status?.toLowerCase() === 'incomplete').length;
+    
+    setCompleteMembers(complete);
+    setIncompleteMembers(incomplete);
+    setTotalMember(membersData.length);
+    
+    // Calculate new registrations this month
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const thisMonthRegistrations = membersData.filter(member => {
+      if (!member.created_at) return false;
+      const createdDate = new Date(member.created_at);
+      return createdDate.getMonth() === currentMonth && 
+             createdDate.getFullYear() === currentYear;
+    }).length;
+    
+    setNewRegistrationsThisMonth(thisMonthRegistrations);
+  };
+
+  // Fetch all members first
+  const fetchAllMembers = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (searchTerm.trim()) {
-        params.name = searchTerm.trim();
-      }
-      if (filterCompletion !== "All") {
-        params.status = filterCompletion.toLowerCase() === "complete" ? "completed" : "incomplete";
-      }
-      if (filterStatus !== "All") {
-        params.accountStatus = filterStatus.toLowerCase();
-      }
-  
-      const response = await axios.get(`${apiBaseURL}/members/applicant`, { params });
+      const response = await axios.get(`${apiBaseURL}/members/applicant`);
       const apiData = response.data.data;
       const membersData = Array.isArray(apiData[0]) ? apiData[0] : apiData;
       const sortedMembers = membersData.sort(
         (a, b) => parseInt(b.memberCode, 10) - parseInt(a.memberCode, 10)
       );
-      setMembers(sortedMembers);
+      setAllMembers(sortedMembers);
+      calculateStats(sortedMembers); // Calculate stats based on all members
     } catch (err) {
       setError("Error fetching members: " + err.message);
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filterCompletion, filterStatus]);
-  
-  // Fetch total member count
-  const fetchTotalMember = async () => {
-    try {
-      const response = await axios.get(`${apiBaseURL}/total`);
-      setTotalMember(response.data.totalMembers);
-    } catch (error) {
-      console.error('Error fetching total members:', error);
-    }
-  };
+  }, []);
 
+  // Apply filters to the members
+  const applyFilters = useCallback(() => {
+    if (!allMembers.length) return;
+
+    let filteredMembers = [...allMembers];
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredMembers = filteredMembers.filter(member => 
+        (member.first_name && member.first_name.toLowerCase().includes(searchLower)) ||
+        (member.last_name && member.last_name.toLowerCase().includes(searchLower)) ||
+        (`${member.first_name || ''} ${member.last_name || ''}`.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply completion filter
+    if (filterCompletion !== "All") {
+      const statusToFilter = filterCompletion.toLowerCase() === "complete" ? "completed" : "incomplete";
+      filteredMembers = filteredMembers.filter(member => 
+        member.status?.toLowerCase() === statusToFilter
+      );
+    }
+    
+    // Apply account status filter
+    if (filterStatus !== "All") {
+      filteredMembers = filteredMembers.filter(member => 
+        member.accountStatus?.toLowerCase() === filterStatus.toLowerCase()
+      );
+    }
+    
+    setMembers(filteredMembers);
+  }, [allMembers, searchTerm, filterCompletion, filterStatus]);
+
+  // Initial fetch of all members
   useEffect(() => {
-    fetchMembers();
-    fetchTotalMember();
-  }, [fetchMembers]);
+    fetchAllMembers();
+  }, [fetchAllMembers]);
+
+  // Apply filters whenever filter criteria change
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   return (
     <div className="">
@@ -95,7 +142,7 @@ const Members = () => {
         <p className="text-gray-600">View and manage all member applicants</p>
       </div>
 
-      {/* Dashboard Cards */}
+      {/* Dashboard Cards - Using stats from all members, not filtered ones */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-5 flex items-center">
@@ -103,7 +150,7 @@ const Members = () => {
               <MdPeople className="text-2xl text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Total Members</p>
+              <p className="text-sm text-gray-500 font-medium">Total Registered Members</p>
               <p className="text-xl font-bold">{totalMember.toLocaleString()}</p>
             </div>
           </div>
@@ -114,30 +161,30 @@ const Members = () => {
               <MdCheckCircle className="text-2xl text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Active Members</p>
-              <p className="text-xl font-bold">{activeMembers.toLocaleString()}</p>
+              <p className="text-sm text-gray-500 font-medium">Complete Applications</p>
+              <p className="text-xl font-bold">{completeMembers.toLocaleString()}</p>
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-5 flex items-center">
-            <div className="rounded-full bg-red-100 p-3 mr-4">
-              <MdRemoveCircleOutline className="text-2xl text-red-600" />
+            <div className="rounded-full bg-yellow-100 p-3 mr-4">
+              <MdRemoveCircleOutline className="text-2xl text-yellow-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Inactive Members</p>
-              <p className="text-xl font-bold">{inactiveMembers.toLocaleString()}</p>
+              <p className="text-sm text-gray-500 font-medium">Incomplete Applications</p>
+              <p className="text-xl font-bold">{incompleteMembers.toLocaleString()}</p>
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-5 flex items-center">
             <div className="rounded-full bg-purple-100 p-3 mr-4">
-              <MdAttachMoney className="text-2xl text-purple-600" />
+              <MdCalendarToday className="text-2xl text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Membership Fee</p>
-              <p className="text-xl font-bold">Php350</p>
+              <p className="text-sm text-gray-500 font-medium">New Registrations This Month</p>
+              <p className="text-xl font-bold">{newRegistrationsThisMonth.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -326,12 +373,12 @@ const Members = () => {
                           </button>
                           <button 
                             className={`px-3 py-1 rounded inline-flex items-center ${
-                              member.status.toLowerCase() === "incomplete" 
+                              member.status?.toLowerCase() === "incomplete" 
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                                 : 'bg-green-100 text-green-700 hover:bg-green-200 transition-colors'
                             }`}
-                            onClick={() => member.status.toLowerCase() !== "incomplete" && navigate(`/member-registration/register/${member.memberId}`)}
-                            disabled={member.status.toLowerCase() === "incomplete"}
+                            onClick={() => member.status?.toLowerCase() !== "incomplete" && navigate(`/member-registration/register/${member.memberId}`)}
+                            disabled={member.status?.toLowerCase() === "incomplete"}
                           >
                             <UserCheck className="w-3 h-3 mr-1" />
                             Register

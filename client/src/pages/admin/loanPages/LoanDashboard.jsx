@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import CountUp from 'react-countup';
 import {
   Chart as ChartJS,
@@ -23,7 +23,8 @@ import {
   FaInfoCircle, 
   FaCalendarAlt,
   FaPercentage, 
-  FaExclamationTriangle 
+  FaExclamationTriangle,
+  FaTimesCircle 
 } from 'react-icons/fa';
 
 ChartJS.register(
@@ -39,8 +40,8 @@ ChartJS.register(
   RadialLinearScale
 );
 
-// Enhanced Loan Disbursement Card with interactive elements
-const LoanDisbursementCard = () => {
+// LoanDisbursementCard component with updated data
+const LoanDisbursementCard = ({ totalLoanDisbursed }) => {
   const [timeRange, setTimeRange] = useState("Last 7 days");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
@@ -64,7 +65,14 @@ const LoanDisbursementCard = () => {
       <div className="flex justify-between items-center">
         <div>
           <h5 className="text-3xl font-bold text-gray-900">
-            <CountUp start={0} end={750000} duration={2.5} separator="," prefix="₱" />
+            <CountUp
+              start={0}
+              end={parseFloat(totalLoanDisbursed) || 0}
+              duration={2.5}
+              separator=","
+              decimals={2}
+              prefix="₱"
+            />
           </h5>
           <p className="text-sm font-medium text-gray-500 mt-1">
             Total disbursed this month
@@ -231,15 +239,19 @@ const LoanDisbursementCard = () => {
   );
 };
 
-// Risk Assessment Card Component
-const RiskAssessmentCard = () => {
+// Updated Risk Assessment Card with loan type data
+const RiskAssessmentCard = ({ loansByType }) => {
+  // Calculate total loans
+  const totalLoans = loansByType ? loansByType.reduce((acc, item) => acc + item.count, 0) : 0;
+  
+  // Prepare data for the pie chart
   const riskScoreData = {
-    labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Very High Risk'],
+    labels: loansByType ? loansByType.map(item => item.loan_type) : [],
     datasets: [
       {
-        label: 'Current Borrowers',
-        data: [45, 35, 15, 5],
-        backgroundColor: ['#10B981', '#F59E0B', '#F43F5E', '#F43F5E'],
+        label: 'Loan Types',
+        data: loansByType ? loansByType.map(item => item.count) : [],
+        backgroundColor: ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6'],
         borderWidth: 0,
       },
     ],
@@ -248,9 +260,9 @@ const RiskAssessmentCard = () => {
   return (
     <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-800">Risk Assessment</h3>
-        <div className="p-2 bg-red-50 rounded-lg">
-          <FaExclamationTriangle className="text-red-500" />
+        <h3 className="text-lg font-semibold text-gray-800">Loan Types Distribution</h3>
+        <div className="p-2 bg-indigo-50 rounded-lg">
+          <FaChartLine className="text-indigo-600" />
         </div>
       </div>
       <div className="h-64">
@@ -280,9 +292,8 @@ const RiskAssessmentCard = () => {
                   label: function(context) {
                     const label = context.label || '';
                     const value = context.parsed || 0;
-                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                    const percentage = Math.round((value / total) * 100);
-                    return `${label}: ${percentage}% (${value} borrowers)`;
+                    const percentage = Math.round((value / totalLoans) * 100);
+                    return `${label}: ${percentage}% (${value} loans)`;
                   }
                 }
               }
@@ -292,12 +303,12 @@ const RiskAssessmentCard = () => {
         />
       </div>
       <div className="mt-4">
-        <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+        <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
           <div className="flex items-center">
-            <FaInfoCircle className="text-red-500 mr-2" />
-            <span className="text-sm font-medium text-gray-800">High Risk Alert</span>
+            <FaInfoCircle className="text-indigo-600 mr-2" />
+            <span className="text-sm font-medium text-gray-800">Total Loans</span>
           </div>
-          <span className="text-sm font-bold text-red-500">20% of portfolio</span>
+          <span className="text-sm font-bold text-indigo-600">{totalLoans}</span>
         </div>
       </div>
     </div>
@@ -305,7 +316,7 @@ const RiskAssessmentCard = () => {
 };
 
 // Loan Repayment Analytics Card
-const LoanRepaymentAnalyticsCard = () => {
+const LoanRepaymentAnalyticsCard = ({ averageLoanAmount, repaymentRate, overdueLoanCount }) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
   
   const repaymentData = {
@@ -346,10 +357,18 @@ const LoanRepaymentAnalyticsCard = () => {
     ],
   };
 
+  // Format the average loan amount
+  const formattedAvgLoanAmount = new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(averageLoanAmount || 0);
+
   return (
     <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-800">Loan Repayment Analytics</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Loan Analytics</h3>
         <div className="flex items-center">
           <div className="p-2 bg-amber-50 rounded-lg">
             <FaPercentage className="text-amber-600" />
@@ -456,16 +475,16 @@ const LoanRepaymentAnalyticsCard = () => {
       </div>
       <div className="mt-6 grid grid-cols-3 gap-3">
         <div className="p-3 bg-indigo-50 rounded-lg text-center">
-          <p className="text-xs font-medium text-gray-500">Overall Repayment</p>
-          <p className="text-lg font-bold text-indigo-600">94.5%</p>
+          <p className="text-xs font-medium text-gray-500">Average Loan Amount</p>
+          <p className="text-lg font-bold text-indigo-600">{formattedAvgLoanAmount}</p>
         </div>
         <div className="p-3 bg-green-50 rounded-lg text-center">
-          <p className="text-xs font-medium text-gray-500">On-time Payments</p>
-          <p className="text-lg font-bold text-green-600">87.2%</p>
+          <p className="text-xs font-medium text-gray-500">Repayment Rate</p>
+          <p className="text-lg font-bold text-green-600">{parseFloat(repaymentRate) || 0}%</p>
         </div>
         <div className="p-3 bg-red-50 rounded-lg text-center">
-          <p className="text-xs font-medium text-gray-500">Delinquency Rate</p>
-          <p className="text-lg font-bold text-red-600">5.5%</p>
+          <p className="text-xs font-medium text-gray-500">Overdue Loans</p>
+          <p className="text-lg font-bold text-red-600">{overdueLoanCount || 0}</p>
         </div>
       </div>
     </div>
@@ -473,13 +492,13 @@ const LoanRepaymentAnalyticsCard = () => {
 };
 
 // Loan Performance Radar Chart
-const LoanPerformanceCard = () => {
+const LoanPerformanceCard = ({ monthlyStats }) => {
   const performanceData = {
-    labels: ['Approval Rate', 'Repayment Rate', 'Retention Rate', 'Disbursement Speed', 'Risk Score', 'Customer Satisfaction'],
+    labels: ['Applications', 'Approvals', 'Disbursements', 'Processing Speed', 'Customer Satisfaction'],
     datasets: [
       {
         label: 'Current Period',
-        data: [85, 94, 78, 88, 82, 90],
+        data: [85, 94, 78, 88, 90],
         backgroundColor: 'rgba(99, 102, 241, 0.2)',
         borderColor: 'rgba(99, 102, 241, 1)',
         borderWidth: 2,
@@ -491,7 +510,7 @@ const LoanPerformanceCard = () => {
       },
       {
         label: 'Previous Period',
-        data: [80, 90, 75, 82, 78, 85],
+        data: [80, 90, 75, 82, 85],
         backgroundColor: 'rgba(209, 213, 219, 0.2)',
         borderColor: 'rgba(156, 163, 175, 1)',
         borderWidth: 2,
@@ -503,6 +522,14 @@ const LoanPerformanceCard = () => {
       },
     ],
   };
+
+  // Calculate approval rate from monthly stats if available
+  const approvalRate = monthlyStats && monthlyStats.length > 0 ? 
+    ((parseInt(monthlyStats[0].approved) / monthlyStats[0].total_applications) * 100).toFixed(1) : 0;
+
+  // Calculate disbursement rate from monthly stats if available
+  const disbursementRate = monthlyStats && monthlyStats.length > 0 ? 
+    ((parseInt(monthlyStats[0].disbursed) / parseInt(monthlyStats[0].approved)) * 100).toFixed(1) : 0;
 
   return (
     <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
@@ -578,30 +605,53 @@ const LoanPerformanceCard = () => {
       </div>
       <div className="mt-4 grid grid-cols-3 gap-4">
         <div className="flex flex-col items-center justify-center p-3 border border-gray-100 rounded-lg">
-          <span className="text-xs font-medium text-gray-500">Avg. Processing Time</span>
+          <span className="text-xs font-medium text-gray-500">Approval Rate</span>
+          <span className="text-lg font-bold text-indigo-600">{approvalRate}%</span>
+        </div>
+        <div className="flex flex-col items-center justify-center p-3 border border-gray-100 rounded-lg">
+          <span className="text-xs font-medium text-gray-500">Disbursement Rate</span>
+          <span className="text-lg font-bold text-indigo-600">{disbursementRate}%</span>
+        </div>
+        <div className="flex flex-col items-center justify-center p-3 border border-gray-100 rounded-lg">
+          <span className="text-xs font-medium text-gray-500">Avg. Processing</span>
           <span className="text-lg font-bold text-indigo-600">2.5 days</span>
-        </div>
-        <div className="flex flex-col items-center justify-center p-3 border border-gray-100 rounded-lg">
-          <span className="text-xs font-medium text-gray-500">Avg. Loan Amount</span>
-          <span className="text-lg font-bold text-indigo-600">₱35,000</span>
-        </div>
-        <div className="flex flex-col items-center justify-center p-3 border border-gray-100 rounded-lg">
-          <span className="text-xs font-medium text-gray-500">Avg. Loan Term</span>
-          <span className="text-lg font-bold text-indigo-600">24 months</span>
         </div>
       </div>
     </div>
   );
 };
 
-// Enhanced StatsCard Component
+// Enhanced StatsCard Component - Fixed color prop usage
 const StatsCard = ({ icon, label, value, growth, color }) => {
   const isPositive = growth.startsWith('+');
+  
+  // Define color classes mapping
+  const colorClasses = {
+    indigo: {
+      bg: "bg-indigo-50",
+      text: "text-indigo-600"
+    },
+    emerald: {
+      bg: "bg-emerald-50",
+      text: "text-emerald-600"
+    },
+    amber: {
+      bg: "bg-amber-50",
+      text: "text-amber-600"
+    },
+    violet: {
+      bg: "bg-violet-50",
+      text: "text-violet-600"
+    }
+  };
+  
+  // Get the correct color classes
+  const colorClass = colorClasses[color] || colorClasses.indigo;
   
   return (
     <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
       <div className="flex items-center justify-between mb-3">
-        <div className={`p-3 bg-${color}-50 rounded-lg`}>
+        <div className={`p-3 ${colorClass.bg} rounded-lg`}>
           {icon}
         </div>
         <div className={`text-sm font-medium px-2 py-1 rounded-full ${isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -610,7 +660,11 @@ const StatsCard = ({ icon, label, value, growth, color }) => {
       </div>
       <div className="mt-2">
         <div className="text-2xl font-bold text-gray-800">
-          <CountUp start={0} end={value} duration={2.5} separator="," />
+          {typeof value === 'number' ? (
+            <CountUp start={0} end={value} duration={2.5} separator="," />
+          ) : (
+            value
+          )}
         </div>
         <div className="text-sm font-medium text-gray-500 mt-1">{label}</div>
       </div>
@@ -619,126 +673,164 @@ const StatsCard = ({ icon, label, value, growth, color }) => {
 };
 
 // Upcoming Due Loans Component
-const UpcomingDueLoansCard = () => {
-  const upcomingLoans = [
-    { id: 'LN-2025-1201', borrower: 'Juan Dela Cruz', amount: 25000, dueDate: 'Apr 15, 2025' },
-    { id: 'LN-2025-1187', borrower: 'Maria Santos', amount: 50000, dueDate: 'Apr 18, 2025' },
-    { id: 'LN-2025-1210', borrower: 'Pedro Reyes', amount: 15000, dueDate: 'Apr 20, 2025' },
-    { id: 'LN-2025-1225', borrower: 'Ana Garcia', amount: 30000, dueDate: 'Apr 25, 2025' },
-  ];
+// const UpcomingDueLoansCard = () => {
+//   const upcomingLoans = [
+//     { id: 'LN-2025-1201', borrower: 'Juan Dela Cruz', amount: 25000, dueDate: 'Apr 15, 2025' },
+//     { id: 'LN-2025-1187', borrower: 'Maria Santos', amount: 50000, dueDate: 'Apr 18, 2025' },
+//     { id: 'LN-2025-1210', borrower: 'Pedro Reyes', amount: 15000, dueDate: 'Apr 20, 2025' },
+//     { id: 'LN-2025-1225', borrower: 'Ana Garcia', amount: 30000, dueDate: 'Apr 25, 2025' },
+//   ];
 
-  return (
-    <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">Upcoming Due Loans</h3>
-        <div className="p-2 bg-amber-50 rounded-lg">
-          <FaCalendarAlt className="text-amber-600" />
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {upcomingLoans.map((loan, index) => (
-              <tr key={loan.id} className="hover:bg-gray-50 transition-colors duration-150">
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{loan.id}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{loan.borrower}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">₱{loan.amount.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{loan.dueDate}</td>
-                <td className="px-4 py-3 text-sm">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
-                    Upcoming
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-4 flex justify-end">
-        <a href="#" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors duration-200">
-          View All Due Loans →
-        </a>
-      </div>
-    </div>
-  );
-};
+//   return (
+//     <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
+//       <div className="flex items-center justify-between mb-4">
+//         <h3 className="text-lg font-semibold text-gray-800">Upcoming Due Loans</h3>
+//         <div className="p-2 bg-amber-50 rounded-lg">
+//           <FaCalendarAlt className="text-amber-600" />
+//         </div>
+//       </div>
+//       <div className="overflow-x-auto">
+//         <table className="min-w-full divide-y divide-gray-200">
+//           <thead>
+//             <tr>
+//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan ID</th>
+//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower</th>
+//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+//             </tr>
+//           </thead>
+//           <tbody className="bg-white divide-y divide-gray-200">
+//             {upcomingLoans.map((loan) => (
+//               <tr key={loan.id} className="hover:bg-gray-50 transition-colors duration-150">
+//                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{loan.id}</td>
+//                 <td className="px-4 py-3 text-sm text-gray-500">{loan.borrower}</td>
+//                 <td className="px-4 py-3 text-sm text-gray-500">₱{loan.amount.toLocaleString()}</td>
+//                 <td className="px-4 py-3 text-sm text-gray-500">{loan.dueDate}</td>
+//                 <td className="px-4 py-3 text-sm">
+//                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+//                     Upcoming
+//                   </span>
+//                 </td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+//       <div className="mt-4 flex justify-end">
+//         <a href="#" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors duration-200">
+//           View All Due Loans →
+//         </a>
+//       </div>
+//     </div>
+//   );
+// };
 
 const LoanDashboard = () => {
-  // Enhanced stats with better icons and data
-  const stats = [
-    { 
-      label: 'Total Applications', 
-      value: 100, 
-      growth: '+10%', 
-      icon: <FaClipboardList size={24} className="text-indigo-600" />,
-      color: 'indigo'
-    },
-    { 
-      label: 'Approved Applications', 
-      value: 70, 
-      growth: '+8%', 
-      icon: <FaClipboardCheck size={24} className="text-emerald-600" />,
-      color: 'emerald'
-    },
-    { 
-      label: 'Pending Applications', 
-      value: 30, 
-      growth: '-2%', 
-      icon: <FaMoneyCheckAlt size={24} className="text-amber-600" />,
-      color: 'amber'
-    },
-    { 
-      label: 'Total Borrowers', 
-      value: 90, 
-      growth: '+5%', 
-      icon: <FaUsers size={24} className="text-violet-600" />,
-      color: 'violet'
-    },
-  ];
+  const [loanSummary, setLoanSummary] = useState({
+    totalLoanApplications: 0,
+    totalApproved: 0,
+    totalPending: 0,
+    totalDisbursed: 0,
+    totalLoanDisbursed: "0",
+    totalRejected: 0,
+    averageLoanAmount: "0",
+    overdueLoanCount: 0,
+    repaymentRate: "0",
+    loansByType: [],
+    monthlyStatistics: []
+  });
+
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+  
+    fetch('http://localhost:3001/api/loan-summary')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setLoanSummary(data.data);
+        }
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching loan summary:', error);
+        setLoading(false);
+      });
+  }, []);
+  
+
+  
+  
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        <p className="ml-3 text-lg font-semibold text-gray-700">Loading dashboard...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full bg-gray-50 p-6">
-      <div className="max-w-full mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Loan Management Dashboard</h1>
-          <p className="text-gray-500 mt-1">Monitor loan performance and borrower analytics</p>
-        </header>
-
-        <main className="w-full space-y-8">
-          {/* Top Stats Cards */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((item, idx) => (
-              <StatsCard key={idx} {...item} />
-            ))}
-          </div>
-
-          {/* First Row: Loan Disbursement and Repayment Analytics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <LoanDisbursementCard />
-            <LoanRepaymentAnalyticsCard />
-          </div>
-
-          {/* Second Row: Loan Performance and Risk Assessment */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <LoanPerformanceCard />
-            <RiskAssessmentCard />
-          </div>
-
-          {/* Third Row: Upcoming Due Loans */}
-          <div className="grid grid-cols-1 gap-6">
-            <UpcomingDueLoansCard />
-          </div>
-        </main>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Loan Management Dashboard</h1>
+        <p className="text-gray-600">Analytics and overview of loan operations</p>
       </div>
+
+      {/* Top Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <StatsCard
+          icon={<FaClipboardList className="text-indigo-600" />}
+          label="Total Applications"
+          value={loanSummary.totalLoanApplications}
+          growth="+12.5%"
+          color="indigo"
+        />
+        <StatsCard
+          icon={<FaClipboardCheck className="text-emerald-600" />}
+          label="Approved Loans"
+          value={loanSummary.totalApproved}
+          growth="+8.3%"
+          color="emerald"
+        />
+        <StatsCard
+          icon={<FaTimesCircle className="text-red-600" />}
+          label="Rejected Applications"
+          value={loanSummary.totalRejected}
+          growth="-3.2%"
+          color="amber"
+        />
+        <StatsCard
+          icon={<FaExclamationTriangle className="text-violet-600" />}
+          label="Pending Applications"
+          value={loanSummary.totalPending}
+          growth="+2.7%"
+          color="violet"
+        />
+      </div>
+
+      {/* Charts Row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <LoanDisbursementCard totalLoanDisbursed={loanSummary.totalLoanDisbursed} />
+        <RiskAssessmentCard loansByType={loanSummary.loansByType} />
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <LoanRepaymentAnalyticsCard 
+          averageLoanAmount={loanSummary.averageLoanAmount} 
+          repaymentRate={loanSummary.repaymentRate} 
+          overdueLoanCount={loanSummary.overdueLoanCount} 
+        />
+        <LoanPerformanceCard monthlyStats={loanSummary.monthlyStatistics} />
+      </div>
+
+      {/* Bottom Row */}
+      {/* <div className="grid grid-cols-1 gap-6">
+        <UpcomingDueLoansCard />
+      </div> */}
     </div>
   );
 };

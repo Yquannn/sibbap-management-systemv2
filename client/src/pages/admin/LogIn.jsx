@@ -146,6 +146,7 @@ const LogIn = () => {
             const routeMap = {
               'Member': '/member-dashboard',
               'System Admin': '/dashboard',
+              'General Manager': '/dashboard',
               'Treasurer': '/loan-approval',
               'Loan Manager': '/apply-for-loan',
               'Teller': '/dashboard'

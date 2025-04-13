@@ -63,14 +63,86 @@ export default function AdminLoanMonitorUI() {
     });
   };
 
-  // Function to print a transaction receipt (omitted for brevity)
+  // Function to print a transaction receipt
   const printTransaction = (transaction) => {
-    // ...existing printTransaction code...
+    const content = `
+      <html>
+        <head>
+          <title>Transaction Receipt</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .receipt { border: 1px solid #ddd; padding: 20px; max-width: 600px; margin: auto; }
+            .title { font-size: 24px; font-weight: bold; text-align: center; }
+            .details { margin-top: 20px; }
+            .details div { margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="title">Transaction Receipt</div>
+            <div class="details">
+              <div><strong>Transaction Number:</strong> ${transaction.transaction_number}</div>
+              <div><strong>Amount Paid:</strong> ₱${formatCurrency(transaction.amount_paid)}</div>
+              <div><strong>Payment Method:</strong> ${transaction.method}</div>
+              <div><strong>Authorized By:</strong> ${transaction.authorized || "System"}</div>
+              <div><strong>Date:</strong> ${formatDate(transaction.payment_date)}</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open("", "", "width=800,height=600");
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.print();
   };
 
-  // Function to print all repayment transactions (omitted for brevity)
+  // Function to print all repayment transactions
   const printAllTransactions = () => {
-    // ...existing printAllTransactions code...
+    const content = `
+      <html>
+        <head>
+          <title>All Repayment Transactions</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            table, th, td { border: 1px solid #ddd; }
+            th, td { padding: 12px; text-align: left; }
+            th { background-color: #f4f4f4; }
+            .title { font-size: 24px; font-weight: bold; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="title">All Repayment Transactions</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Transaction #</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Authorized By</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${searchedRepayments.map(rep => `
+                <tr>
+                  <td>${rep.transaction_number}</td>
+                  <td>${formatDate(rep.payment_date)}</td>
+                  <td>₱${formatCurrency(rep.amount_paid)}</td>
+                  <td>${rep.method}</td>
+                  <td>${rep.authorized || "System"}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open("", "", "width=800,height=600");
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   // Data states
@@ -399,13 +471,13 @@ export default function AdminLoanMonitorUI() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-800">Amortization Schedule</h2>
                 <div className="flex space-x-2">
-                  <select 
+                  <select
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     value={selectedLoanId}
                     onChange={(e) => setSelectedLoanId(e.target.value)}
                   >
                     <option value="all">All Loans</option>
-                    {loanApps.map(app => (
+                    {loanApps.map((app) => (
                       <option key={app.loan_application_id} value={app.loan_application_id}>
                         {app.client_voucher_number} - {app.loan_type}
                       </option>
@@ -413,14 +485,14 @@ export default function AdminLoanMonitorUI() {
                   </select>
                 </div>
               </div>
-              
+
               {/* Render disbursement button if no installment data exists; else, render amortization schedule */}
               {!hasAmortizationData ? (
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-gray-50">
                   <p className="mb-4 text-gray-700">
                     Please process disbursement to generate the monthly amortization schedule.
                   </p>
-                  <button 
+                  <button
                     className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
                     onClick={handleDisbursement}
                     disabled={loading}
@@ -518,6 +590,8 @@ export default function AdminLoanMonitorUI() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disbursed</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disbursed Date</th>
+
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
@@ -557,6 +631,8 @@ export default function AdminLoanMonitorUI() {
                             </span>
                           )}
                         </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{formatDate(app.disbursed_date)}</td>
+
                         <td className="px-4 py-3 text-sm text-gray-900 text-right space-x-2">
                           <button
                             className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 inline-flex items-center"
@@ -632,7 +708,7 @@ export default function AdminLoanMonitorUI() {
                           <td className="px-4 py-3 text-sm text-gray-900 text-right space-x-2">
                             <button
                               className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 inline-flex items-center"
-                              onClick={() => navigate("/")}
+                              onClick={() => navigate("/") }
                             >
                               <Eye size={14} className="mr-1" /> View
                             </button>

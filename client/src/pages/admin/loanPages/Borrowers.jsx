@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaDollarSign, FaFilter, FaSearch, FaSort, FaEye, FaChartBar, FaUsers, FaExclamationCircle, FaMoneyBill } from 'react-icons/fa';
+import { 
+  FaDollarSign, 
+  FaFilter, 
+  FaSearch, 
+  FaSort, 
+  FaEye, 
+  FaChartBar, 
+  FaUsers, 
+  FaExclamationCircle, 
+  FaMoneyBill,
+} from 'react-icons/fa';
+import {
+  CheckCircle,
+  XCircle,
+ 
+} from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
 const Borrowers = () => {
@@ -209,6 +224,11 @@ const Borrowers = () => {
     setCurrentPage(1); // Reset to first page when changing items per page
   };
 
+  // Function to determine if a loan is disbursed based on the remarks field
+  const isLoanDisbursed = (loanApp) => {
+    return loanApp && loanApp.remarks && loanApp.remarks.toLowerCase() === "disbursed";
+  };
+
   return (
     <div className="">
       <div className="">
@@ -401,14 +421,14 @@ const Borrowers = () => {
                         Date {getSortIndicator('created_at')}
                       </div>
                     </th>
-                    {/* <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('balance')}>
-                      <div className="flex items-center">
-                        Balance {getSortIndicator('balance')}
-                      </div>
-                    </th> */}
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('status')}>
                       <div className="flex items-center">
                         Status {getSortIndicator('status')}
+                      </div>
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('status')}>
+                      <div className="flex items-center">
+                        Disbursed {getSortIndicator('status')}
                       </div>
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -448,17 +468,21 @@ const Borrowers = () => {
                           day: "numeric",
                         })}
                       </td>
-                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <span className={borrower.balance > 0 ? "text-red-600" : "text-green-600"}>
-                          {borrower.balance
-                            ? `₱${Number(borrower.balance).toLocaleString("en-US", { maximumFractionDigits: 2 })}`
-                            : "₱0.00"}
-                        </span>
-                      </td> */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 inline-flex text-xs font-medium rounded-full border ${getStatusBadgeColor(borrower.status)}`}>
                           {borrower.status || "Approved"}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isLoanDisbursed(borrower) ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle size={12} className="mr-1" /> Yes
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <XCircle size={12} className="mr-1" /> No
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
