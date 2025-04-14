@@ -34,13 +34,16 @@ const AddNotification = () => {
       // If "All" is selected, clear other selections and only set "All"
       setTargetAudience(["All"]);
     } else {
-      // If "All" was previously selected and now we're selecting something else
+      // If "All" was previously selected and now selecting something else, remove "All"
       if (targetAudience.includes("All")) {
         setTargetAudience([audience]);
       } else {
         // Toggle the selected audience
         if (targetAudience.includes(audience)) {
-          setTargetAudience(targetAudience.filter(item => item !== audience));
+          // Don't allow emptying the selection completely
+          if (targetAudience.length > 1) {
+            setTargetAudience(targetAudience.filter(item => item !== audience));
+          }
         } else {
           setTargetAudience([...targetAudience, audience]);
         }
@@ -86,7 +89,7 @@ const AddNotification = () => {
     const notificationData = {
       title,
       content,
-      target_audience: targetAudience, // Now passing array of target audiences
+      target_audience: targetAudience, // Passing array of target audiences
       status,
       priority,
       category,
@@ -153,12 +156,13 @@ const AddNotification = () => {
     setTitle(notification.title);
     setContent(notification.content);
     
-    // Handle target audience - convert string to array if needed
+    // Handle target audience - properly convert to array if needed
     if (typeof notification.targetAudience === 'string') {
+      // Handle comma-separated string from backend
       if (notification.targetAudience.includes(',')) {
-        setTargetAudience(notification.targetAudience.split(','));
+        setTargetAudience(notification.targetAudience.split(',').map(item => item.trim()));
       } else {
-        setTargetAudience([notification.targetAudience]);
+        setTargetAudience([notification.targetAudience.trim()]);
       }
     } else if (Array.isArray(notification.targetAudience)) {
       setTargetAudience(notification.targetAudience);
@@ -358,6 +362,7 @@ const AddNotification = () => {
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Target Audience <span className="text-red-500">*</span>
+                  <span className="ml-2 text-xs text-blue-600 font-normal">(Select multiple roles or "All")</span>
                 </label>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {audienceOptions.map((audience) => (
@@ -389,7 +394,10 @@ const AddNotification = () => {
                 </div>
                 {targetAudience.length > 0 && (
                   <div className="mt-3 text-sm text-gray-600">
-                    Selected: {targetAudience.join(', ')}
+                    <span className="font-medium">Selected: </span>
+                    <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md">
+                      {targetAudience.join(', ')}
+                    </span>
                   </div>
                 )}
               </div>
@@ -609,7 +617,8 @@ const AddNotification = () => {
                         </button>
                         
                         <button
-                          onClick={(e) => handleDelete(notification.notificationId, e)}
+                        
+onClick={(e) => handleDelete(notification.notificationId, e)}
                           className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition flex items-center"
                         >
                           <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -630,4 +639,4 @@ const AddNotification = () => {
   );
 };
 
-export default AddNotification
+export default AddNotification;

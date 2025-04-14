@@ -11,6 +11,8 @@ import {
   BanknotesIcon as CashIcon,
   ChartBarIcon,
   ArrowDownTrayIcon,
+  UserGroupIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement } from "chart.js";
 import { Line } from "react-chartjs-2";
@@ -25,6 +27,7 @@ const TimeDepositDetails = () => {
   const [error, setError] = useState(null);
   const [transactionFilter, setTransactionFilter] = useState("all");
   const [selectedTimeGroup, setSelectedTimeGroup] = useState("monthly");
+  const [coMakerInfo, setCoMakerInfo] = useState(null);
 
   // Fetch time deposit data
   useEffect(() => {
@@ -38,6 +41,10 @@ const TimeDepositDetails = () => {
             setDepositData(response.data[0]);
             // Simulating some transaction data for demo purposes
             setTransactions(generateSampleTransactions(response.data[0]));
+            // Fetch co-maker info from API if needed
+            if (response.data[0].memberCode) {
+              fetchCoMakerInfo(response.data[0].memberCode);
+            }
           } else {
             setDepositData(null);
           }
@@ -45,6 +52,10 @@ const TimeDepositDetails = () => {
           setDepositData(response.data);
           // Simulating some transaction data for demo purposes
           setTransactions(generateSampleTransactions(response.data));
+          // Fetch co-maker info from API if needed
+          if (response.data.memberCode) {
+            fetchCoMakerInfo(response.data.memberCode);
+          }
         } else {
           setDepositData(null);
         }
@@ -55,8 +66,24 @@ const TimeDepositDetails = () => {
         setLoading(false);
       }
     };
+    
     fetchDepositData();
   }, [timeDepositId]);
+
+  // Fetch co-maker info from API
+  const fetchCoMakerInfo = async (memberCode) => {
+    try {
+      // Replace this with your actual API endpoint to fetch co-maker data
+      const response = await axios.get(`http://localhost:3001/api/timedepositor/${timeDepositId}`);
+      if (response.data) {
+        setCoMakerInfo(response.data);
+      }
+    } catch (err) {
+      console.error("Error fetching co-maker information:", err);
+      // Don't set error state here, just log the error
+      // This allows the main component to still render even if co-maker info isn't available
+    }
+  };
 
   // Sample transaction data generator (for demo purposes)
   const generateSampleTransactions = (data) => {
@@ -159,6 +186,20 @@ const TimeDepositDetails = () => {
 
   const fullName = `${first_name || ""} ${middle_name ? middle_name.charAt(0) + ". " : ""}${last_name || ""}`.trim();
   const initials = `${first_name ? first_name.charAt(0) : ""}${last_name ? last_name.charAt(0) : ""}`.toUpperCase();
+
+  // Co-maker information formatting
+  const coMakerFullName = coMakerInfo ? 
+    `${coMakerInfo.co_first_name || ""} ${coMakerInfo.co_middle_name ? coMakerInfo.co_middle_name.charAt(0) + ". " : ""}${coMakerInfo.co_last_name || ""}`.trim() :
+    "N/A";
+    
+  const coMakerInitials = coMakerInfo ? 
+    `${coMakerInfo.co_first_name ? coMakerInfo.co_first_name.charAt(0) : ""}${coMakerInfo.co_last_name ? coMakerInfo.co_last_name.charAt(0) : ""}`.toUpperCase() :
+    "NA";
+    
+  const coMakerAddress = coMakerInfo ? 
+    `${coMakerInfo.co_complete_address
+    }${coMakerInfo.city ? coMakerInfo.city : ""}`.trim() :
+    "N/A";
 
   // Calculate days remaining until maturity
   const today = new Date();
@@ -276,9 +317,9 @@ const TimeDepositDetails = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Member Info */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
+            {/* Primary Member Profile */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              {/* Member Profile */}
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
                 <div className="flex items-center mb-4">
                   {id_picture ? (
@@ -295,6 +336,10 @@ const TimeDepositDetails = () => {
                   <div className="ml-4">
                     <h2 className="text-xl font-bold">{fullName}</h2>
                     <p className="text-blue-100">Member Code: {memberCode || "N/A"}</p>
+                    <div className="mt-1 flex items-center">
+                      <UserIcon className="w-4 h-4 text-blue-100 mr-1" />
+                      <span className="text-sm text-blue-100">Primary Member</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -319,9 +364,80 @@ const TimeDepositDetails = () => {
                   ))}
                 </div>
               </div>
+            </div>
+            
+            {/* Co-Maker Information */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-6 text-white">
+                <div className="flex items-center mb-4">
+                  {coMakerInfo && coMakerInfo.id_picture ? (
+                    <img
+                      src={`http://localhost:3001/uploads/${coMakerInfo.id_picture}`}
+                      alt="Co-maker Profile"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-white"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-white text-pink-600 flex items-center justify-center font-bold text-xl">
+                      {coMakerInitials}
+                    </div>
+                  )}
+                  <div className="ml-4">
+                    <h2 className="text-xl font-bold">{coMakerFullName}</h2>
+                    <div className="mt-1 flex items-center">
+                      <UserGroupIcon className="w-4 h-4 text-pink-100 mr-1" />
+                      <span className="text-sm text-pink-100">Co-Maker</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               
-              {/* Actions */}
-              <div className="p-4 border-t border-gray-100">
+              {/* Co-maker Personal Info */}
+              {coMakerInfo ? (
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Co-Maker Information</h3>
+                  <div className="space-y-3">
+                    {[
+                      { icon: <UserGroupIcon className="w-5 h-5 text-gray-500" />, label: "Relationship", value: coMakerInfo.co_relationship_primary || coMakerInfo.co_relationship || "N/A" },
+                      { icon: <CalendarIcon className="w-5 h-5 text-gray-500" />, label: "Date of Birth", value: coMakerInfo.co_date_of_birth || coMakerInfo.co_date_of_birth ? new Date(coMakerInfo.date_of_birth || coMakerInfo.co_date_of_birth).toLocaleDateString() : "N/A" },
+                      { icon: <ArrowTrendingUpIcon className="w-5 h-5 text-gray-500" />, label: "Civil Status", value: coMakerInfo.co_civil_status || coMakerInfo.co_civil_status || "N/A" },
+                      { icon: <BanknotesIcon className="w-5 h-5 text-gray-500" />, label: "Contact", value: coMakerInfo.co_contact_number || coMakerInfo.co_contact_number || "N/A" },
+                      { icon: <ArrowPathIcon className="w-5 h-5 text-gray-500" />, label: "Address", value: coMakerAddress },
+                      {/* { icon: <ChartBarIcon className="w-5 h-5 text-gray-500" />, label: "Occupation", value: coMakerInfo.co_occupation || "N/A" },
+                      { icon: <CashIcon className="w-5 h-5 text-gray-500" />, label: "Monthly Income", value: coMakerInfo.co_monthly_income ? parseFloat(coMakerInfo.monthly_income).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }) : "N/A" }, */}
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-start">
+                        <div className="mt-0.5">{item.icon}</div>
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-500">{item.label}</p>
+                          <p className="text-gray-800">{item.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 text-center">
+                  <p className="text-gray-500">No co-maker information available for this time deposit.</p>
+                  <button className="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+                    Add Co-Maker
+                  </button>
+                </div>
+              )}
+              
+              {/* Co-maker Info Box */}
+              {coMakerInfo && (
+                <div className="p-4 border-t border-gray-100">
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                    <h4 className="font-medium text-purple-800 mb-2">Co-Maker Responsibilities</h4>
+                    <p className="text-sm text-gray-600">The co-maker serves as a guarantor for this time deposit. In the event of early withdrawal or other account changes, the co-maker may need to provide authorization.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Actions */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Time Deposit Actions</h3>
                 <div className="space-y-2">
                   <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center">
@@ -467,7 +583,7 @@ const TimeDepositDetails = () => {
                   </div>
                   
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                    <h4 className="font-medium text-blue-800 mb-2">Time Deposit Benefits</h4>
+                    <h4 className="font-mediumtext-blue-800 mb-2">Time Deposit Benefits</h4>
                     <ul className="space-y-2 text-sm text-gray-700">
                       <li className="flex items-start">
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 mr-2 text-xs">✓</span>
