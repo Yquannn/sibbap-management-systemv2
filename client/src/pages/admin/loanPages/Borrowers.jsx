@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import { RefreshCw } from "lucide-react";
 
 const Borrowers = () => {
   const apiBaseURL = 'http://localhost:3001/api/borrowers';
@@ -232,7 +233,7 @@ const Borrowers = () => {
   };
 
   return (
-    <div className="">
+    <div className="p-4 bg-gray-50">
       <div className="">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Borrower Management</h1>
 
@@ -268,7 +269,7 @@ const Borrowers = () => {
               <CheckCircle className="h-6 w-6 text-yellow-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Disbursed vs Not</p>
+              <p className="text-sm text-gray-500 font-medium">Disbursed</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {analytics.disbursedLoans} / {analytics.notDisbursedLoans}
               </p>
@@ -372,16 +373,32 @@ const Borrowers = () => {
 
         {/* Borrower Table */}
         <div className="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {activeTab === "All" ? "All Borrowers" : `${activeTab} Borrowers`}
-            </h3>
-            <div className="text-sm text-gray-500">
-              {filteredBorrowers.length} {filteredBorrowers.length === 1 ? 'borrower' : 'borrowers'} found
-            </div>
-          </div>
+        <div className="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
+  <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+    <h3 className="text-lg font-semibold text-gray-800">
+      {activeTab === "All" ? "All Borrowers" : `${activeTab} Borrowers`}
+    </h3>
+
+    <div className="flex items-center space-x-4">
+      <div className="text-sm text-gray-500">
+        {filteredBorrowers.length} {filteredBorrowers.length === 1 ? 'borrower' : 'borrowers'} found
+      </div>
+      <button
+        onClick={() => {
+          fetchBorrowers();
+        }}
+        className="flex items-center space-x-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+        title="Refresh data"
+      >
+        <RefreshCw className="h-4 w-4" />
+        <span>Refresh</span>
+      </button>
+    </div>
+  </div>
+</div>
+
           
-          <div className="overflow-x-auto scrollbar-thin" style={{ maxHeight: '480px' }}>
+          <div className="overflow-x-auto scrollbar-thin" style={{ maxHeight: '400px' }}>
             {loading ? (
               <div className="flex justify-center items-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>

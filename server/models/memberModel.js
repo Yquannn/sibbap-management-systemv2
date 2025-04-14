@@ -20,8 +20,8 @@ exports.activateAccount = async (memberId) => {
 
     // Update the member_account table with default credentials using the memberCode
     const [result] = await db.query(
-      'UPDATE member_account SET accountStatus = ?, email = ?, password = ? WHERE memberId = ?',
-      ['ACTIVATED', memberCode, memberCode, memberId]
+      'UPDATE member_account SET accountStatus = ? WHERE memberId = ?',
+      ['ACTIVATED',  memberId]
     );
 
     return result;

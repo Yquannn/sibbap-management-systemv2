@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaDollarSign, FaSearch, FaFilter, FaEye, FaSpinner, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaDollarSign, FaSearch, FaFilter, FaEye, FaSpinner, FaChevronLeft, FaChevronRight,  } from 'react-icons/fa';
 import { useNavigate } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 
 const LoanApproval = () => {
   const apiBaseURL = 'http://localhost:3001/api/loan-applicant/approve';
@@ -139,7 +140,7 @@ const LoanApproval = () => {
   };
 
   return (
-    <div className="">
+    <div className="p-6 bg-gray-50">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Loan Approval</h1>
         <p className="text-gray-600 mt-2">Manage and process loan applications</p>
@@ -170,7 +171,7 @@ const LoanApproval = () => {
                   {tab}
                 </option>
               ))}
-            </select>
+            </select> 
           </div>
 
           {/* Search Filter */}
@@ -242,19 +243,20 @@ const LoanApproval = () => {
           </span>
         </h2>
         
-        <button 
-          onClick={fetchBorrowers}
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
-        </button>
+        <button
+              onClick={() => {
+                fetchBorrowers();
+              }}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </button>
       </div>
 
       {/* Borrowers Table */}
-      <div className="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
+      <div className="bg-white shadow-sm rounded-xl border border-gray-100 overflow-x-auto scrollbar-thin"  style={{ maxHeight: '500px' }}>
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <FaSpinner className="animate-spin text-indigo-600 text-2xl mr-2" />

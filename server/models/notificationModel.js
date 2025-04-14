@@ -51,14 +51,19 @@ const Notification = {
     }
   },
 
-  // Retrieve notifications for a specific user ordered by creation date descending
-  findByUserId: async (userId) => {
-    const [rows] = await db.execute(
-      'SELECT * FROM notifications WHERE userId = ? ORDER BY createdAt DESC',
-      [userId]
-    );
-    return rows;
-  },
+// Retrieve notifications for a specific user ordered by creation date descending
+// including announcement data when notification is related to an announcement
+findByUserId: async (userId) => {
+  const [rows] = await db.execute(
+    `SELECT n.*, a.*
+     FROM notifications n
+     LEFT JOIN announcements a ON n.announcement_id = a.announcement_id
+     WHERE n.userId = ? 
+     ORDER BY n.createdAt DESC`,
+    [userId]
+  );
+  return rows;
+},
 
   // Mark a specific notification as read
   markAsRead: async (notificationId) => {

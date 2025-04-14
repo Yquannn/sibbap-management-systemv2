@@ -1,32 +1,63 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const AddAnnouncement = () => {
+const AddNotification = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [targetAudience, setTargetAudience] = useState("");
-  const [status, setStatus] = useState("New");
+  const [targetAudience, setTargetAudience] = useState([]);
+  const [status, setStatus] = useState("Active");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [category, setCategory] = useState("General");
-  const [announcements, setAnnouncements] = useState([]);
-  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState();
+  const [notifications, setNotifications] = useState([]);
+  const [selectedNotificationId, setSelectedNotificationId] = useState();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [activeTab, setActiveTab] = useState("create");
 
-  // Fetch all announcements from the backend
-  const fetchAnnouncements = async () => {
+  // Available audience options
+  const audienceOptions = [
+    "All",
+    "System Admin",
+    "General Manager",
+    "Loan Officer",
+    "Account Officer",
+    "Clerk",
+    "Member"
+  ];
+
+  // Handle audience selection change
+  const handleAudienceChange = (audience) => {
+    if (audience === "All") {
+      // If "All" is selected, clear other selections and only set "All"
+      setTargetAudience(["All"]);
+    } else {
+      // If "All" was previously selected and now we're selecting something else
+      if (targetAudience.includes("All")) {
+        setTargetAudience([audience]);
+      } else {
+        // Toggle the selected audience
+        if (targetAudience.includes(audience)) {
+          setTargetAudience(targetAudience.filter(item => item !== audience));
+        } else {
+          setTargetAudience([...targetAudience, audience]);
+        }
+      }
+    }
+  };
+
+  // Fetch all notifications from the backend
+  const fetchNotifications = async () => {
     setIsLoading(true);
     try {
       const response = await axios.get("http://localhost:3001/api/announcement");
-      setAnnouncements(response.data);
+      setNotifications(response.data);
       setError("");
     } catch (error) {
-      console.error("Error fetching announcements:", error);
-      setError("Failed to load announcements. Please try again.");
+      console.error("Error fetching notifications:", error);
+      setError("Failed to load notifications. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -35,61 +66,64 @@ const AddAnnouncement = () => {
   const resetForm = () => {
     setTitle("");
     setContent("");
-    setTargetAudience("");
-    setStatus("New");
+    setTargetAudience([]);
+    setStatus("Active");
     setPriority("Medium");
     setCategory("General");
     setStartDate("");
     setEndDate("");
-    setSelectedAnnouncementId(undefined);
+    setSelectedNotificationId(undefined);
   };
 
+  const authorizedBy = sessionStorage.getItem("username") || null; // Get the authorized user ID from session storage
+
   const handleSubmit = async () => {
-    if (!title || !content || !targetAudience || !status) {
+    if (!title || !content || targetAudience.length === 0 || !status) {
       setError("Please fill in all required fields.");
       return;
     }
 
-    const announcementData = {
+    const notificationData = {
       title,
-      content,  
-      targetAudience,
+      content,
+      target_audience: targetAudience, // Now passing array of target audiences
       status,
       priority,
       category,
-      startDate: startDate || null,
-      endDate: endDate || null
+      authorized: authorizedBy,
+      start_date: startDate || null,
+      end_date: endDate || null
     };
-
+    
     setIsLoading(true);
     setError("");
     
     try {
       let response;
-      if (selectedAnnouncementId) {
-        // Update existing announcement
+      if (selectedNotificationId) {
+        // Update existing notification
         response = await axios.put(
-          `http://localhost:3001/api/announcement/${selectedAnnouncementId}`,
-          announcementData,
+          `http://localhost:3001/api/announcement/${selectedNotificationId}`,
+          notificationData,
           {
             headers: {
               'Content-Type': 'application/json',
             },
           }
         );
-        setSuccessMessage("Announcement updated successfully!");
+        setSuccessMessage("Notification updated successfully!");
       } else {
-        // Add new announcement
+        // Add new notification
         response = await axios.post(
           "http://localhost:3001/api/announcement",
-          announcementData,
+          notificationData,
           {
             headers: {
               'Content-Type': 'application/json',
             },
           }
         );
-        setSuccessMessage("Announcement added successfully!");
+        setSuccessMessage("Notification added successfully!");
       }
 
       // Clear fields and reset state after successful operation
@@ -98,11 +132,11 @@ const AddAnnouncement = () => {
       // Switch to the list tab after creating/updating
       setActiveTab("list");
   
-      // Fetch updated list of announcements
-      fetchAnnouncements();
+      // Fetch updated list of notifications
+      fetchNotifications();
     } catch (error) {
-      console.error("Error submitting announcement:", error.response?.data || error.message);
-      setError("Failed to save announcement. Please check your inputs and try again.");
+      console.error("Error submitting notification:", error.response?.data || error.message);
+      setError("Failed to save notification. Please check your inputs and try again.");
     } finally {
       setIsLoading(false);
       
@@ -113,38 +147,51 @@ const AddAnnouncement = () => {
     }
   };
 
-  // Handle selecting an announcement to edit
-  const handleEdit = (announcement) => {
-    setSelectedAnnouncementId(announcement.announcementId);
-    setTitle(announcement.title);
-    setContent(announcement.content);
-    setTargetAudience(announcement.targetAudience);
-    setStatus(announcement.status || "New");
-    setPriority(announcement.priority || "Medium");
-    setCategory(announcement.category || "General");
-    setStartDate(announcement.startDate || "");
-    setEndDate(announcement.endDate || "");
+  // Handle selecting a notification to edit
+  const handleEdit = (notification) => {
+    setSelectedNotificationId(notification.notificationId);
+    setTitle(notification.title);
+    setContent(notification.content);
+    
+    // Handle target audience - convert string to array if needed
+    if (typeof notification.targetAudience === 'string') {
+      if (notification.targetAudience.includes(',')) {
+        setTargetAudience(notification.targetAudience.split(','));
+      } else {
+        setTargetAudience([notification.targetAudience]);
+      }
+    } else if (Array.isArray(notification.targetAudience)) {
+      setTargetAudience(notification.targetAudience);
+    } else {
+      setTargetAudience([]);
+    }
+    
+    setStatus(notification.status || "Active");
+    setPriority(notification.priority || "Medium");
+    setCategory(notification.category || "General");
+    setStartDate(notification.startDate || "");
+    setEndDate(notification.endDate || "");
     setActiveTab("create");
   };
 
-  // Handle deleting an announcement
+  // Handle deleting a notification
   const handleDelete = async (id, event) => {
     event.stopPropagation(); // Prevent triggering the edit function
     
-    if (window.confirm("Are you sure you want to delete this announcement?")) {
+    if (window.confirm("Are you sure you want to delete this notification?")) {
       setIsLoading(true);
       try {
         await axios.delete(`http://localhost:3001/api/announcement/${id}`);
-        setSuccessMessage("Announcement deleted successfully!");
-        fetchAnnouncements();
+        setSuccessMessage("Notification deleted successfully!");
+        fetchNotifications();
         
-        // If the deleted announcement was being edited, reset the form
-        if (selectedAnnouncementId === id) {
+        // If the deleted notification was being edited, reset the form
+        if (selectedNotificationId === id) {
           resetForm();
         }
       } catch (error) {
-        console.error("Error deleting announcement:", error);
-        setError("Failed to delete announcement. Please try again.");
+        console.error("Error deleting notification:", error);
+        setError("Failed to delete notification. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -156,17 +203,17 @@ const AddAnnouncement = () => {
     resetForm();
   };
 
-  // Fetch announcements when the component mounts
+  // Fetch notifications when the component mounts
   useEffect(() => {
-    fetchAnnouncements();
+    fetchNotifications();
   }, []);
 
-  // Get status color based on announcement status
+  // Get status color based on notification status
   const getStatusColor = (status) => {
     switch (status) {
       case "Urgent":
         return "bg-red-500 text-white";
-      case "New":
+      case "Active":
         return "bg-blue-500 text-white";
       case "Update":
         return "bg-green-500 text-white";
@@ -177,7 +224,7 @@ const AddAnnouncement = () => {
     }
   };
 
-  // Get priority color based on announcement priority
+  // Get priority color based on notification priority
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "High":
@@ -198,12 +245,29 @@ const AddAnnouncement = () => {
     return date.toLocaleDateString();
   };
 
+  // Format target audience for display
+  const formatTargetAudience = (audiences) => {
+    if (!audiences) return "";
+    
+    // Handle string format from backend
+    if (typeof audiences === 'string') {
+      return audiences;
+    }
+    
+    // Handle array format
+    if (Array.isArray(audiences)) {
+      return audiences.join(', ');
+    }
+    
+    return String(audiences);
+  };
+
   return (
     <div className="">
       <div className="">
         {/* Header with tabs */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-6">Announcement Management</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-6">Notification Management</h1>
           
           <div className="flex border-b border-gray-200">
             <button
@@ -214,7 +278,7 @@ const AddAnnouncement = () => {
               }`}
               onClick={() => setActiveTab("create")}
             >
-              {selectedAnnouncementId ? "Edit Announcement" : "Create Announcement"}
+              {selectedNotificationId ? "Edit Notification" : "Create Notification"}
             </button>
             <button
               className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${
@@ -224,10 +288,10 @@ const AddAnnouncement = () => {
               }`}
               onClick={() => {
                 setActiveTab("list");
-                fetchAnnouncements();
+                fetchNotifications();
               }}
             >
-              All Announcements
+              All Notifications
             </button>
           </div>
         </div>
@@ -259,7 +323,7 @@ const AddAnnouncement = () => {
         {activeTab === "create" && (
           <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-              {selectedAnnouncementId ? "Edit Announcement" : "Create New Announcement"}
+              {selectedNotificationId ? "Edit Notification" : "Create New Notification"}
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -286,22 +350,48 @@ const AddAnnouncement = () => {
                   onChange={(e) => setContent(e.target.value)}
                   rows="5"
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  placeholder="Provide detailed information about the announcement"
+                  placeholder="Provide detailed information about the notification"
                   required
                 ></textarea>
               </div>
 
-              <div>
+              <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Target Audience <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={targetAudience}
-                  onChange={(e) => setTargetAudience(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  placeholder="e.g., All Users, Premium Subscribers"
-                />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {audienceOptions.map((audience) => (
+                    <div 
+                      key={audience}
+                      onClick={() => handleAudienceChange(audience)}
+                      className={`
+                        flex items-center p-3 rounded-lg border cursor-pointer transition
+                        ${targetAudience.includes(audience) 
+                          ? 'bg-blue-50 border-blue-500 text-blue-700' 
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'}
+                      `}
+                    >
+                      <div className={`
+                        w-5 h-5 mr-2 flex items-center justify-center rounded border
+                        ${targetAudience.includes(audience) 
+                          ? 'bg-blue-500 border-blue-600' 
+                          : 'bg-white border-gray-300'}
+                      `}>
+                        {targetAudience.includes(audience) && (
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm">{audience}</span>
+                    </div>
+                  ))}
+                </div>
+                {targetAudience.length > 0 && (
+                  <div className="mt-3 text-sm text-gray-600">
+                    Selected: {targetAudience.join(', ')}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -313,7 +403,7 @@ const AddAnnouncement = () => {
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 >
-                  <option value="New">New</option>
+                  <option value="Active">Active</option>
                   <option value="Urgent">Urgent</option>
                   <option value="Update">Update</option>
                   <option value="Maintenance">Maintenance</option>
@@ -349,6 +439,7 @@ const AddAnnouncement = () => {
                   <option value="Feature">Feature</option>
                   <option value="Maintenance">Maintenance</option>
                   <option value="Security">Security</option>
+                  <option value="Policy Update">Policy Update</option>
                 </select>
               </div>
 
@@ -390,14 +481,14 @@ const AddAnnouncement = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    {selectedAnnouncementId ? "Updating..." : "Creating..."}
+                    {selectedNotificationId ? "Updating..." : "Creating..."}
                   </span>
                 ) : (
-                  selectedAnnouncementId ? "Update Announcement" : "Create Announcement"
+                  selectedNotificationId ? "Update Notification" : "Create Notification"
                 )}
               </button>
               
-              {selectedAnnouncementId && (
+              {selectedNotificationId && (
                 <button
                   onClick={handleCancel}
                   className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-300 focus:outline-none transition duration-200 shadow-sm"
@@ -409,13 +500,13 @@ const AddAnnouncement = () => {
           </div>
         )}
         
-        {/* Announcements List */}
+        {/* Notifications List */}
         {activeTab === "list" && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-6 flex justify-between items-center border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-800">All Announcements</h2>
+              <h2 className="text-xl font-semibold text-gray-800">All Notifications</h2>
               <button 
-                onClick={fetchAnnouncements}
+                onClick={fetchNotifications}
                 className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -434,70 +525,70 @@ const AddAnnouncement = () => {
               </div>
             )}
             
-            {!isLoading && announcements.length === 0 && (
+            {!isLoading && notifications.length === 0 && (
               <div className="text-center p-12 bg-gray-50">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                <p className="mt-4 text-gray-500 text-lg">No announcements found</p>
+                <p className="mt-4 text-gray-500 text-lg">No notifications found</p>
                 <button 
                   onClick={() => setActiveTab("create")}
                   className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                 >
-                  Create your first announcement
+                  Create your first notification
                 </button>
               </div>
             )}
             
-            {!isLoading && announcements.length > 0 && (
+            {!isLoading && notifications.length > 0 && (
               <div className="divide-y divide-gray-100">
-                {announcements.map((announcement) => (
+                {notifications.map((notification) => (
                   <div
-                    key={announcement.announcementId}
+                    key={notification.notificationId}
                     className="p-6 hover:bg-gray-50 transition duration-150 cursor-pointer"
-                    onClick={() => handleEdit(announcement)}
+                    onClick={() => handleEdit(notification)}
                   >
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{announcement.title}</h3>
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(announcement.status)}`}>
-                            {announcement.status}
+                          <h3 className="text-lg font-semibold text-gray-900">{notification.title}</h3>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(notification.status)}`}>
+                            {notification.status}
                           </span>
-                          {announcement.priority && (
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(announcement.priority)}`}>
-                              {announcement.priority}
+                          {notification.priority && (
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(notification.priority)}`}>
+                              {notification.priority}
                             </span>
                           )}
                         </div>
                         
-                        <p className="text-sm text-gray-600 mt-2">{announcement.content}</p>
+                        <p className="text-sm text-gray-600 mt-2">{notification.content}</p>
                         
                         <div className="mt-4 flex flex-wrap gap-2">
                           <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
                             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            {announcement.targetAudience}
+                            {formatTargetAudience(notification.targetAudience)}
                           </span>
                           
-                          {announcement.category && (
+                          {notification.category && (
                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
                               <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                               </svg>
-                              {announcement.category}
+                              {notification.category}
                             </span>
                           )}
                           
-                          {(announcement.startDate || announcement.endDate) && (
+                          {(notification.startDate || notification.endDate) && (
                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
                               <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              {announcement.startDate && formatDate(announcement.startDate)}
-                              {announcement.startDate && announcement.endDate && " - "}
-                              {announcement.endDate && formatDate(announcement.endDate)}
+                              {notification.startDate && formatDate(notification.startDate)}
+                              {notification.startDate && notification.endDate && " - "}
+                              {notification.endDate && formatDate(notification.endDate)}
                             </span>
                           )}
                         </div>
@@ -507,7 +598,7 @@ const AddAnnouncement = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEdit(announcement);
+                            handleEdit(notification);
                           }}
                           className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition flex items-center"
                         >
@@ -518,7 +609,7 @@ const AddAnnouncement = () => {
                         </button>
                         
                         <button
-                          onClick={(e) => handleDelete(announcement.announcementId, e)}
+                          onClick={(e) => handleDelete(notification.notificationId, e)}
                           className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition flex items-center"
                         >
                           <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -539,4 +630,4 @@ const AddAnnouncement = () => {
   );
 };
 
-export default AddAnnouncement;
+export default AddNotification

@@ -7,7 +7,8 @@ import {
   Plus,
   BarChart4,
   Users,
-  Loader
+  Loader,
+  RefreshCw
 } from "lucide-react";
 import MemberAccountModal from "../../childModal/MemberAccountModal";
 import { useNavigate } from "react-router-dom";
@@ -169,6 +170,18 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
                 className="w-full md:w-64 pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
             </div>
+            <div className="flex gap-3">
+            <button
+              onClick={() => {
+                fetchTimeDeposits();
+              }}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
             <button
               onClick={() => handleOpenModal("deposit")}
               className="flex items-center justify-center bg-green-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"

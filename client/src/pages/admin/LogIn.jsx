@@ -34,8 +34,9 @@ const LogIn = () => {
         'System Admin': '/dashboard',
         'General Manager': '/dashboard',
         'Treasurer': '/loan-approval',
-        'Loan Manager': '/apply-for-loan',
-        'Teller': '/dashboard'
+        'Loan Officer': '/loan-dashboard',
+        'Account Officer': '/members',
+        'Clerk': '/members'
       };
       
       const targetRoute = routeMap[userType] || '/authorize';
@@ -148,8 +149,9 @@ const LogIn = () => {
               'System Admin': '/dashboard',
               'General Manager': '/dashboard',
               'Treasurer': '/loan-approval',
-              'Loan Manager': '/apply-for-loan',
-              'Teller': '/dashboard'
+              'Loan Officer': '/loan-dashboard',
+              'Account Officer': '/members',
+              'Clerk': '/members'
             };
 
             const targetRoute = routeMap[foundUser.userType] || '/authorize';

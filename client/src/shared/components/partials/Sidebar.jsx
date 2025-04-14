@@ -32,6 +32,7 @@ const SideBar = ({ mode }) => {
   const [maintenanceDropdown, setMaintenanceDropdown] = useState(false);
   const [userType, setUserType] = useState("");
   const [activePath, setActivePath] = useState("");
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
 
   const navigate = useNavigate();
@@ -43,10 +44,11 @@ const SideBar = ({ mode }) => {
     const storedUserType = sessionStorage.getItem("usertype");
     const allowedAdminRoles = [
       "Account Officer",
-      "Loan Manager",
+      "Loan Officer",
       "Treasurer",
       "General Manager",
       "System Admin",
+      "Clerk"
     ];
     if (!storedUserType || !allowedAdminRoles.includes(storedUserType)) {
       navigate("/authorize");
@@ -59,6 +61,24 @@ const SideBar = ({ mode }) => {
         setActivePath("/member-application");
       } else {
         setActivePath(location.pathname);
+      }
+      
+      // Automatically open the dropdown that contains the active path
+      if (location.pathname.includes("/member") || location.pathname.includes("/members")) {
+        setMembersDropdown(true);
+        setActiveDropdown("members");
+      } else if (location.pathname.includes("/savings") || 
+                location.pathname.includes("/share-capital") || 
+                location.pathname.includes("/regular-savings") || 
+                location.pathname.includes("/time-deposit")) {
+        setSavingsDropdown(true);
+        setActiveDropdown("savings");
+      } else if (location.pathname.includes("/loan") || location.pathname.includes("/borrower")) {
+        setLoanDropdown(true);
+        setActiveDropdown("loan");
+      } else if (location.pathname.includes("/system-maintenance")) {
+        setMaintenanceDropdown(true);
+        setActiveDropdown("maintenance");
       }
     }
   }, [navigate, location.pathname, mode]);
@@ -76,33 +96,63 @@ const SideBar = ({ mode }) => {
   };
 
   const isSystemAdmin = userType === "System Admin";
+  const isGeneralManager = userType === "General Manager";
+  const isLoanOfficer = userType === "Loan Officer";
+  const isAccountOfficer = userType === "Account Officer";
+  const isClerk = userType === "Clerk";
+  const isTreasurer = userType === "Treasurer";
 
+  // Define access permissions based on user roles
   const allowed = {
-    dashboard: true,
-    members: isSystemAdmin || userType === "Account Officer",
-    savings: isSystemAdmin || userType === "Account Officer",
-    loan: isSystemAdmin || (userType === "General Manager" || userType === "Loan Officer"),
-    fileMaintenance: isSystemAdmin,
-    report: isSystemAdmin || userType === "General Manager",
-    users: isSystemAdmin,
-    announcement: isSystemAdmin,
-    maintenance: isSystemAdmin,
-    logout: true,
+    dashboard: true, // All users can access dashboard
+    members: isSystemAdmin || isGeneralManager || isAccountOfficer || isClerk,
+    memberApplication: isSystemAdmin || isGeneralManager || isAccountOfficer,
+    memberRegistration: isSystemAdmin || isGeneralManager || isAccountOfficer,
+    memberList: isSystemAdmin || isGeneralManager || isAccountOfficer || isClerk,
+    savings: isSystemAdmin || isGeneralManager || isAccountOfficer,
+    loan: isSystemAdmin || isGeneralManager || isLoanOfficer,
+    fileMaintenance: isSystemAdmin || isGeneralManager,
+    report: isSystemAdmin || isGeneralManager,
+    users: isSystemAdmin || isGeneralManager,
+    announcement: isSystemAdmin || isGeneralManager,
+    maintenance: isSystemAdmin || isGeneralManager,
+    logout: true, // All users can access logout
   };
 
   const loanSubAllowed = {
-    borrower: isSystemAdmin || userType === "Loan Manager",
-    "loan-dashboard": isSystemAdmin || userType === "Loan Manager",
-    "loan-application": isSystemAdmin || userType === "Loan Manager",
-    "loan-applicant": isSystemAdmin || userType === "Loan Manager",
-    "loan-approval": isSystemAdmin || userType === "Treasurer",
+    borrower: isSystemAdmin || isGeneralManager || isLoanOfficer,
+    "loan-dashboard": isSystemAdmin || isGeneralManager || isLoanOfficer,
+    "loan-application": isSystemAdmin || isGeneralManager || isLoanOfficer,
+    "loan-applicant": isSystemAdmin || isGeneralManager || isLoanOfficer,
+    "loan-approval": isSystemAdmin || isGeneralManager || isTreasurer,
   };
 
   const savingsSubAllowed = {
-    "savings-dashboard": isSystemAdmin || userType === "Account Officer",
-    "share-capital": isSystemAdmin || userType === "Account Officer",
-    "regular-savings": isSystemAdmin || userType === "Account Officer",
-    "time-deposit": isSystemAdmin || userType === "Account Officer",
+    "savings-dashboard": isSystemAdmin || isGeneralManager || isAccountOfficer,
+    "share-capital": isSystemAdmin || isGeneralManager || isAccountOfficer,
+    "regular-savings": isSystemAdmin || isGeneralManager || isAccountOfficer,
+    "time-deposit": isSystemAdmin || isGeneralManager || isAccountOfficer,
+  };
+
+  // Handle dropdown toggle with active state management
+  const handleDropdownToggle = (dropdownName, setDropdownState, currentState) => {
+    // Clear active path if clicked on dropdown header
+    if (activeDropdown === dropdownName && currentState) {
+      setActiveDropdown(null);
+    } else {
+      setActiveDropdown(dropdownName);
+    }
+    
+    // Toggle dropdown state
+    setDropdownState(!currentState);
+    
+    // Close other dropdowns when opening this one
+    if (!currentState) {
+      if (dropdownName !== "members") setMembersDropdown(false);
+      if (dropdownName !== "savings") setSavingsDropdown(false);
+      if (dropdownName !== "loan") setLoanDropdown(false);
+      if (dropdownName !== "maintenance") setMaintenanceDropdown(false);
+    }
   };
 
   // Helper function to render a menu item with active styling
@@ -117,6 +167,7 @@ const SideBar = ({ mode }) => {
           className: `${isActive ? "text-white" : "text-gray-600"} mr-3 text-lg`,
         })
       : null;
+    
     const handleClick = (e) => {
       if (onClick) onClick(e);
       setActivePath(to);
@@ -141,24 +192,27 @@ const SideBar = ({ mode }) => {
   };
 
   // Helper function to render dropdown headers
-  const renderDropdownHeader = (isOpen, setIsOpen, icon, label, isAllowed = true) => {
+  const renderDropdownHeader = (isOpen, setIsOpen, icon, label, isAllowed = true, dropdownName) => {
     const baseClasses = "flex items-center w-full px-4 py-2 rounded-md transition-colors duration-200";
+    const isActive = activeDropdown === dropdownName && !activePath;
     const classes = isAllowed
-      ? `${baseClasses} text-gray-700 hover:text-green-600 hover:bg-green-50 cursor-pointer`
+      ? `${baseClasses} ${isActive ? "bg-green-600 text-white font-medium shadow-md" : "text-gray-700 hover:text-green-600 hover:bg-green-50"} cursor-pointer`
       : `${baseClasses} bg-gray-100 cursor-not-allowed`;
     
     return (
       <div
         className={classes}
-        onClick={() => isAllowed && setIsOpen(!isOpen)}
+        onClick={() => isAllowed && handleDropdownToggle(dropdownName, setIsOpen, isOpen)}
       >
-        {cloneElement(icon, { className: `${isAllowed ? "text-gray-600" : "text-gray-400"} mr-3 text-lg` })}
-        <span className={`flex-grow text-sm ${isAllowed ? "text-gray-700" : "text-gray-400"}`}>{label}</span>
+        {cloneElement(icon, { 
+          className: `${isAllowed ? (isActive ? "text-white" : "text-gray-600") : "text-gray-400"} mr-3 text-lg` 
+        })}
+        <span className={`flex-grow text-sm ${isAllowed ? (isActive ? "text-white" : "text-gray-700") : "text-gray-400"}`}>{label}</span>
         {isAllowed && (
           isOpen ? (
-            <HiOutlineChevronUp className="text-gray-600" />
+            <HiOutlineChevronUp className={isActive ? "text-white" : "text-gray-600"} />
           ) : (
-            <HiOutlineChevronDown className="text-gray-600" />
+            <HiOutlineChevronDown className={isActive ? "text-white" : "text-gray-600"} />
           )
         )}
         {!isAllowed && <HiOutlineLockClosed className="text-gray-400 ml-auto" />}
@@ -193,25 +247,26 @@ const SideBar = ({ mode }) => {
               setMembersDropdown, 
               <HiOutlineUserGroup />, 
               "Members", 
-              allowed.members
+              allowed.members,
+              "members"
             )}
             {membersDropdown && allowed.members && (
               <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">
                 {mode !== "memberRegistration" &&
                   renderItem(
-                    allowed.members,
+                    allowed.memberApplication,
                     "/member-application",
                     <FaEnvelopeOpenText />,
                     "Member Application"
                   )}
                 {mode !== "memberApplication" &&
                   renderItem(
-                    allowed.members,
+                    allowed.memberRegistration,
                     "/members-registration",
                     <HiCheckCircle />,
                     "Member Registration"
                   )}
-                {renderItem(allowed.members, "/members", <HiOutlineUserGroup />, "Member List")}
+                {renderItem(allowed.memberList, "/members", <HiOutlineUserGroup />, "Member List")}
               </ul>
             )}
           </li>
@@ -223,7 +278,8 @@ const SideBar = ({ mode }) => {
               setSavingsDropdown, 
               <HiOutlineBanknotes />, 
               "Savings", 
-              allowed.savings
+              allowed.savings,
+              "savings"
             )}
             {savingsDropdown && allowed.savings && (
               <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">
@@ -270,7 +326,8 @@ const SideBar = ({ mode }) => {
               setLoanDropdown, 
               <HiBriefcase />, 
               "Loan", 
-              allowed.loan
+              allowed.loan,
+              "loan"
             )}
             {loanDropdown && allowed.loan && (
               <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">
@@ -320,7 +377,8 @@ const SideBar = ({ mode }) => {
               setMaintenanceDropdown, 
               <HiOutlineCog />, 
               "System Maintenance", 
-              allowed.maintenance
+              allowed.maintenance,
+              "maintenance"
             )}
             {maintenanceDropdown && allowed.maintenance && (
               <ul className="ml-7 mt-1 space-y-1 border-l-2 border-green-100 pl-2">

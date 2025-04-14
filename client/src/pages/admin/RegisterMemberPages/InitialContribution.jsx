@@ -17,6 +17,8 @@ const InitialContribution = ({
   };
 
   const { memberId } = useParams();
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     if (!memberId) {
@@ -45,17 +47,20 @@ const InitialContribution = ({
       initialContribution: localContribution,
     }));
 
+    // Show success modal
+    setSuccessMessage("Initial contribution has been successfully recorded!");
+    setShowSuccessModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
     // Call parent's handleSave (passed as handleNext) with the updated local data
+    // after the modal is closed
     handleNext(localContribution);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
-      {/* <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Initial Contribution</h2>
-        <div className="h-1 w-20 bg-blue-500 rounded"></div>
-      </div> */}
-      
+    <div className="bg-white rounded-lg shadow-md p-4 relative">
       <div className="space-y-4">
         {[
           { label: "Share capital contribution amount", name: "share_capital" },
@@ -95,6 +100,38 @@ const InitialContribution = ({
           Submit
         </button>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Success!</h2>
+              <p className="text-gray-600 mb-6">{successMessage}</p>
+              
+              {/* Calculate total contribution */}
+              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <p className="font-medium text-gray-700 mb-2">Total Contribution:</p>
+                <p className="text-xl font-bold text-green-600">
+                  ₱{Object.values(localContribution).reduce((sum, value) => sum + (value || 0), 0).toLocaleString()}
+                </p>
+              </div>
+              
+              <button
+                onClick={handleCloseModal}
+                className="w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

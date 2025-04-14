@@ -13,7 +13,7 @@ const queryDatabase = async (query, params = []) => {
 
 // Fetch total members from the database
 const getTotalMembers = async () => {
-  const query = 'SELECT COUNT(*) AS total_members FROM members';
+  const query = 'SELECT COUNT(*) AS total_members FROM members'; // WHERE status = "Active"'; 
   return queryDatabase(query);
 };
 

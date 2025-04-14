@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import PersonalInformation from "./PersonalInformation";
 import LegalAndDocuments from "./LegalBeneficiariesAndDocuments";
-import Success from "./Success";
 
 // Pre-initialize the state with every key your backend expects.
 const initialFormData = {
@@ -79,7 +78,7 @@ const Membership = () => {
       secondary_beneficiary_name: data.legalBeneficiaries.secondary.fullName,
       secondary_beneficiary_relationship: data.legalBeneficiaries.secondary.relationship,
       secondary_beneficiary_contact: data.legalBeneficiaries.secondary.contactNumber,
-      // For simplicity, we’ll ignore additional beneficiaries and character references
+      // For simplicity, we'll ignore additional beneficiaries and character references
       // or you can join them into comma‑separated strings if needed.
       // Files will remain under their keys.
       ...data.documents
@@ -108,6 +107,7 @@ const Membership = () => {
       
       // Debug: log the FormData keys/values.
       for (let pair of formDataObj.entries()) {
+        // Console log was empty here
       }
       
       const response = await axios.post(
@@ -124,6 +124,14 @@ const Membership = () => {
         "Registration error! Please try again later.";
       alert(`Error adding member: ${errorMessage}`);
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+    // Reset form data after successful submission
+    setFormData(initialFormData);
+    // Reset to first tab
+    setActiveTab(0);
   };
 
   return (
@@ -165,14 +173,28 @@ const Membership = () => {
           )}
         </div>
       </div>
+
+      {/* Success Modal - Fixed positioning */}
       {showSuccessModal && (
-        <Success
-          message={successMessage}
-          onClose={() => {
-            setShowSuccessModal(false);
-            // Optionally reset the form or redirect.
-          }}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Success!</h2>
+              <p className="text-gray-600 mb-6">{successMessage}</p>
+              <button
+                onClick={handleCloseModal}
+                className="w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

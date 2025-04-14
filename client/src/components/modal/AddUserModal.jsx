@@ -314,7 +314,7 @@ const UserModal = ({ onClose, user, onSave }) => {
                   {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="block text-gray-700 text-sm font-medium mb-1">
                     Status
                   </label>
@@ -328,7 +328,7 @@ const UserModal = ({ onClose, user, onSave }) => {
                     <option value="Inactive">Inactive</option>
                     <option value="Suspended">Suspended</option>
                   </select>
-                </div>
+                </div> */}
 
                 {user && (
                   <div>

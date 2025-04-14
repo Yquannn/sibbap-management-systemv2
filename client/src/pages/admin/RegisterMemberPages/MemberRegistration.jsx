@@ -4,7 +4,7 @@ import PersonalInformationReg from "./PersonalInformationReg";
 import LegalAndDocuments from "./LegalBeneficiaries";
 import InitialContribution from "./InitialContribution";
 import MobilePortal from "./MemberPortal";
-import Success from "./Success";
+// import Success from "./Success";
 import { useParams } from "react-router-dom";
 
 // Use numeric defaults for financial values.
@@ -240,12 +240,12 @@ const MemberRegistration = () => {
       </div>
 
       {/* Success Modal */}
-      {showSuccessModal && (
+      {/* {showSuccessModal && (
         <Success
           message={successMessage}
           onClose={() => setShowSuccessModal(false)}
         />
-      )}
+      )} */}
     </div>
   );
 };
