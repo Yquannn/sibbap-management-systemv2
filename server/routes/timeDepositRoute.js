@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.post("/timedeposit", createTimeDeposit);
 router.get("/active", getActiveTimeDeposits);
-router.get('/timedepositor', getMemberWithNoTimeDeposit);
+// router.get('/timedepositor', getMemberWithNoTimeDeposit);
 router.get("/timedepositor/:timeDepositId", getTimeDepositorById);
 // router.put("/time-deposits/update-depositors", updateTimeDepositors);
 

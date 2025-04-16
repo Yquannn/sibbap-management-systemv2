@@ -38,47 +38,57 @@ const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formDa
 
   // Calculate the interest rate based on the deposit amount and term.
   const calculateInterestRate = (amount, termMonths) => {
-    if (termMonths === 6) {
-      if (amount >= 10000 && amount <= 100000) return 0.0075;
-      if (amount > 100000 && amount <= 200000) return 0.01;
-      if (amount > 200000 && amount <= 300000) return 0.0175;
-      if (amount > 300000 && amount <= 400000) return 0.0225;
-      if (amount > 400000 && amount <= 500000) return 0.025;
-      if (amount > 500000 && amount <= 1000000) return 0.025;
-      if (amount > 1000000) return 0.06;
-    } else if (termMonths === 12) {
-      if (amount >= 10000 && amount <= 100000) return 0.01;
-      if (amount > 100000 && amount <= 200000) return 0.015;
-      if (amount > 200000 && amount <= 300000) return 0.02;
-      if (amount > 300000 && amount <= 400000) return 0.0275;
-      if (amount > 400000 && amount <= 500000) return 0.03;
-      if (amount > 500000 && amount <= 1000000) return 0.0325;
-      if (amount > 1000000) return 0.06;
+    // Ensure amount and termMonths are valid numbers
+    const parsedAmount = parseFloat(amount);
+    const parsedTermMonths = parseInt(termMonths, 10);
+
+    if (isNaN(parsedAmount) || isNaN(parsedTermMonths)) return 0;
+
+    if (parsedTermMonths === 6) {
+      if (parsedAmount >= 10000 && parsedAmount <= 100000) return 0.0075;
+      if (parsedAmount > 100000 && parsedAmount <= 200000) return 0.01;
+      if (parsedAmount > 200000 && parsedAmount <= 300000) return 0.0175;
+      if (parsedAmount > 300000 && parsedAmount <= 400000) return 0.0225;
+      if (parsedAmount > 400000 && parsedAmount <= 500000) return 0.025;
+      if (parsedAmount > 500000 && parsedAmount <= 1000000) return 0.0325;
+      if (parsedAmount > 1000000) return 0.035;
+    } else if (parsedTermMonths === 12) {
+      if (parsedAmount >= 10000 && parsedAmount <= 100000) return 0.01;
+      if (parsedAmount > 100000 && parsedAmount <= 200000) return 0.015;
+      if (parsedAmount > 200000 && parsedAmount <= 300000) return 0.02;
+      if (parsedAmount > 300000 && parsedAmount <= 400000) return 0.0275;
+      if (parsedAmount > 400000 && parsedAmount <= 500000) return 0.03;
+      if (parsedAmount > 500000 && parsedAmount <= 1000000) return 0.035;
+      if (parsedAmount > 1000000) return 0.04;
     }
     return 0;
   };
 
+  const principal = parseFloat(rawAmount) || 0;
+  const termMonths = parseInt(fixedTerm, 10) || 0;
+  const interestRate = calculateInterestRate(principal, termMonths);
+
   useEffect(() => {
-    if (rawAmount && fixedTerm) {
-      const principal = parseFloat(rawAmount);
-      const termMonths = parseInt(fixedTerm, 10);
-      const interestRate = calculateInterestRate(principal, termMonths);
-      // Assuming 6-month term uses 181 days, otherwise 365 days.
-      const days = termMonths === 6 ? 181 : 365;
+    if (principal && termMonths) {
+      // Assuming 6-month term uses 182 days, otherwise 365 days.
+      const days = termMonths === 6 ? 182 : 365;
       const interest = principal * interestRate * (days / 365);
       const payout = principal + interest;
+      // Create a new date instance to avoid mutating the current date
       const currentDate = new Date();
-      const maturityDate = new Date(currentDate.setMonth(currentDate.getMonth() + termMonths));
+      const maturityDate = new Date(currentDate);
+      maturityDate.setMonth(maturityDate.getMonth() + termMonths);
 
       setComputation({
         // Store maturity date as ISO string (YYYY-MM-DD)
         maturityDate: maturityDate.toISOString().slice(0, 10),
         interest: formatNumber(interest),
         payout: formatNumber(payout),
+        // Ensure interestRate is converted to percentage and formatted
         interestRate: formatNumber(interestRate * 100),
       });
     }
-  }, [rawAmount, fixedTerm]);
+  }, [principal, termMonths, interestRate]);
 
   const handleAmountChange = (e) => {
     const value = e.target.value.replace(/,/g, "");
@@ -94,32 +104,47 @@ const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formDa
     }
   };
 
-  // Build payload mapping the formData keys (camelCase) to the expected API keys.
+  const userName = sessionStorage.getItem("username");
+  const userType = sessionStorage.getItem("usertype");
+
+  // Build payload mapping the formData keys to the expected API keys
   const buildPayload = () => {
+    // Check if there's co-maker information based on account type or has_co_maker flag
+    const hasCoMaker =
+      formData.account_type !== "INDIVIDUAL" &&
+      (formData.has_co_maker || formData.co_last_name);
+
     return {
       memberId: member?.memberId || paramMemberId,
-      amount: parseFloat(rawAmount),
-      fixedTerm: parseInt(fixedTerm, 10),
+      amount: parseFloat(rawAmount) || 0,
+      authorized_by: userName,
+      user_type: userType,
+      fixedTerm: parseInt(fixedTerm, 10) || 0,
+      // Ensure interestRate is parsed as a number and defaults to 0
+      interest_rate: parseFloat(computation.interestRate) || 0, 
+      // Remove commas and parse as number, default to 0
       interest: computation.interest
         ? parseFloat(computation.interest.replace(/,/g, ""))
         : 0,
+      // Remove commas and parse as number, default to 0
       payout: computation.payout
         ? parseFloat(computation.payout.replace(/,/g, ""))
         : 0,
       maturityDate: computation.maturityDate || new Date().toISOString().slice(0, 10),
-      account_type: formData.accountType || null,
-      last_name: formData.coLastName || null,
-      middle_name: formData.coMiddleName || null,
-      first_name: formData.coFirstName || null,
-      extension_name: formData.coExtension || null,
-      date_of_birth: formData.coDOB || null,
-      place_of_birth: formData.coPlaceOfBirth || null,
-      age: formData.coAge || null,
-      gender: formData.coGender || null,
-      civil_status: formData.coCivilStatus || null,
-      contact_number: formData.coContactNumber || null,
-      relationship_primary: formData.coRelationship || null,
-      complete_address: formData.coCompleteAddress || null,
+      account_type: formData.account_type || null,
+      // Handle co-maker information: send null if doesn't exist or individual account
+      last_name: hasCoMaker ? formData.co_last_name : null,
+      middle_name: hasCoMaker ? formData.co_middle_name : null,
+      first_name: hasCoMaker ? formData.co_first_name : null,
+      extension_name: hasCoMaker ? formData.co_extension_name : null,
+      date_of_birth: hasCoMaker ? formData.co_date_of_birth : null,
+      place_of_birth: hasCoMaker ? formData.co_place_of_birth : null,
+      age: hasCoMaker ? formData.co_age : null,      
+      gender: hasCoMaker ? formData.co_gender : null,
+      civil_status: hasCoMaker ? formData.co_civil_status : null,
+      contact_number: hasCoMaker ? formData.co_contact_number : null,
+      relationship_primary: hasCoMaker ? formData.co_relationship_primary : null,
+      complete_address: hasCoMaker ? formData.co_complete_address : null,
     };
   };
 
@@ -159,9 +184,10 @@ const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formDa
 
   // Modal background colors based on action type
   const actionColor = modalType === "withdraw" ? "red" : "blue";
-  const actionBgGradient = modalType === "withdraw" 
-    ? "from-red-500 to-red-600" 
-    : "from-blue-600 to-blue-700";
+  const actionBgGradient =
+    modalType === "withdraw"
+      ? "from-red-500 to-red-600"
+      : "from-blue-600 to-blue-700";
 
   return (
     <>
@@ -171,20 +197,41 @@ const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formDa
             <h2 className="text-2xl font-semibold text-gray-800">
               {modalType === "withdraw" ? "Withdraw Funds" : "Deposit Funds"}
             </h2>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="text-gray-500 hover:text-gray-700 focus:outline-none"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
 
           {error && (
             <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg flex items-start">
-              <svg className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               <p className="text-sm">{error}</p>
             </div>
@@ -234,41 +281,43 @@ const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formDa
               </select>
             </div>
 
-            {(rawAmount && fixedTerm) ? (
+            {rawAmount && fixedTerm && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
-                <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2 mb-2">Computation Summary</h3>
-                
+                <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2 mb-2">
+                  Computation Summary
+                </h3>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-gray-500">Maturity Date</p>
                     <p className="font-medium">
-                      {computation.maturityDate ? new Date(computation.maturityDate).toLocaleDateString() : "-"}
+                      {computation.maturityDate
+                        ? new Date(computation.maturityDate).toLocaleDateString()
+                        : "-"}
                     </p>
                   </div>
-                  
+
                   <div>
                     <p className="text-xs text-gray-500">Interest Rate</p>
-                    <p className="font-medium">
-                      {computation.interestRate}%
-                    </p>
+                    <p className="font-medium">{computation.interestRate || '0'}%</p>
                   </div>
-                  
+
                   <div>
                     <p className="text-xs text-gray-500">Interest Amount</p>
                     <p className="font-medium text-green-600">
-                      ₱{computation.interest}
+                      ₱{computation.interest || '0.00'}
                     </p>
                   </div>
-                  
+
                   <div>
                     <p className="text-xs text-gray-500">Total Payout</p>
                     <p className="font-medium text-green-600">
-                      ₱{computation.payout}
+                      ₱{computation.payout || '0.00'}
                     </p>
                   </div>
                 </div>
               </div>
-            ) : null}
+            )}
 
             <div className="flex gap-3 pt-2">
               <button
@@ -280,9 +329,25 @@ const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formDa
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Processing...
                   </span>
@@ -302,10 +367,7 @@ const TimedepositAmountModal = ({ member, modalType = "deposit", onClose, formDa
       </div>
 
       {showSuccessModal && (
-        <SuccessModal
-          message="Deposit Successful!"
-          onClose={handleSuccessClose}
-        />
+        <SuccessModal message="Deposit Successful!" onClose={handleSuccessClose} />
       )}
     </>
   );

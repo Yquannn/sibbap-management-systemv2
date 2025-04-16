@@ -122,7 +122,7 @@ const SideBar = ({ mode }) => {
   const loanSubAllowed = {
     borrower: isSystemAdmin || isGeneralManager || isLoanOfficer,
     "loan-dashboard": isSystemAdmin || isGeneralManager || isLoanOfficer,
-    "loan-application": isSystemAdmin || isGeneralManager || isLoanOfficer,
+    "loan-application": isSystemAdmin || isGeneralManager,
     "loan-applicant": isSystemAdmin || isGeneralManager || isLoanOfficer,
     "loan-approval": isSystemAdmin || isGeneralManager || isTreasurer,
   };

@@ -195,7 +195,7 @@ const LogIn = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-gray-700 text-sm font-semibold mb-2">
-              Email Address
+              User Name
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">

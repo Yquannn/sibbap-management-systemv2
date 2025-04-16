@@ -10,23 +10,26 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  BarElement,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { Line, Pie } from 'react-chartjs-2';
+import { Line, Pie, Bar } from 'react-chartjs-2';
 import {
   FaMoneyCheckAlt,
   FaPiggyBank,
   FaUsers,
   FaHandHoldingUsd,
   FaCalendarAlt,
+  FaChartLine,
+  FaExclamationCircle,
 } from 'react-icons/fa';
 
-// Register ChartJS components and plugins
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -34,8 +37,8 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// A reusable card component for displaying statistics
-const StatsCard = ({ icon, label, value, growth }) => {
+// Enhanced StatsCard with trend indicator and subtitle
+const StatsCard = ({ icon, label, value, growth, prefix = "", subtitle }) => {
   const isPositive = growth.startsWith('+');
   
   return (
@@ -48,112 +51,45 @@ const StatsCard = ({ icon, label, value, growth }) => {
       </div>
       <div className="mt-2">
         <div className="text-2xl font-bold text-gray-800">
-          <CountUp start={0} end={value} duration={2.5} separator="," />
+          <CountUp start={0} end={value} duration={2.5} separator="," prefix={prefix} />
         </div>
         <div className="text-sm font-medium text-gray-500 mt-1">{label}</div>
+        {subtitle && <div className="text-xs text-gray-400 mt-1">{subtitle}</div>}
       </div>
     </div>
   );
 };
 
-// FinancialOverviewCard with an interactive line chart
-const FinancialOverviewCard = ({ revenueData }) => {
-  const chartData = useMemo(() => ({
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-    datasets: [
-      {
-        label: 'Revenue',
-        data: revenueData,
-        borderColor: 'rgba(99,102,241,1)',
-        backgroundColor: 'rgba(99,102,241,0.1)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 3,
-      },
-    ],
-  }), [revenueData]);
-
-  return (
-    <div className="w-full bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-300 border border-gray-100">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h5 className="text-3xl font-bold text-gray-900">
-            <CountUp start={0} end={750000} duration={2.5} separator="," prefix="₱" />
-          </h5>
-          <p className="text-sm font-medium text-gray-500 mt-1">Total Revenue This Month</p>
-        </div>
-        <div className="flex items-center px-3 py-1 text-sm font-medium text-green-600 bg-green-100 rounded-full">
-          23%
-          <svg
-            className="w-3 h-3 ml-1"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 10 14"
-          >
-            <path
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M5 13V1m0 0L1 5m4-4 4 4"
-            />
-          </svg>
-        </div>
-      </div>
-      <div className="mt-4">
-        <Line
-          data={chartData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-              legend: { display: false },
-              tooltip: { 
-                mode: 'index', 
-                intersect: false,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                titleColor: '#6366F1',
-                bodyColor: '#4B5563',
-                borderColor: '#E5E7EB',
-                borderWidth: 1,
-                padding: 10,
-                cornerRadius: 8,
-                titleFont: { weight: 'bold' },
-              }
-            },
-            scales: { 
-              x: { display: false }, 
-              y: { display: false },
-            },
-            elements: {
-              point: {
-                radius: 0,
-                hoverRadius: 6,
-                backgroundColor: '#6366F1',
-                borderWidth: 2,
-                borderColor: '#fff'
-              }
-            },
-          }}
-          height={100}
-        />
+// Alert Component for Important Notifications
+const AlertCard = ({ alerts }) => (
+  <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-semibold text-gray-800">Important Alerts</h2>
+      <div className="p-2 bg-red-50 rounded-lg">
+        <FaExclamationCircle className="text-red-600" />
       </div>
     </div>
-  );
-};
+    <div className="space-y-3">
+      {alerts.map((alert, index) => (
+        <div key={index} className="flex items-center p-3 bg-red-50 rounded-lg">
+          <div className="w-2 h-2 bg-red-500 rounded-full mr-3"></div>
+          <span className="text-sm text-red-700">{alert}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
-// A dropdown component to control the time range for analytics
+// Time Range Dropdown Component
 const TimeRangeDropdown = ({ selectedRange, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const ranges = ["Yesterday", "Today", "Last 7 days", "Last 30 days", "Last 90 days"];
+  const ranges = ["Today", "This Week", "This Month", "This Quarter", "This Year"];
   
   return (
     <div className="relative inline-block text-left">
       <button
-        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex justify-center w-full rounded-lg border border-gray-200 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+        className="inline-flex justify-center w-full rounded-lg border border-gray-200 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
       >
         {selectedRange}
         <svg className="w-5 h-5 ml-2 -mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -170,7 +106,7 @@ const TimeRangeDropdown = ({ selectedRange, onChange }) => {
                   onChange(range);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200"
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
               >
                 {range}
               </button>
@@ -183,190 +119,144 @@ const TimeRangeDropdown = ({ selectedRange, onChange }) => {
 };
 
 const Dashboard = () => {
-  const [timeRange, setTimeRange] = useState("Last 7 days");
+  const [timeRange, setTimeRange] = useState("This Month");
 
-  // Simulate dynamic revenue data based on the selected time range.
-  const revenueData = useMemo(() => {
-    switch(timeRange) {
-      case "Yesterday":
-        return [200000, 0, 0, 0];
-      case "Today":
-        return [0, 250000, 0, 0];
-      case "Last 30 days":
-        return [150000, 180000, 170000, 210000];
-      case "Last 90 days":
-        return [140000, 190000, 180000, 230000];
-      default:
-        // Default is "Last 7 days"
-        return [150000, 200000, 180000, 220000];
-    }
-  }, [timeRange]);
-
-  // Top stats for overall analytics
+  // Enhanced stats data with more relevant metrics
   const stats = [
     {
-      label: 'Total Revenue',
-      value: 750000,
-      growth: '+5%',
-      icon: <FaMoneyCheckAlt size={24} className="text-indigo-600" />,
-    },
-    {
-      label: 'Total Savings',
-      value: 1200000,
-      growth: '+12%',
-      icon: <FaPiggyBank size={24} className="text-emerald-600" />,
-    },
-    {
-      label: 'Members',
-      value: 350,
+      label: 'Active Members',
+      value: 1250,
       growth: '+8%',
-      icon: <FaUsers size={24} className="text-violet-600" />,
+      icon: <FaUsers size={24} className="text-indigo-600" />,
+      subtitle: '150 new this month'
     },
     {
-      label: 'Transactions',
-      value: 150,
+      label: 'Total Loans',
+      value: 2500000,
+      growth: '+15%',
+      prefix: "₱",
+      icon: <FaHandHoldingUsd size={24} className="text-emerald-600" />,
+      subtitle: '45 active loans'
+    },
+    {
+      label: 'Regular Savings',
+      value: 3750000,
+      growth: '+12%',
+      prefix: "₱",
+      icon: <FaPiggyBank size={24} className="text-violet-600" />,
+      subtitle: 'Avg. ₱3,000/member'
+    },
+    {
+      label: 'Share Capital',
+      value: 5000000,
       growth: '+10%',
-      icon: <FaHandHoldingUsd size={24} className="text-amber-600" />,
+      prefix: "₱",
+      icon: <FaMoneyCheckAlt size={24} className="text-amber-600" />,
+      subtitle: '850 shareholders'
     },
   ];
 
-  // Dummy data for monthly savings contributions
-  const lineChartData = {
-    labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+  // Important alerts data
+  const alerts = [
+    "25 loans due for payment this week",
+    "10 time deposits maturing in 7 days",
+    "5 member accounts require verification",
+    "System maintenance scheduled for next weekend"
+  ];
+
+  // Enhanced loan performance data
+  const loanPerformanceData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
     datasets: [
       {
-        label: 'Monthly Savings Contributions',
-        data: [200, 400, 600, 800, 1000, 1200],
+        label: 'Loan Disbursements',
+        data: [300000, 450000, 400000, 600000, 450000, 550000],
         borderColor: 'rgba(99,102,241,1)',
         backgroundColor: 'rgba(99,102,241,0.1)',
         tension: 0.3,
-        borderWidth: 3,
       },
-    ],
+      {
+        label: 'Loan Collections',
+        data: [250000, 400000, 350000, 550000, 400000, 500000],
+        borderColor: 'rgba(16,185,129,1)',
+        backgroundColor: 'rgba(16,185,129,0.1)',
+        tension: 0.3,
+      }
+    ]
   };
 
-// Data for member distribution pie chart - This remains largely the same
-const pieChartData = {
-  labels: ['Time Deposit', 'Loan', 'Regular Savings', 'Share Capital'],
-  datasets: [
-    {
-      label: 'Member Count',
-      data: [150, 80, 200, 100],
-      backgroundColor: ['#6366F1', '#F43F5E', '#F59E0B', '#10B981'],
-      borderWidth: 0,
-    },
-  ],
-};
+  // Member activity data
+  const memberActivityData = {
+    labels: ['Regular Savings', 'Time Deposits', 'Share Capital', 'Loan Applications', 'Withdrawals'],
+    datasets: [{
+      data: [65, 45, 35, 28, 20],
+      backgroundColor: [
+        'rgba(99,102,241,0.8)',
+        'rgba(16,185,129,0.8)',
+        'rgba(245,158,11,0.8)',
+        'rgba(244,63,94,0.8)',
+        'rgba(168,85,247,0.8)'
+      ],
+    }]
+  };
 
-// Data for financial breakdown pie chart - Updated to match the same categories as the member distribution
-const moneyPieChartData = {
-  labels: ['Time Deposit', 'Loan', 'Regular Savings', 'Share Capital'],
-  datasets: [
-    {
-      label: 'Financial Distribution',
-      data: [450000, 500000, 350000, 250000],
-      backgroundColor: ['#6366F1', '#F43F5E', '#F59E0B', '#10B981'],
-      borderWidth: 0,
-    },
-  ],
-};
-
-  // Upcoming events data
-  const upcomingEvents = [
-    { date: 'Sep 15, 2025', event: 'Monthly Members Meeting' },
-    { date: 'Sep 25, 2025', event: 'System Maintenance' },
-    { date: 'Oct 05, 2025', event: 'Financial Literacy Workshop' },
-  ];
+  // Financial distribution data
+  const financialDistributionData = {
+    labels: ['Regular Savings', 'Time Deposits', 'Share Capital', 'Outstanding Loans'],
+    datasets: [{
+      data: [3750000, 2800000, 5000000, 2500000],
+      backgroundColor: [
+        'rgba(99,102,241,0.8)',
+        'rgba(16,185,129,0.8)',
+        'rgba(245,158,11,0.8)',
+        'rgba(244,63,94,0.8)'
+      ],
+    }]
+  };
 
   return (
     <div className="w-full bg-gray-50 p-6">
       <div className="max-w-full mx-auto">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Cooperative Dashboard</h1>
-          <p className="text-gray-500 mt-1">View your cooperative's performance at a glance</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Cooperative Dashboard</h1>
+              <p className="text-gray-500 mt-1">Comprehensive overview of all cooperative activities</p>
+            </div>
+            <TimeRangeDropdown selectedRange={timeRange} onChange={setTimeRange} />
+          </div>
         </header>
 
-        <main className="w-full space-y-8">
-          {/* Top Stats Cards */}
+        <main className="w-full space-y-6">
+          {/* Top Stats Section */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {stats.map((item, idx) => (
               <StatsCard key={idx} {...item} />
             ))}
           </div>
 
-          {/* Main Grid Sections */}
+          {/* Main Content Grid */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             {/* Left Column */}
-            <div className="lg:col-span-4 space-y-6">
-              {/* Financial Overview Card */}
-              <FinancialOverviewCard revenueData={revenueData} />
-
-              {/* New Members Card */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* Loan Performance Chart */}
               <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">New Members</h2>
-                  <div className="bg-violet-100 text-violet-600 px-3 py-1 rounded-full text-sm font-medium">
-                    This Month
-                  </div>
-                </div>
-                <div className="text-4xl font-bold text-gray-800 mb-2">
-                  <CountUp start={0} end={69} duration={2.5} />
-                </div>
-                <div className="text-sm text-gray-500 mb-4">First-Time Registrations</div>
-                <div className="flex items-center mt-3 space-x-1">
-                  <img
-                    className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-indigo-100"
-                    src="https://via.placeholder.com/40"
-                    alt="Client A"
-                  />
-                  <img
-                    className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-indigo-100 -ml-3"
-                    src="https://via.placeholder.com/40"
-                    alt="Client B"
-                  />
-                  <img
-                    className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-indigo-100 -ml-3"
-                    src="https://via.placeholder.com/40"
-                    alt="Client C"
-                  />
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center -ml-3 bg-indigo-600 text-white text-xs font-medium ring-2 ring-indigo-100">
-                    +10
-                  </div>
-                </div>
-              </div>
-
-              {/* Upcoming Events */}
-              <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">Upcoming Events</h2>
-                  <div className="p-2 bg-amber-50 rounded-lg">
-                    <FaCalendarAlt className="text-amber-600" />
-                  </div>
-                </div>
-                <ul className="space-y-4">
-                  {upcomingEvents.map((event, i) => (
-                    <li key={i} className="flex items-center justify-between py-2 hover:bg-gray-50 px-2 rounded-lg transition-colors duration-200">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-indigo-600 rounded-full mr-3"></div>
-                        <span className="text-gray-700 font-medium">{event.event}</span>
-                      </div>
-                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-md">{event.date}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Middle Column */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 h-96">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800">Monthly Savings Contributions</h2>
-                  <TimeRangeDropdown selectedRange={timeRange} onChange={setTimeRange} />
+                  <h2 className="text-lg font-semibold text-gray-800">Loan Performance</h2>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-indigo-600 rounded-full mr-2"></div>
+                      <span className="text-sm text-gray-600">Disbursements</span>
+                    </div>
+                    <div className="flex items-center ml-4">
+                      <div className="w-3 h-3 bg-emerald-600 rounded-full mr-2"></div>
+                      <span className="text-sm text-gray-600">Collections</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="h-64">
+                <div className="h-80">
                   <Line
-                    data={lineChartData}
+                    data={loanPerformanceData}
                     options={{
                       responsive: true,
                       maintainAspectRatio: false,
@@ -381,48 +271,52 @@ const moneyPieChartData = {
                           padding: 10,
                           cornerRadius: 8,
                           titleFont: { weight: 'bold' },
-                          mode: 'index',
-                          intersect: false,
                         },
                       },
                       scales: {
                         y: {
                           beginAtZero: true,
-                          grid: {
-                            color: 'rgba(243, 244, 246, 1)',
-                            drawBorder: false,
-                          },
                           ticks: {
-                            font: {
-                              size: 12,
-                            },
-                            color: '#9CA3AF',
-                          },
-                        },
-                        x: {
-                          grid: {
-                            display: false,
-                          },
-                          ticks: {
-                            font: {
-                              size: 12,
-                            },
-                            color: '#9CA3AF',
-                          },
-                        },
-                      },
-                      elements: {
-                        point: {
-                          radius: 4,
-                          hoverRadius: 6,
-                          backgroundColor: '#6366F1',
-                          borderWidth: 2,
-                          borderColor: '#fff'
-                        },
-                        line: {
-                          borderWidth: 3,
+                            callback: value => '₱' + value.toLocaleString()
+                          }
                         }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Member Activity Chart */}
+              <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-800 mb-6">Member Activity Distribution</h2>
+                <div className="h-80">
+                  <Bar
+                    data={memberActivityData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          titleColor: '#6366F1',
+                          bodyColor: '#4B5563',
+                          borderColor: '#E5E7EB',
+                          borderWidth: 1,
+                          padding: 10,
+                          cornerRadius: 8,
+                          titleFont: { weight: 'bold' },
+                        },
                       },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          title: {
+                            display: true,
+                            text: 'Number of Transactions'
+                          }
+                        }
+                      }
                     }}
                   />
                 </div>
@@ -430,109 +324,51 @@ const moneyPieChartData = {
             </div>
 
             {/* Right Column */}
-            <div className="lg:col-span-3 space-y-6">
+            <div className="lg:col-span-4 space-y-6">
+              {/* Alerts Section */}
+              <AlertCard alerts={alerts} />
+
+              {/* Financial Distribution */}
               <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Member Distribution</h2>
-                <div className="h-64 flex items-center justify-center">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">Financial Distribution</h2>
+                <div className="h-80">
                   <Pie
-                    data={pieChartData}
+                    data={financialDistributionData}
                     options={{
                       responsive: true,
                       maintainAspectRatio: false,
                       plugins: {
-                        legend: { 
+                        legend: {
                           position: 'bottom',
                           labels: {
                             usePointStyle: true,
                             padding: 15,
-                            font: {
-                              size: 12,
-                            },
+                            font: { size: 12 }
                           }
                         },
                         datalabels: {
                           formatter: (value, ctx) => {
                             const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / sum) * 100).toFixed(0) + '%';
-                            return percentage;
+                            const percentage = ((value / sum) * 100).toFixed(1) + '%';
+                            return `₱${(value/1000000).toFixed(1)}M\n${percentage}`;
                           },
                           color: '#fff',
                           font: { weight: 'bold', size: 12 },
+                          textAlign: 'center'
                         },
                         tooltip: {
-                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                          titleColor: '#4B5563',
-                          bodyColor: '#4B5563',
-                          borderColor: '#E5E7EB',
-                          borderWidth: 1,
-                          padding: 10,
-                          cornerRadius: 8,
-                          bodyFont: { weight: 'bold' },
                           callbacks: {
-                            label: function(context) {
-                              const label = context.label || '';
-                              const value = context.raw || 0;
-                              return `${label}: ${value}`;
+                            label: (context) => {
+                              const value = context.raw;
+                              return `${context.label}: ₱${value.toLocaleString()}`;
                             }
                           }
                         }
-                      },
-                      cutout: '60%',
+                      }
                     }}
                   />
                 </div>
               </div>
-              <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-  <h2 className="text-lg font-semibold text-gray-800 mb-4">Financial Distribution</h2>
-  <div className="h-64 flex items-center justify-center">
-    <Pie
-      data={moneyPieChartData}
-      options={{
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { 
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
-              padding: 15,
-              font: {
-                size: 12,
-              },
-            }
-          },
-          datalabels: {
-            formatter: (value, ctx) => {
-              const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-              const percentage = ((value / sum) * 100).toFixed(0) + '%';
-              return percentage;
-            },
-            color: '#fff',
-            font: { weight: 'bold', size: 12 },
-          },
-          tooltip: {
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            titleColor: '#4B5563',
-            bodyColor: '#4B5563',
-            borderColor: '#E5E7EB',
-            borderWidth: 1,
-            padding: 10,
-            cornerRadius: 8,
-            bodyFont: { weight: 'bold' },
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.raw || 0;
-                return `${label}: ₱${value.toLocaleString()}`;
-              }
-            }
-          }
-        },
-        cutout: '60%',
-      }}
-    />
-  </div>
-</div>
             </div>
           </div>
         </main>

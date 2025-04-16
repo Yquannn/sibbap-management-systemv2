@@ -16,6 +16,9 @@ const installmentRoutes = require('./routes/installmentRoutes');
 const notification = require('./routes/notificationRoutes'); // FIXED THIS LINE
 const savingsSummary = require('./routes/savingsDashboardRoutes'); // FIXED THIS LINE
 const loanDashboardRoutes = require('./routes/loanDashboardRoutes'); // FIXED THIS LINE
+const timedepositRoutes = require('./routes/timedepositTransactionRoutes'); // FIXED THIS LINE
+const timedepositRolloverRoutes = require('./routes/timedepositRolloverRoutes'); // FIXED THIS LINE
+
 
 const app = express();
 const PORT = process.env.PORT || 3001; // FIXED THIS LINE
@@ -42,6 +45,8 @@ app.use('/api', installmentRoutes);
 app.use('/api', notification);
 app.use('/api', savingsSummary);
 app.use('/api', loanDashboardRoutes); 
+app.use('/api', timedepositRoutes);
+app.use('/api', timedepositRolloverRoutes); // FIXED THIS LINE
 
 
 app.use((err, req, res, next) => {

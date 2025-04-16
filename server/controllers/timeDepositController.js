@@ -1,8 +1,7 @@
 const TimeDeposit = require("../models/timeDepositModel");
 
 // Helper function: convert undefined or empty strings to null.
-const safeValue = (val) =>
-  val === undefined || val === "" ? null : val;
+const safeValue = (val) => (val === undefined || val === "" ? null : val);
 
 exports.createTimeDeposit = async (req, res) => {
   const {
@@ -10,6 +9,9 @@ exports.createTimeDeposit = async (req, res) => {
     amount,
     fixedTerm,
     account_type,
+    authorized_by,
+    user_type,
+    // Co-maker fields
     last_name,
     middle_name,
     first_name,
@@ -22,28 +24,34 @@ exports.createTimeDeposit = async (req, res) => {
     contact_number,
     relationship_primary,
     complete_address,
-    interest,       // Now expected to be passed in (or null)
-    payout,         // Now expected to be passed in (or null)
-    maturityDate    // Now expected to be passed in (or null)
+    // Time deposit fields
+    interest_rate,
+    interest,
+    payout,
+    maturityDate
   } = req.body;
 
   // Validate required fields.
   if (!memberId || !amount || !fixedTerm) {
-    return res
-      .status(400)
-      .json({ error: "Member ID, amount, and fixed term are required." });
+    return res.status(400).json({
+      error: "Member ID, amount, and fixed term are required.",
+    });
   }
 
   try {
-    // Build the time deposit record using safeValue.
-    const newTimeDeposit = {
+    // Build the time deposit record with co-maker fields included and prefixed with co_
+    const timeDepositData = {
       memberId: safeValue(memberId),
       amount: safeValue(amount),
       fixedTerm: safeValue(fixedTerm),
+      interest_rate: safeValue(interest_rate),
       interest: safeValue(interest),
       payout: safeValue(payout),
       maturityDate: safeValue(maturityDate),
       account_type: safeValue(account_type),
+      authorized_by: safeValue(authorized_by), // Assuming req.userId is set by authentication middleware
+      user_type: safeValue(user_type), // Assuming req.userType is set by authentication middleware
+      // Include co-maker fields with co_ prefix
       co_last_name: safeValue(last_name),
       co_middle_name: safeValue(middle_name),
       co_first_name: safeValue(first_name),
@@ -53,25 +61,32 @@ exports.createTimeDeposit = async (req, res) => {
       co_age: safeValue(age),
       co_gender: safeValue(gender),
       co_civil_status: safeValue(civil_status),
-      co_contact_number: safeValue(contact_number),
+      co_contact_number: safeValue(contact_number), 
       co_relationship_primary: safeValue(relationship_primary),
       co_complete_address: safeValue(complete_address)
     };
 
     // Debug: log the payload to ensure no undefined values are present.
-    console.log("Creating Time Deposit with payload:", newTimeDeposit);
+    console.log("Creating Time Deposit with payload:", timeDepositData);
 
-    // Create the time deposit record in the database.
-    await TimeDeposit.create(newTimeDeposit);
+    // Create the time deposit record in the database using the model.
+    const result = await TimeDeposit.create(timeDepositData);
 
-    // Return the created record details.
+    // Return the created record details with the insertId from the result.
     res.status(201).json({
-      memberId,
-      amount,
-      fixedTerm,
-      maturityDate,
-      interest,
-      payout
+      success: true,
+      message: "Time deposit created successfully",
+      data: {
+        timeDepositId: result.insertId,
+        memberId,
+        amount,
+        fixedTerm,
+        maturityDate,
+        interest_rate,
+        interest,
+        payout,
+        account_status: "PRE-MATURE", // Reflecting what's set in the model
+      },
     });
   } catch (err) {
     console.error("Error creating time deposit:", err.message);
@@ -85,30 +100,14 @@ exports.getActiveTimeDeposits = async (req, res) => {
     if (deposits.length === 0) {
       return res.status(404).json({ error: "No active time deposits found." });
     }
-    res.status(200).json(deposits);
+    res.status(200).json({
+      success: true,
+      count: deposits.length,
+      data: deposits,
+    });
   } catch (err) {
     console.error("Error fetching active time deposits:", err.message);
     res.status(500).json({ error: "Error fetching active time deposits." });
-  }
-};
-
-exports.getMemberWithNoTimeDeposit = async (req, res) => {
-  try {
-    // Fetch members (or depositors) from the model.
-    const deposits = await TimeDeposit.getTimeDepositor();
-    if (!deposits || deposits.length === 0) {
-      return res.status(200).json({
-        message: "No members found without active time deposits.",
-        data: []
-      });
-    }
-    res.status(200).json({ data: deposits });
-  } catch (err) {
-    console.error("Error fetching members:", err.message);
-    res.status(500).json({
-      error: "An error occurred while fetching members.",
-      details: err.message
-    });
   }
 };
 
@@ -124,9 +123,14 @@ exports.getTimeDepositorById = async (req, res) => {
     if (!record) {
       return res.status(404).json({ error: "No time deposit record found." });
     }
-    res.status(200).json(record);
+    res.status(200).json({
+      success: true,
+      data: record,
+    });
   } catch (error) {
     console.error("Error retrieving time deposit record:", error);
     res.status(500).json({ error: "Internal server error." });
   }
 };
+
+// Removed the getMemberWithNoTimeDeposit function as there's no matching model method

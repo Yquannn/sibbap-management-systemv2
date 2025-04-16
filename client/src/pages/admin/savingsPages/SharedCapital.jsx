@@ -17,9 +17,9 @@ import {
 const ShareCapital = () => {
   // Store the full list of members (fetched once from the API)
   const [allMembers, setAllMembers] = useState([]);
-  // For client-side pagination, we'll work with the filtered (and sorted) results.
+  // For client-side pagination, use state for the current page and items per page.
   const [currentPage, setCurrentPage] = useState(1);
-  const membersPerPage = 15;
+  const [membersPerPage, setMembersPerPage] = useState(15);
   
   // Analytics information
   const [analytics, setAnalytics] = useState({
@@ -90,13 +90,13 @@ const ShareCapital = () => {
   // Sort the filtered list so higher memberId values (assumed more recent) come first.
   const sortedMembers = [...filteredMembers].sort((a, b) => b.memberId - a.memberId);
 
-  // Whenever the search term or filtered list changes, update total pages and reset pagination.
+  // Update total pages and reset pagination whenever search, sorted members, or items per page change.
   useEffect(() => {
     setTotalPages(Math.ceil(sortedMembers.length / membersPerPage) || 1);
     setCurrentPage(1);
-  }, [searchTerm, sortedMembers]);
+  }, [searchTerm, sortedMembers, membersPerPage]);
 
-  // Compute the slice for the current page (always 15 members per page)
+  // Compute the slice for the current page
   const indexOfFirst = (currentPage - 1) * membersPerPage;
   const indexOfLast = currentPage * membersPerPage;
   const paginatedMembers = sortedMembers.slice(indexOfFirst, indexOfLast);
@@ -114,6 +114,11 @@ const ShareCapital = () => {
     if (e.key === "Enter") {
       setCurrentPage(1);
     }
+  };
+
+  // Handler for items per page change.
+  const handleItemsPerPageChange = (e) => {
+    setMembersPerPage(Number(e.target.value));
   };
 
   // Format numbers as Philippine Peso.
@@ -328,47 +333,87 @@ const ShareCapital = () => {
         {/* Pagination Footer */}
         {/* Only render pagination if no search query is active */}
         {searchTerm.trim() === "" && (
-          <div className="px-6 py-4 bg-white border-t border-gray-200 flex items-center justify-between">
-            <div className="flex-1 text-sm text-gray-700">
-              Showing {sortedMembers.length > 0 ? indexOfFirst + 1 : 0} to{" "}
-              {Math.min(indexOfLast, sortedMembers.length)} of {sortedMembers.length} results
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between">
+            <div className="flex items-center mb-4 sm:mb-0">
+              <span className="text-sm text-gray-700">
+                Showing <span className="font-medium">{indexOfFirst + 1}</span> to{" "}
+                <span className="font-medium">
+                  {Math.min(indexOfLast, sortedMembers.length)}
+                </span>{" "}
+                of <span className="font-medium">{sortedMembers.length}</span> results
+              </span>
+              
+              <div className="ml-4">
+                <select
+                  value={membersPerPage}
+                  onChange={handleItemsPerPageChange}
+                  className="text-sm border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={15}>15 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                    currentPage === 1 ? "text-gray-400 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
-                  }`}
-                >
-                  <span className="sr-only">Previous</span>
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => goToPage(page)}
-                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                      currentPage === page
-                        ? "bg-blue-500 border-blue-500 text-white"
-                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                    currentPage === totalPages ? "text-gray-400 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
-                  }`}
-                >
-                  <span className="sr-only">Next</span>
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </nav>
+            
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+                  currentPage === 1
+                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                    : "text-gray-700 bg-white hover:bg-gray-100"
+                }`}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Prev
+              </button>
+              
+              <div className="flex items-center">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Calculate which page numbers to show based on current page and total pages.
+                  let pageNumber;
+                  if (totalPages <= 5) {
+                    pageNumber = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNumber = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNumber = totalPages - 4 + i;
+                  } else {
+                    pageNumber = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => goToPage(pageNumber)}
+                      className={`px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md ${
+                        currentPage === pageNumber
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-700 bg-white hover:bg-gray-100"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+                  currentPage === totalPages
+                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                    : "text-gray-700 bg-white hover:bg-gray-100"
+                }`}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </button>
             </div>
           </div>
         )}

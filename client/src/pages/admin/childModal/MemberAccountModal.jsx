@@ -1,4 +1,3 @@
-// MemberAccountModal.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +9,7 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const navigate = useNavigate();
-  const apiBaseURL = "http://localhost:3001/api/timedepositor";
+  const apiBaseURL = "http://localhost:3001/api/members";
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -18,13 +17,22 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
     try {
       const params = searchTerm ? { name: searchTerm } : {};
       const response = await axios.get(apiBaseURL, { params });
-      if (response.data.data.length === 0) {
-        setError("No members found without active time deposits.");
+      
+      // Check if the response contains data and handle appropriately
+      if (response.data && response.data) {
+        if (response.data.length === 0) {
+          setError("No members found matching your search criteria.");
+        } else {
+          setMembers(response.data);
+          console.log(members)
+          setError(null);
+        }
       } else {
-        setError(null);
+        setMembers([]);
+        setError("Invalid response format from server.");
       }
-      setMembers(response.data.data);
     } catch (err) {
+      setMembers([]);
       setError("Error fetching members: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
@@ -34,6 +42,10 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
   useEffect(() => {
     if (showModal) {
       fetchMembers();
+    } else {
+      // Clear data when modal is closed
+      setMembers([]);
+      setError(null);
     }
   }, [showModal, fetchMembers]);
 
@@ -87,13 +99,13 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
             </div>
           )}
           
-          {error && (
+          {error && !loading && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
               <p>{error}</p>
             </div>
           )}
 
-          {!loading && !error && (
+          {!loading && !error && members && (
             <div className="overflow-y-auto max-h-[60vh]">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -109,10 +121,10 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {members && members.length > 0 ? (
-                    members.map((member, index) => (
+                  {members.length > 0 ? (
+                    members.map((member) => (
                       <tr
-                        key={`${member.id}-${index}`}
+                        key={member.memberId || member.id}
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -133,7 +145,7 @@ const MemberAccountModal = ({ showModal, closeModal }) => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
                             onClick={() =>
-                              navigate(`/apply-timedeposit/${member.memberId}`, {
+                              navigate(`/apply-timedeposit/${member.memberId || member.id}`, {
                                 state: { selectedMember: member },
                               })
                             }

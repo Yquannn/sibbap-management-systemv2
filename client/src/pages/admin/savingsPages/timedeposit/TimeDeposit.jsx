@@ -8,7 +8,9 @@ import {
   BarChart4,
   Users,
   Loader,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import MemberAccountModal from "../../childModal/MemberAccountModal";
 import { useNavigate } from "react-router-dom";
@@ -29,7 +31,11 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
   const [modalType, setModalType] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
   const [filterQuery, setFilterQuery] = useState("");
-
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   const navigate = useNavigate();
 
   const handleOpenModal = (type, member = null) => {
@@ -49,21 +55,28 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
     setError(null);
     try {
       const response = await axios.get("http://localhost:3001/api/active");
-      if (response.data.length === 0) {
-        throw new Error("No depositor for time deposit.");
+      
+      // Check if the response data contains 'data' array
+      if (Array.isArray(response.data.data)) {
+        if (response.data.data.length === 0) {
+          throw new Error("No depositor for time deposit.");
+        }
+        setTimeDeposits(response.data.data);  // Corrected this line
+      } else {
+        throw new Error("Expected an array of time deposits.");
       }
-      setTimeDeposits(response.data);
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          err.message ||
-          "Error fetching time deposits."
+        err.message ||
+        "Error fetching time deposits."
       );
     } finally {
       setLoading(false);
     }
   }, []);
-
+  
+  
   useEffect(() => {
     fetchTimeDeposits();
   }, [fetchTimeDeposits]);
@@ -88,6 +101,21 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
   const averageDepositAmount = sortedDeposits.length 
     ? totalDepositsAmount / sortedDeposits.length 
     : 0;
+    
+  // Pagination logic
+  const totalPages = Math.ceil(sortedDeposits.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedDeposits.slice(indexOfFirstItem, indexOfLastItem);
+  
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+  
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   return (
     <div className="">
@@ -230,125 +258,206 @@ const TimeDeposit = ({ openModal, handleDelete }) => {
       {!loading && !error && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Code Number
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Account No.
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Account Type
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Account Holder
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Co-Account Holder
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Deposited Amount
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Term
-                  </th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {sortedDeposits.length > 0 ? (
-                  sortedDeposits.map((depositor, index) => (
-                    <tr
-                      key={`${depositor.id}-${index}`}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      {/* Code Number */}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
-                        {depositor.memberCode || "N/A"}
-                      </td>
-                      {/* Account No. */}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {depositor.accountNo || "N/A"}
-                      </td>
-                      {/* Account Type */}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {depositor.account_type || "N/A"}
-                        </span>
-                      </td>
-                      {/* Account Holder */}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {depositor.first_name} {depositor.last_name}
-                      </td>
-                      {/* Co-Account Holder */}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {depositor.co_last_name ? 
-                          `${depositor.co_last_name} ${depositor.co_first_name || ""}` : 
-                          "—"
-                        }
-                      </td>
-                      {/* Deposited Amount */}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
-                        ₱{formatCurrency(depositor.amount)}
-                      </td>
-                      {/* Term */}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                          {depositor.fixedTerm} Months
-                        </span>
-                      </td>
-                      {/* Account Status */}
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            (!depositor.account_status || depositor.account_status === "ACTIVE")
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {depositor.account_status || "ACTIVE"}
-                        </span>
-                      </td>
-                      {/* Actions */}
-                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() =>
-                            navigate(`/member/time-deposit-info/${depositor.timeDepositId}`)
-                          }
-                          className="inline-flex items-center px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-md hover:bg-green-100 transition-colors"
-                        >
-                          <Eye className="h-3.5 w-3.5 mr-1.5" /> View
-                        </button>
+            <div className="max-h-96 overflow-y-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Code Number
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Account No.
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Account Type
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Account Holder
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Deposited Amount
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Term
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {currentItems.length > 0 ? (
+                    currentItems.map((depositor, index) => (
+                      <tr
+                        key={`${depositor.id}-${index}`}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        {/* Code Number */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                          {depositor.memberCode || "N/A"}
+                        </td>
+                        {/* Account No. */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {depositor.account_number || "N/A"}
+                        </td>
+                        {/* Account Type */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {depositor.account_type || "N/A"}
+                          </span>
+                        </td>
+                        {/* Account Holder */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {depositor.first_name} {depositor.last_name}
+                        </td>
+                        {/* Deposited Amount */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                          ₱{formatCurrency(depositor.amount)}
+                        </td>
+                        {/* Term */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            {depositor.fixedTerm} Months
+                          </span>
+                        </td>
+                        {/* Account Status */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              (!depositor.account_status || depositor.account_status === "ACTIVE")
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {depositor.account_status || "ACTIVE"}
+                          </span>
+                        </td>
+                        {/* Actions */}
+                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() =>
+                              navigate(`/member/time-deposit-info/${depositor.timeDepositId}`)
+                            }
+                            className="inline-flex items-center px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-md hover:bg-green-100 transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1.5" /> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                          <p className="text-gray-500 text-lg font-medium">
+                            No active time deposits
+                          </p>
+                          <p className="text-gray-400 mt-1">
+                            Click "Open Account" to create a new time deposit
+                          </p>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={9} className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        <p className="text-gray-500 text-lg font-medium">
-                          No active time deposits
-                        </p>
-                        <p className="text-gray-400 mt-1">
-                          Click "Open Account" to create a new time deposit
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+          
+          {/* Pagination Controls */}
+          {sortedDeposits.length > 0 && (
+  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between">
+    <div className="flex items-center mb-4 sm:mb-0">
+      <span className="text-sm text-gray-700">
+        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+        <span className="font-medium">
+          {Math.min(indexOfLastItem, sortedDeposits.length)}
+        </span>{" "}
+        of <span className="font-medium">{sortedDeposits.length}</span> deposits
+      </span>
+      
+      <div className="ml-4">
+        <select
+          value={itemsPerPage}
+          onChange={handleItemsPerPageChange}
+          className="text-sm border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+        >
+          <option value={5}>5 per page</option>
+          <option value={10}>10 per page</option>
+          <option value={25}>25 per page</option>
+          <option value={50}>50 per page</option>
+        </select>
+      </div>
+    </div>
+    
+    <div className="flex items-center space-x-1">
+      <button
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+          currentPage === 1
+            ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+            : "text-gray-700 bg-white hover:bg-gray-100"
+        }`}
+      >
+        <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+      </button>
+      
+      <div className="flex items-center">
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          // Logic to determine which page numbers to show
+          let pageNumber;
+          
+          if (totalPages <= 5) {
+            // If we have 5 or fewer pages, show all of them
+            pageNumber = i + 1;
+          } else if (currentPage <= 3) {
+            // If we're near the start, show 1 through 5
+            pageNumber = i + 1;
+          } else if (currentPage >= totalPages - 2) {
+            // If we're near the end, show the last 5 pages
+            pageNumber = totalPages - 4 + i;
+          } else {
+            // Otherwise show 2 before and 2 after current page
+            pageNumber = currentPage - 2 + i;
+          }
+          
+          return (
+            <button
+              key={pageNumber}
+              onClick={() => handlePageChange(pageNumber)}
+              className={`px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md ${
+                currentPage === pageNumber
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-700 bg-white hover:bg-gray-100"
+              }`}
+            >
+              {pageNumber}
+            </button>
+          );
+        })}
+      </div>
+      
+      <button
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+          currentPage === totalPages
+            ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+            : "text-gray-700 bg-white hover:bg-gray-100"
+        }`}
+      >
+        Next <ChevronRight className="h-4 w-4 ml-1" />
+      </button>
+    </div>
+  </div>
+)} 
         </div>
       )}
     </div>

@@ -1,659 +1,1456 @@
-import React, { useReducer, useState } from 'react';
+import React, { useState } from 'react';
+import { Plus, Edit, Archive, Filter, X, Check, ArrowRight, Trash2 } from 'lucide-react';
 
-// ----- INITIAL STATE & REDUCER -----
-
-const initialState = {
-  savings: [
-    { id: 1, accountName: 'Regular Savings', balance: 5000, interest: 1.2, lastDeposit: '2025-03-15' },
-    { id: 2, accountName: 'Emergency Fund', balance: 12000, interest: 1.5, lastDeposit: '2025-03-20' },
-    { id: 3, accountName: 'Holiday Savings', balance: 3000, interest: 1.0, lastDeposit: '2025-04-01' },
-  ],
-  announcements: [
-    { id: 1, title: 'System Update', content: 'System update scheduled for May 01, 2025.' },
-    { id: 2, title: 'New Feature', content: 'A new announcement has been added!' },
-    { id: 3, title: 'Dummy Announcement', content: 'This is a dummy announcement for demonstration purposes.' },
-  ],
-  archivedItems: [
-    { id: 101, type: 'Announcement', title: 'Old Announcement', content: 'Archived announcement details' },
-  ],
-  maintenance: {
-    lastMaintenance: '2025-04-01',
-    nextMaintenance: '2025-05-01',
-  },
+/* ================================
+   DUMMY DATA & INITIAL VALUES
+==================================== */
+const initialDropdownData = {
+  civilStatusOptions: ["Single", "Married", "Widow", "Separated"],
+  genderOptions: ["Male", "Female", "Other"],
+  loanTypeOptions: ["Personal Loan", "Housing Loan", "Car Loan", "Salary Loan", "Mortgage Loan"],
+  interestRateOptions: ["1%", "1.5%", "1.75%", "2%", "2.5%", "3%", "3.5%", "4%"],
+  serviceFeeOptions: ["0.5%", "1%", "1.2%", "2%", "3%", "5%"]
 };
 
-function reducer(state, action) {
-  switch (action.type) {
-    case 'ADD_SAVINGS':
-      return { ...state, savings: [...state.savings, action.payload] };
-    case 'EDIT_SAVINGS':
-      return {
-        ...state,
-        savings: state.savings.map((s) =>
-          s.id === action.payload.id ? action.payload : s
-        ),
-      };
-    case 'ARCHIVE_SAVINGS':
-      return {
-        ...state,
-        savings: state.savings.filter((s) => s.id !== action.payload.id),
-        archivedItems: [...state.archivedItems, { ...action.payload, type: 'Savings' }],
-      };
-    case 'ADD_ANNOUNCEMENT':
-      return {
-        ...state,
-        announcements: [...state.announcements, action.payload],
-      };
-    case 'EDIT_ANNOUNCEMENT':
-      return {
-        ...state,
-        announcements: state.announcements.map((ann) =>
-          ann.id === action.payload.id ? action.payload : ann
-        ),
-      };
-    case 'ARCHIVE_ANNOUNCEMENT':
-      return {
-        ...state,
-        announcements: state.announcements.filter((ann) => ann.id !== action.payload.id),
-        archivedItems: [...state.archivedItems, { ...action.payload, type: 'Announcement' }],
-      };
-    case 'EDIT_MAINTENANCE':
-      return { ...state, maintenance: action.payload };
-    case 'RESTORE_ARCHIVED': {
-      const item = action.payload;
-      if (item.type === 'Announcement') {
-        return {
-          ...state,
-          announcements: [...state.announcements, { id: item.id, title: item.title, content: item.content }],
-          archivedItems: state.archivedItems.filter((i) => i.id !== item.id),
-        };
-      } else if (item.type === 'Savings') {
-        return {
-          ...state,
-          savings: [...state.savings, { id: item.id, accountName: item.accountName, balance: item.balance, interest: item.interest, lastDeposit: item.lastDeposit }],
-          archivedItems: state.archivedItems.filter((i) => i.id !== item.id),
-        };
-      }
-      return state;
+const initialButtons = [
+  { id: 1, label: "Submit" },
+  { id: 2, label: "Cancel" },
+  { id: 3, label: "Reset" }
+];
+
+/* ================================
+   ADD BUTTON COMPONENT WITH MODERN UI
+==================================== */
+const AddButtonModal = ({ isOpen, onClose, onSave }) => {
+  const [buttonLabel, setButtonLabel] = useState('');
+  const [buttonType, setButtonType] = useState('primary');
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const handleSave = () => {
+    if (!buttonLabel.trim()) {
+      return;
     }
-    case 'DELETE_ARCHIVED': {
-      return {
-        ...state,
-        archivedItems: state.archivedItems.filter((i) => i.id !== action.payload.id),
-      };
-    }
-    default:
-      return state;
-  }
-}
-
-// ----- MODAL COMPONENTS -----
-
-const SavingsAccountModal = ({ onClose, onSave, initialData }) => {
-  const [accountName, setAccountName] = useState(initialData ? initialData.accountName : '');
-  const [balance, setBalance] = useState(initialData ? initialData.balance : '');
-  const [interest, setInterest] = useState(initialData ? initialData.interest : '');
-  const [lastDeposit, setLastDeposit] = useState(initialData ? initialData.lastDeposit : '');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const record = initialData
-      ? { id: initialData.id, accountName, balance: Number(balance), interest: Number(interest), lastDeposit }
-      : { id: Date.now(), accountName, balance: Number(balance), interest: Number(interest), lastDeposit };
-    onSave(record);
-    onClose();
+    
+    setIsProcessing(true);
+    
+    setTimeout(() => {
+      onSave({ label: buttonLabel, type: buttonType, id: Date.now() });
+      setIsProcessing(false);
+      setButtonLabel('');
+      setButtonType('primary');
+      onClose();
+    }, 800);
   };
-
+  
+  if (!isOpen) return null;
+  
   return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modalContent}>
-        <h3>{initialData ? 'Edit Savings Account' : 'Add Savings Account'}</h3>
-        <form onSubmit={handleSubmit}>
-          <div style={styles.formGroup}>
-            <label>Account Name:</label>
-            <input
-              type="text"
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label>Balance (Peso):</label>
-            <input
-              type="number"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label>Interest Rate (%):</label>
-            <input
-              type="number"
-              value={interest}
-              onChange={(e) => setInterest(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label>Last Deposit Date:</label>
-            <input
-              type="date"
-              value={lastDeposit}
-              onChange={(e) => setLastDeposit(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            <button type="submit" style={styles.primaryButton}>Save</button>
-            <button type="button" onClick={onClose} style={styles.secondaryButton}>Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const AnnouncementModal = ({ onClose, onSave, initialData }) => {
-  const [title, setTitle] = useState(initialData ? initialData.title : '');
-  const [content, setContent] = useState(initialData ? initialData.content : '');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const announcementRecord = initialData
-      ? { id: initialData.id, title, content }
-      : { id: Date.now(), title, content };
-    onSave(announcementRecord);
-    onClose();
-  };
-
-  return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modalContent}>
-        <h3>{initialData ? 'Edit Announcement' : 'Add Announcement'}</h3>
-        <form onSubmit={handleSubmit}>
-          <div style={styles.formGroup}>
-            <label>Title:</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label>Content:</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            <button type="submit" style={styles.primaryButton}>Save</button>
-            <button type="button" onClick={onClose} style={styles.secondaryButton}>Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const MaintenanceScheduleModal = ({ onClose, onSave, initialData }) => {
-  const [lastMaintenance, setLastMaintenance] = useState(initialData.lastMaintenance);
-  const [nextMaintenance, setNextMaintenance] = useState(initialData.nextMaintenance);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave({ lastMaintenance, nextMaintenance });
-    onClose();
-  };
-
-  return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modalContent}>
-        <h3>Edit Maintenance Schedule</h3>
-        <form onSubmit={handleSubmit}>
-          <div style={styles.formGroup}>
-            <label>Last Maintenance:</label>
-            <input
-              type="date"
-              value={lastMaintenance}
-              onChange={(e) => setLastMaintenance(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label>Next Maintenance:</label>
-            <input
-              type="date"
-              value={nextMaintenance}
-              onChange={(e) => setNextMaintenance(e.target.value)}
-              style={styles.inputField}
-              required
-            />
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            <button type="submit" style={styles.primaryButton}>Save</button>
-            <button type="button" onClick={onClose} style={styles.secondaryButton}>Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// ----- MAIN COMPONENT -----
-
-const SavingsModule = () => {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const [activeTab, setActiveTab] = useState('Dashboard');
-  const [showSavingsModal, setShowSavingsModal] = useState(false);
-  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
-  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
-  const [currentSavings, setCurrentSavings] = useState(null);
-  const [currentAnnouncement, setCurrentAnnouncement] = useState(null);
-  const [filterValue, setFilterValue] = useState('');
-
-  // Savings handlers.
-  const addOrEditSavings = (savingsAccount) => {
-    if (currentSavings) {
-      dispatch({ type: 'EDIT_SAVINGS', payload: savingsAccount });
-    } else {
-      dispatch({ type: 'ADD_SAVINGS', payload: savingsAccount });
-    }
-  };
-
-  const archiveSavings = (id) => {
-    const savingsAccount = state.savings.find((s) => s.id === id);
-    if (savingsAccount) {
-      dispatch({ type: 'ARCHIVE_SAVINGS', payload: savingsAccount });
-      setActiveTab('Archive');
-    }
-  };
-
-  const editSavings = (savingsAccount) => {
-    setCurrentSavings(savingsAccount);
-    setShowSavingsModal(true);
-  };
-
-  // Announcements handlers.
-  const addOrEditAnnouncement = (announcement) => {
-    if (currentAnnouncement) {
-      dispatch({ type: 'EDIT_ANNOUNCEMENT', payload: announcement });
-    } else {
-      dispatch({ type: 'ADD_ANNOUNCEMENT', payload: announcement });
-    }
-  };
-
-  const archiveAnnouncement = (id) => {
-    const ann = state.announcements.find((a) => a.id === id);
-    if (ann) {
-      dispatch({ type: 'ARCHIVE_ANNOUNCEMENT', payload: ann });
-      setActiveTab('Archive');
-    }
-  };
-
-  const editAnnouncement = (announcement) => {
-    setCurrentAnnouncement(announcement);
-    setShowAnnouncementModal(true);
-  };
-
-  // Maintenance handler.
-  const editMaintenance = (newSchedule) => {
-    dispatch({ type: 'EDIT_MAINTENANCE', payload: newSchedule });
-  };
-
-  // Restore handler for archived items.
-  const restoreArchived = (item) => {
-    dispatch({ type: 'RESTORE_ARCHIVED', payload: item });
-    if (item.type === 'Announcement') {
-      setActiveTab('Announcements');
-    } else if (item.type === 'Savings') {
-      setActiveTab('Savings Overview');
-    }
-  };
-
-  // Permanent delete handler for archived items.
-  const deleteArchived = (item) => {
-    dispatch({ type: 'DELETE_ARCHIVED', payload: item });
-  };
-
-  // Render content based on active tab.
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'Dashboard':
-        return (
-          <div>
-            <h2>Dashboard</h2>
-            <p>
-              This dashboard provides an overview of the system state. Changes in maintenance, savings, and announcements are all globally connected.
-            </p>
-          </div>
-        );
-      case 'Savings Overview':
-        return (
-          <section>
-            <h2>Savings Overview</h2>
-            <div style={styles.toolbar}>
-              <button
-                onClick={() => {
-                  setCurrentSavings(null);
-                  setShowSavingsModal(true);
-                }}
-                style={styles.primaryButton}
-              >
-                Add Savings Account
-              </button>
-              <select
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                style={styles.dropdown}
-              >
-                <option value="">All</option>
-              </select>
-            </div>
-            <table style={styles.table}>
-              <thead style={styles.tableHeader}>
-                <tr>
-                  <th style={styles.tableCell}>ID</th>
-                  <th style={styles.tableCell}>Account Name</th>
-                  <th style={styles.tableCell}>Balance</th>
-                  <th style={styles.tableCell}>Interest (%)</th>
-                  <th style={styles.tableCell}>Last Deposit</th>
-                  <th style={{ ...styles.tableCell, textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.savings.map((s) => (
-                  <tr key={s.id} style={styles.tableRow}>
-                    <td style={styles.tableCell}>{s.id}</td>
-                    <td style={styles.tableCell}>{s.accountName}</td>
-                    <td style={styles.tableCell}>₱{s.balance.toLocaleString()}</td>
-                    <td style={styles.tableCell}>{s.interest}</td>
-                    <td style={styles.tableCell}>{s.lastDeposit}</td>
-                    <td style={{ ...styles.tableCell, textAlign: 'center' }}>
-                      <button onClick={() => editSavings(s)} style={styles.actionButton}>
-                        Edit
-                      </button>
-                      <button onClick={() => archiveSavings(s.id)} style={styles.actionButton}>
-                        Archive
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        );
-      case 'Announcements':
-        return (
-          <section>
-            <h2>Announcements</h2>
-            <div style={styles.card}>
-              <h3>Maintenance Schedule</h3>
-              <p>
-                <strong>Last Maintenance:</strong> {state.maintenance.lastMaintenance}
-              </p>
-              <p>
-                <strong>Next Maintenance:</strong> {state.maintenance.nextMaintenance}
-              </p>
-              <button onClick={() => setShowMaintenanceModal(true)} style={styles.actionButton}>
-                Edit Schedule
-              </button>
-            </div>
-            <div style={styles.toolbar}>
-              <button
-                onClick={() => {
-                  setCurrentAnnouncement(null);
-                  setShowAnnouncementModal(true);
-                }}
-                style={styles.primaryButton}
-              >
-                Add Announcement
-              </button>
-              <select
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                style={styles.dropdown}
-              >
-                <option value="">All</option>
-              </select>
-            </div>
-            <table style={styles.table}>
-              <thead style={styles.tableHeader}>
-                <tr>
-                  <th style={styles.tableCell}>ID</th>
-                  <th style={styles.tableCell}>Title</th>
-                  <th style={styles.tableCell}>Content</th>
-                  <th style={{ ...styles.tableCell, textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.announcements.map((ann) => (
-                  <tr key={ann.id} style={styles.tableRow}>
-                    <td style={styles.tableCell}>{ann.id}</td>
-                    <td style={styles.tableCell}>{ann.title}</td>
-                    <td style={styles.tableCell}>{ann.content}</td>
-                    <td style={{ ...styles.tableCell, textAlign: 'center' }}>
-                      <button onClick={() => editAnnouncement(ann)} style={styles.actionButton}>
-                        Edit
-                      </button>
-                      <button onClick={() => archiveAnnouncement(ann.id)} style={styles.actionButton}>
-                        Archive
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        );
-      case 'Archive':
-        return (
-          <section>
-            <h2>Archive</h2>
-            <p>Below are the archived items with complete data from across the system:</p>
-            <table style={styles.table}>
-              <thead style={styles.tableHeader}>
-                <tr>
-                  <th style={styles.tableCell}>ID</th>
-                  <th style={styles.tableCell}>Type</th>
-                  <th style={styles.tableCell}>Title/Name</th>
-                  <th style={styles.tableCell}>Content/Description</th>
-                  <th style={{ ...styles.tableCell, textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.archivedItems.map((item) => (
-                  <tr key={item.id} style={styles.tableRow}>
-                    <td style={styles.tableCell}>{item.id}</td>
-                    <td style={styles.tableCell}>{item.type}</td>
-                    <td style={styles.tableCell}>
-                      {item.type === 'Announcement' ? item.title : item.accountName || item.name}
-                    </td>
-                    <td style={styles.tableCell}>
-                      {item.type === 'Announcement' ? item.content : item.description}
-                    </td>
-                    <td style={{ ...styles.tableCell, textAlign: 'center' }}>
-                      <button onClick={() => restoreArchived(item)} style={styles.actionButton}>
-                        Restore
-                      </button>
-                      <button
-                        onClick={() => deleteArchived(item)}
-                        style={{ ...styles.actionButton, backgroundColor: 'red' }}
-                      >
-                        Delete Permanently
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div style={styles.container}>
-      {/* Top Tab Navigation */}
-      <nav style={styles.tabNav}>
-        {['Dashboard', 'Savings Overview', 'Announcements', 'Archive'].map((tab) => (
-          <div
-            key={tab}
-            style={{
-              ...styles.tabItem,
-              borderBottom: activeTab === tab ? '3px solid #007BFF' : 'none',
-              color: activeTab === tab ? '#007BFF' : '#000',
-            }}
-            onClick={() => setActiveTab(tab)}
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fadeIn">
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-400 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">Add New Button</h3>
+          <button 
+            onClick={onClose}
+            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
           >
-            {tab}
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Button Label</label>
+            <input
+              type="text"
+              value={buttonLabel}
+              onChange={(e) => setButtonLabel(e.target.value)}
+              placeholder="Enter button label..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              autoFocus
+            />
           </div>
-        ))}
-      </nav>
-      <main style={styles.mainContent}>{renderContent()}</main>
-      {showSavingsModal && (
-        <SavingsAccountModal
-          onClose={() => setShowSavingsModal(false)}
-          onSave={addOrEditSavings}
-          initialData={currentSavings}
-        />
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Button Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                className={`px-4 py-2 rounded-lg border text-center transition-all ${
+                  buttonType === 'primary' 
+                    ? 'bg-blue-100 border-blue-400 text-blue-700 font-medium' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setButtonType('primary')}
+              >
+                Primary
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg border text-center transition-all ${
+                  buttonType === 'secondary' 
+                    ? 'bg-gray-100 border-gray-400 text-gray-700 font-medium' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setButtonType('secondary')}
+              >
+                Secondary
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg border text-center transition-all ${
+                  buttonType === 'danger' 
+                    ? 'bg-red-100 border-red-400 text-red-700 font-medium' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setButtonType('danger')}
+              >
+                Danger
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!buttonLabel.trim() || isProcessing}
+            className={`px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2 ${
+              !buttonLabel.trim() || isProcessing ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
+          >
+            {isProcessing ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Check size={18} />
+                <span>Add Button</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ================================
+   ADD NEW DROPDOWN COMPONENT WITH MODERN UI
+==================================== */
+const AddDropdownModal = ({ isOpen, onClose, onSave }) => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [dropdownName, setDropdownName] = useState('');
+  const [dropdownOptions, setDropdownOptions] = useState([]);
+  const [newOption, setNewOption] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const addOption = () => {
+    if (!newOption.trim()) return;
+    setDropdownOptions([...dropdownOptions, newOption]);
+    setNewOption('');
+  };
+  
+  const removeOption = (index) => {
+    setDropdownOptions(dropdownOptions.filter((_, i) => i !== index));
+  };
+  
+  const nextStep = () => {
+    if (currentStep === 1 && !dropdownName.trim()) return;
+    setCurrentStep(2);
+  };
+  
+  const prevStep = () => {
+    setCurrentStep(1);
+  };
+  
+  const handleSave = () => {
+    if (dropdownOptions.length === 0) return;
+    
+    setIsProcessing(true);
+    
+    // Simulate processing delay
+    setTimeout(() => {
+      onSave({
+        name: dropdownName + 'Options',
+        options: dropdownOptions
+      });
+      setIsProcessing(false);
+      resetForm();
+      onClose();
+    }, 800);
+  };
+  
+  const resetForm = () => {
+    setCurrentStep(1);
+    setDropdownName('');
+    setDropdownOptions([]);
+    setNewOption('');
+  };
+  
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fadeIn">
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-4 bg-gradient-to-r from-green-600 to-green-400 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">
+            {currentStep === 1 ? 'Create New Dropdown' : 'Add Dropdown Options'}
+          </h3>
+          <div className="flex items-center">
+            <div className="flex items-center mr-4">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-white text-green-600' : 'bg-green-200 text-green-800'}`}>
+                1
+              </div>
+              <div className="w-8 h-1 bg-white"></div>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-white text-green-600' : 'bg-green-200 text-green-800'}`}>
+                2
+              </div>
+            </div>
+            <button 
+              onClick={handleClose}
+              className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Content */}
+        <div className="p-6">
+          {currentStep === 1 ? (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Dropdown Name</label>
+                <input
+                  type="text"
+                  value={dropdownName}
+                  onChange={(e) => setDropdownName(e.target.value)}
+                  placeholder="Enter dropdown name..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                  autoFocus
+                />
+                <p className="text-sm text-gray-500">
+                  Enter a descriptive name for your dropdown. This will be used as an identifier.
+                </p>
+              </div>
+              
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={nextStep}
+                  disabled={!dropdownName.trim()}
+                  className={`px-6 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors flex items-center space-x-2 ${
+                    !dropdownName.trim() ? 'opacity-70 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <span>Continue</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Dropdown Options</label>
+                  <span className="text-sm text-gray-500">{dropdownOptions.length} options added</span>
+                </div>
+                
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={newOption}
+                    onChange={(e) => setNewOption(e.target.value)}
+                    placeholder="Add a new option..."
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newOption.trim()) {
+                        e.preventDefault();
+                        addOption();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={addOption}
+                    disabled={!newOption.trim()}
+                    className={`px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors ${
+                      !newOption.trim() ? 'opacity-70 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gray-50 flex justify-between items-center">
+          {currentStep === 1 ? (
+            <button
+              onClick={handleClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              onClick={prevStep}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Back
+            </button>
+          )}
+          
+          {currentStep === 2 && (
+            <button
+              onClick={handleSave}
+              disabled={dropdownOptions.length === 0 || isProcessing}
+              className={`px-6 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors flex items-center space-x-2 ${
+                dropdownOptions.length === 0 || isProcessing ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
+            >
+              {isProcessing ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Creating Dropdown...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={18} />
+                  <span>Create Dropdown</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ================================
+   INTEREST RATE TAB
+   (Renamed from Regular Savings Tab and updated display text to use Interest Rate terminology)
+==================================== */
+const InterestRateTab = ({ onArchiveMember, switchToArchive }) => {
+  const [modules, setModules] = useState([
+    { name: 'Regular Savings', interestRate: 1.5, updatedBy: 'General Manager', lastEdited: null },
+    { name: 'Share Capital', interestRate: 1.75, updatedBy: 'System Admin', lastEdited: null },
+    { name: 'Time Deposit', interestRate: 2.0, updatedBy: 'General Manager', lastEdited: '2025-03-15' }
+  ]);
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Sorting
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+
+  // Editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentModule, setCurrentModule] = useState(null);
+  const [newRate, setNewRate] = useState('');
+  const [newUpdater, setNewUpdater] = useState(''); // to store the editable "Updated By" value
+
+  // For adding a new module
+  const [isAddModuleOpen, setIsAddModuleOpen] = useState(false);
+  const [newModuleName, setNewModuleName] = useState('');
+  const [newModuleRate, setNewModuleRate] = useState('');
+  const [newModuleUpdater, setNewModuleUpdater] = useState('');
+
+  // Helper: format interest rate
+  const formatPercentage = (rate) => `${rate}%`;
+
+  // Filter modules by search term
+  const filteredModules = modules.filter(module =>
+    module.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Sort modules
+  const sortedModules = [...filteredModules].sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === 'ascending' ? -1 : 1;
+    }
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === 'ascending' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Archive a module
+  const handleArchiveRate = (item) => {
+    const archivedModule = {
+      ...item,
+      archivedDate: new Date().toISOString().split('T')[0]
+    };
+    onArchiveMember(archivedModule);
+    setModules((prev) => prev.filter((m) => m.name !== item.name));
+    switchToArchive();
+  };
+
+  // Open "Edit" modal
+  const handleEditRate = (item) => {
+    setCurrentModule(item);
+    setNewRate(item.interestRate.toString());
+    setNewUpdater(item.updatedBy); // Set the "Updated By" value for editing
+    setIsEditing(true);
+  };
+
+  // Save updated module data
+  const saveRate = () => {
+    const rate = parseFloat(newRate);
+    if (isNaN(rate) || rate <= 0) {
+      alert('Please enter a valid interest rate');
+      return;
+    }
+    setModules((prev) =>
+      prev.map((m) =>
+        m.name === currentModule.name
+          ? {
+              ...m,
+              interestRate: rate,
+              updatedBy: newUpdater || m.updatedBy,
+              lastEdited: new Date().toISOString().split('T')[0]
+            }
+          : m
+      )
+    );
+    setIsEditing(false);
+    setCurrentModule(null);
+    setNewRate('');
+    setNewUpdater('');
+  };
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setCurrentModule(null);
+    setNewRate('');
+    setNewUpdater('');
+  };
+
+  // Add new module
+  const handleOpenAddModule = () => {
+    setIsAddModuleOpen(true);
+  };
+
+  const handleCloseAddModule = () => {
+    setIsAddModuleOpen(false);
+    setNewModuleName('');
+    setNewModuleRate('');
+    setNewModuleUpdater('');
+  };
+
+  const handleSaveAddModule = () => {
+    if (!newModuleName.trim()) {
+      alert('Please enter a valid module name');
+      return;
+    }
+    const rate = parseFloat(newModuleRate) || 0;
+    const newModule = {
+      name: newModuleName,
+      interestRate: rate,
+      updatedBy: newModuleUpdater || 'N/A',
+      lastEdited: new Date().toISOString().split('T')[0]
+    };
+    setModules((prev) => [...prev, newModule]);
+    handleCloseAddModule();
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Top Bar */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">Interest Rate</h2>
+          <p className="text-gray-500">Manage and track module interest rates</p>
+        </div>
+        <div className="flex space-x-4">
+          {/* Search Input */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by module name"
+              className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 w-64"
+            />
+            <svg
+              className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+
+          {/* Add New Module Button */}
+          <button
+            onClick={handleOpenAddModule}
+            className="flex items-center px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          >
+            + Add New Module
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-y-auto max-h-96">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50 sticky top-0">
+              <tr>
+                {/* Module Name */}
+                <th
+                  onClick={() => requestSort('name')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                >
+                  <div className="flex items-center">
+                    Module Name
+                    {sortConfig.key === 'name' && (
+                      <span className="ml-1">
+                        {sortConfig.direction === 'ascending' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+
+                {/* Interest Rate */}
+                <th
+                  onClick={() => requestSort('interestRate')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                >
+                  <div className="flex items-center">
+                    Interest Rate (%) Per Month
+                    {sortConfig.key === 'interestRate' && (
+                      <span className="ml-1">
+                        {sortConfig.direction === 'ascending' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+
+                {/* Updated By */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Updated By
+                </th>
+
+                {/* Last Edited */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Last Edited
+                </th>
+
+                {/* Actions */}
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sortedModules.map((item) => (
+                <tr key={item.name} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {item.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatPercentage(item.interestRate)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {item.updatedBy}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {item.lastEdited ? item.lastEdited : <span className="text-gray-400">Not edited</span>}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                    <button
+                      onClick={() => handleEditRate(item)}
+                      className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleArchiveRate(item)}
+                      className="text-yellow-600 hover:text-yellow-900 bg-yellow-50 px-3 py-1 rounded transition-colors"
+                    >
+                      Archive
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {sortedModules.length === 0 && (
+        <div className="text-center py-4 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">No modules found matching your search.</p>
+        </div>
       )}
-      {showAnnouncementModal && (
-        <AnnouncementModal
-          onClose={() => setShowAnnouncementModal(false)}
-          onSave={addOrEditAnnouncement}
-          initialData={currentAnnouncement}
-        />
+
+      {/* Edit Module Modal */}
+      {isEditing && currentModule && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Interest Rate</h3>
+            <div className="mb-6">
+              <p className="text-sm text-gray-500 mb-2">Module Details</p>
+              <div className="mb-2">
+                <span className="text-sm font-medium text-gray-600">Name:</span>
+                <span className="ml-2 text-gray-900">{currentModule.name}</span>
+              </div>
+
+              {/* Current Interest Rate */}
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Current Interest Rate: {formatPercentage(currentModule.interestRate)}
+              </label>
+              <input
+                type="number"
+                value={newRate}
+                onChange={(e) => setNewRate(e.target.value)}
+                placeholder="Enter new rate"
+                className="pl-4 pr-4 py-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4"
+              />
+
+              {/* Updated By */}
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Updated By
+              </label>
+              <input
+                type="text"
+                value={newUpdater}
+                onChange={(e) => setNewUpdater(e.target.value)}
+                placeholder="Enter updated by"
+                className="pl-4 pr-4 py-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+
+              {/* Last Edited Note */}
+              {currentModule.lastEdited && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Last edited on: {currentModule.lastEdited}
+                </p>
+              )}
+              <p className="mt-4 text-xs text-gray-500">
+                Note: Editing this rate will record today's date as the last edit date.
+              </p>
+            </div>
+
+            {/* Modal Buttons */}
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={cancelEdit}
+                className="px-4 py-2 border rounded hover:bg-gray-50 text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveRate}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-      {showMaintenanceModal && (
-        <MaintenanceScheduleModal
-          onClose={() => setShowMaintenanceModal(false)}
-          onSave={editMaintenance}
-          initialData={state.maintenance}
-        />
+
+      {/* Add New Module Modal */}
+      {isAddModuleOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Add New Module</h3>
+              <button
+                onClick={handleCloseAddModule}
+                className="text-gray-500 hover:bg-gray-100 rounded-full p-1 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Module Name
+                </label>
+                <input
+                  type="text"
+                  value={newModuleName}
+                  onChange={(e) => setNewModuleName(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="Enter module name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Interest Rate (%)
+                </label>
+                <input
+                  type="number"
+                  value={newModuleRate}
+                  onChange={(e) => setNewModuleRate(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="Enter interest rate"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Updated By
+                </label>
+                <input
+                  type="text"
+                  value={newModuleUpdater}
+                  onChange={(e) => setNewModuleUpdater(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="Enter person who updates"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleCloseAddModule}
+                className="px-4 py-2 border rounded hover:bg-gray-50 text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAddModule}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-const styles = {
-  container: {
-    fontFamily: 'Arial, sans-serif',
-    margin: '0 auto',
-    maxWidth: '1200px',
-    padding: '20px',
-  },
-  tabNav: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    borderBottom: '1px solid #ccc',
-    marginBottom: '20px',
-  },
-  tabItem: {
-    padding: '10px 20px',
-    cursor: 'pointer',
-  },
-  mainContent: {
-    padding: '20px',
-    backgroundColor: '#fdfdfd',
-    border: '1px solid #eee',
-    borderRadius: '5px',
-  },
-  toolbar: {
-    marginBottom: '10px',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  primaryButton: {
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: '#007BFF',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '3px',
-  },
-  secondaryButton: {
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: '#6c757d',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '3px',
-    marginLeft: '10px',
-  },
-  dropdown: {
-    marginLeft: '20px',
-    padding: '5px',
-    borderRadius: '3px',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-  },
-  tableHeader: {
-    backgroundColor: '#eee',
-  },
-  tableRow: {
-    cursor: 'pointer',
-  },
-  tableCell: {
-    border: '1px solid #ddd',
-    padding: '8px',
-  },
-  actionButton: {
-    marginRight: '10px',
-    cursor: 'pointer',
-    padding: '5px 10px',
-    border: 'none',
-    borderRadius: '3px',
-    backgroundColor: '#28a745',
-    color: '#fff',
-  },
-  card: {
-    border: '1px solid #ddd',
-    padding: '15px',
-    borderRadius: '5px',
-    marginBottom: '20px',
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalContent: {
-    background: '#fff',
-    padding: '20px',
-    borderRadius: '5px',
-    width: '300px',
-  },
-  formGroup: {
-    marginBottom: '10px',
-  },
-  inputField: {
-    width: '100%',
-    padding: '5px',
-    borderRadius: '3px',
-    border: '1px solid #ccc',
-  },
+/* ================================
+   DROPDOWN MANAGER TAB
+==================================== */
+const DropdownManagerTab = ({ setActiveTab, archiveData, setArchiveData, dropdownData, setDropdownData }) => {
+  const [isEditingDropdown, setIsEditingDropdown] = useState(false);
+  const [currentDropdown, setCurrentDropdown] = useState(null);
+  const [newDropdownOption, setNewDropdownOption] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const filteredDropdownKeys = Object.keys(dropdownData).filter((key) =>
+    key.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleEditDropdown = (dropdownName) => {
+    setCurrentDropdown(dropdownName);
+    setIsEditingDropdown(true);
+  };
+
+  const handleAddOption = () => {
+    if (!newDropdownOption.trim()) return;
+    setDropdownData(prev => ({
+      ...prev,
+      [currentDropdown]: [...prev[currentDropdown], newDropdownOption]
+    }));
+    setNewDropdownOption("");
+  };
+
+  const handleDeleteOption = (index) => {
+    setDropdownData(prev => {
+      const updatedOptions = [...prev[currentDropdown]];
+      updatedOptions.splice(index, 1);
+      return { ...prev, [currentDropdown]: updatedOptions };
+    });
+  };
+
+  const saveChanges = () => {
+    setIsEditingDropdown(false);
+    setCurrentDropdown(null);
+  };
+
+  const closeEditDropdown = () => {
+    setIsEditingDropdown(false);
+    setCurrentDropdown(null);
+    setNewDropdownOption("");
+  };
+
+  const handleArchiveDropdown = (dropdownName) => {
+    const archivedItem = {
+      name: dropdownName,
+      options: dropdownData[dropdownName],
+      archivedDate: new Date().toISOString().split('T')[0]
+    };
+    setArchiveData(prev => [...prev, archivedItem]);
+    setDropdownData(prev => {
+      const updated = { ...prev };
+      delete updated[dropdownName];
+      return updated;
+    });
+    setActiveTab('archive');
+  };
+
+  const handleAddDropdown = (newDropdown) => {
+    setDropdownData(prev => ({
+      ...prev,
+      [newDropdown.name]: newDropdown.options
+    }));
+    setShowAddModal(false);
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      {/* Header & Right-aligned Search + Add */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">Dropdown Manager</h2>
+          <p className="text-gray-500">Configure and manage dropdown options for your member application form.</p>
+        </div>
+        <div className="flex space-x-4 items-center">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search dropdown name"
+              className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 w-64"
+            />
+            <svg
+              className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          >
+            <Plus size={18} className="mr-2" />
+            Add New Dropdown
+          </button>
+        </div>
+      </div>
+
+      {/* List of Dropdowns */}
+      <div className="space-y-4">
+        {filteredDropdownKeys.length > 0 ? (
+          filteredDropdownKeys.map((dropdownName, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center bg-white border rounded-lg shadow-sm p-4 hover:shadow transition-shadow"
+            >
+              <div>
+                <h4 className="font-medium text-gray-800">
+                  {dropdownName.replace(/([A-Z])/g, ' $1').trim().replace("Options", "")}
+                </h4>
+                <p className="text-sm text-gray-500">{dropdownData[dropdownName].length} available</p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleEditDropdown(dropdownName)}
+                  className="p-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                >
+                  <Edit size={16} />
+                </button>
+                <button
+                  onClick={() => handleArchiveDropdown(dropdownName)}
+                  className="p-2 bg-yellow-50 text-yellow-600 rounded hover:bg-yellow-100"
+                >
+                  <Archive size={16} />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">No dropdowns found matching your search.</p>
+        )}
+      </div>
+
+      {/* Modal for Editing Dropdown */}
+      {isEditingDropdown && currentDropdown && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-medium">
+                Edit {currentDropdown.replace(/([A-Z])/g, ' $1').trim().replace("Options", "")} Options
+              </h3>
+              <button onClick={closeEditDropdown} className="p-1 rounded hover:bg-gray-100">
+                &times;
+              </button>
+            </div>
+            <div className="p-4 max-h-96 overflow-y-auto">
+              <div className="space-y-4">
+                {dropdownData[currentDropdown].map((option, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="flex-1 px-3 py-2 bg-gray-50 rounded">{option}</span>
+                    <button onClick={() => handleDeleteOption(index)} className="ml-2 p-1.5 text-red-500 rounded hover:bg-red-50">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-600 mb-1">Add New Option</label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={newDropdownOption}
+                    onChange={(e) => setNewDropdownOption(e.target.value)}
+                    placeholder="Enter new option"
+                    className="flex-1 border rounded-l px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <button onClick={handleAddOption} className="px-3 py-2 bg-blue-500 text-white rounded-r hover:bg-blue-600">
+                    <Plus size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-end space-x-2">
+              <button onClick={closeEditDropdown} className="px-4 py-2 border rounded hover:bg-gray-50">
+                Cancel
+              </button>
+              <button onClick={saveChanges} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Dropdown Modal */}
+      <AddDropdownModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleAddDropdown}
+      />
+    </div>
+  );
+};
+
+/* ================================
+   BUTTON MANAGER TAB
+   (Changed delete icon to archive icon. When archive button is clicked,
+    the button is archived and the active tab switches to Archive.)
+==================================== */
+const ButtonManagerTab = ({ setActiveTab, setArchivedButtons }) => {
+  const [buttons, setButtons] = useState(initialButtons);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentButton, setCurrentButton] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const filteredButtons = buttons.filter(btn =>
+    btn.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleEditButton = (id) => {
+    const btn = buttons.find(b => b.id === id);
+    setCurrentButton(btn);
+    setIsEditing(true);
+  };
+
+  const saveButtonChanges = () => {
+    setButtons(prev => prev.map(btn => (btn.id === currentButton.id ? currentButton : btn)));
+    setIsEditing(false);
+    setCurrentButton(null);
+  };
+
+  // Archive button: remove from buttons and archive it, then switch to Archive tab
+  const handleArchiveButton = (id) => {
+    const btn = buttons.find(b => b.id === id);
+    setButtons(prev => prev.filter(button => button.id !== id));
+    setArchivedButtons(prev => [...prev, { ...btn, archivedDate: new Date().toISOString().split('T')[0] }]);
+    setActiveTab('archive');
+  };
+
+  const handleAddButton = (newButton) => {
+    setButtons(prev => [...prev, newButton]);
+    setShowAddModal(false);
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">Button Manager</h2>
+          <p className="text-gray-500">Manage and edit clickable buttons for your application.</p>
+        </div>
+        <div className="flex space-x-4">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by button label"
+              className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 w-64"
+            />
+            <svg
+              className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          >
+            <Plus size={18} className="mr-2" />
+            Add Button
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {filteredButtons.length > 0 ? (
+          filteredButtons.map(btn => (
+            <div
+              key={btn.id}
+              className="flex justify-between items-center bg-white border rounded-lg shadow-sm p-4 hover:shadow transition-shadow"
+            >
+              <span className="text-gray-800">{btn.label}</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleEditButton(btn.id)}
+                  className="p-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                >
+                  <Edit size={16} />
+                </button>
+                <button
+                  onClick={() => handleArchiveButton(btn.id)}
+                  className="p-2 bg-yellow-50 text-yellow-600 rounded hover:bg-yellow-100"
+                >
+                  <Archive size={16} />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">No buttons found matching your search.</p>
+        )}
+      </div>
+
+      {isEditing && currentButton && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
+            <h3 className="text-lg font-medium mb-4">Edit Button</h3>
+            <input
+              type="text"
+              value={currentButton.label}
+              onChange={(e) => setCurrentButton({ ...currentButton, label: e.target.value })}
+              className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            <div className="flex justify-end space-x-2 mt-4">
+              <button
+                onClick={() => { setIsEditing(false); setCurrentButton(null); }}
+                className="px-4 py-2 border rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveButtonChanges}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Button Modal */}
+      <AddButtonModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleAddButton}
+      />
+    </div>
+  );
+};
+
+/* ================================
+   ARCHIVE TAB
+==================================== */
+const ArchiveTab = ({
+  archiveData,
+  setArchiveData,
+  handleRestoreDropdown,
+  handleDeleteDropdownPermanently,
+  archivedMembers,
+  handleRestoreMember,
+  handleDeleteMemberPermanently,
+  archivedButtons,
+  setArchivedButtons
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [archiveCategory, setArchiveCategory] = useState('all'); // Options: 'all' | 'dropdowns' | 'savings' | 'buttons'
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+
+  // Filter archived dropdowns (unchanged)
+  const filteredArchiveDropdowns = archiveData.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Filter archived interest rate modules (previously "Regular Savings")
+  const filteredArchivedSavings = archivedMembers.filter(member =>
+    member.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Filter archived buttons (unchanged)
+  const filteredArchivedButtons = archivedButtons.filter(btn =>
+    btn.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+
+  return (
+    <div className="space-y-6 p-6">
+      <h2 className="text-xl font-semibold text-gray-800">Archived Data</h2>
+      
+      {/* Search and Filter Bar */}
+      <div className="flex justify-end items-center space-x-2 mb-4">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search archived data"
+            className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 w-64"
+          />
+          <svg
+            className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowFilterMenu(!showFilterMenu)}
+            className="p-2 bg-gray-100 rounded hover:bg-gray-200"
+          >
+            <Filter size={18} className="text-gray-600" />
+          </button>
+          {showFilterMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
+              <button
+                onClick={() => { setArchiveCategory('all'); setShowFilterMenu(false); }}
+                className="block w-full text-left px-4 py-2 hover:bg-blue-50"
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setArchiveCategory('dropdowns'); setShowFilterMenu(false); }}
+                className="block w-full text-left px-4 py-2 hover:bg-blue-50"
+              >
+                Dropdowns
+              </button>
+              <button
+                onClick={() => { setArchiveCategory('savings'); setShowFilterMenu(false); }}
+                className="block w-full text-left px-4 py-2 hover:bg-blue-50"
+              >
+                Interest Rate
+              </button>
+              <button
+                onClick={() => { setArchiveCategory('buttons'); setShowFilterMenu(false); }}
+                className="block w-full text-left px-4 py-2 hover:bg-blue-50"
+              >
+                Buttons
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Render Archived Dropdowns */}
+      {(archiveCategory === 'all' || archiveCategory === 'dropdowns') && (
+        <div>
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Archived Dropdowns</h3>
+          <div className="space-y-4">
+            {filteredArchiveDropdowns.length > 0 ? (
+              filteredArchiveDropdowns.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center p-4 bg-white border rounded-lg shadow-sm hover:shadow transition-shadow"
+                >
+                  <div>
+                    <h4 className="font-medium text-gray-800">
+                      {item.name.replace(/([A-Z])/g, ' $1').trim()}
+                    </h4>
+                    <p className="text-sm text-gray-500">{item.options.length} available</p>
+                    <p className="text-sm text-gray-400">Archived on: {item.archivedDate}</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleRestoreDropdown(index)}
+                      className="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Restore
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDropdownPermanently(index)}
+                      className="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Delete Permanently
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No archived dropdowns found matching your search.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Render Archived Interest Rate */}
+      {(archiveCategory === 'all' || archiveCategory === 'savings') && (
+        <div>
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Archived Interest Rate</h3>
+          <div className="space-y-4">
+            {filteredArchivedSavings.length > 0 ? (
+              filteredArchivedSavings.map((module, index) => (
+                <div
+                  key={module.name}
+                  className="flex justify-between items-center p-4 bg-white border rounded-lg shadow-sm hover:shadow transition-shadow"
+                >
+                  <div>
+                    <h4 className="font-medium text-gray-800">{module.name}</h4>
+                    <p className="text-sm text-gray-500">
+                      Interest Rate: {module.interestRate}%
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Updated By: {module.updatedBy}
+                    </p>
+                    <p className="text-sm text-gray-400">Archived on: {module.archivedDate}</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleRestoreMember(index)}
+                      className="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Restore
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMemberPermanently(index)}
+                      className="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Delete Permanently
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No archived interest rate found matching your search.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Render Archived Buttons */}
+      {(archiveCategory === 'all' || archiveCategory === 'buttons') && (
+        <div>
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Archived Buttons</h3>
+          <div className="space-y-4">
+            {filteredArchivedButtons.length > 0 ? (
+              filteredArchivedButtons.map((btn, index) => (
+                <div
+                  key={btn.id}
+                  className="flex justify-between items-center p-4 bg-white border rounded-lg shadow-sm hover:shadow transition-shadow"
+                >
+                  <div>
+                    <h4 className="font-medium text-gray-800">{btn.label}</h4>
+                    <p className="text-sm text-gray-400">Archived on: {btn.archivedDate}</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        // Restore button: add it back to Button Manager
+                        handleRestoreMember(index);
+                      }}
+                      className="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Restore
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to permanently delete button "${btn.label}"?`)) {
+                          setArchivedButtons(prev => prev.filter((_, i) => i !== index));
+                        }
+                      }}
+                      className="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Delete Permanently
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No archived buttons found matching your search.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+
+/* ================================
+   MAIN SAVINGS MODULE WITH TABS
+==================================== */
+const SavingsModule = () => {
+  const [activeTab, setActiveTab] = useState('manager'); // Default to Dropdown Manager
+  const [archiveData, setArchiveData] = useState([]);
+  const [dropdownData, setDropdownData] = useState(initialDropdownData);
+  const [archivedSavings, setArchivedSavings] = useState([]); // Archived regular savings records
+  const [archivedButtons, setArchivedButtons] = useState([]);
+
+  const handleAddButton = (newButton) => {
+    setArchivedButtons(prev => [...prev, newButton]);
+  };
+
+  const handleAddDropdown = (newDropdown) => {
+    setDropdownData(prev => ({
+      ...prev,
+      [newDropdown.name]: newDropdown.options
+    }));
+  };
+
+  // Function to restore a member from archive back to regular savings
+  const handleRestoreMember = (index) => {
+    const memberToRestore = archivedSavings[index];
+    setArchivedSavings(prev => prev.filter((_, i) => i !== index));
+    // Add logic to actually restore the member back if managing active state here
+  };
+
+  // Function to permanently delete an archived savings record
+  const handleDeleteSavingsPermanently = (index) => {
+    if (window.confirm("Are you sure you want to permanently delete this savings record?")) {
+      setArchivedSavings(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  return (
+    <div className="p-6 font-sans">
+      {/* Tabs */}
+      <div className="flex justify-center items-center mb-4 space-x-4">
+        <button
+          className={`py-2 px-6 ${activeTab === 'button' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('button')}
+        >
+          Button Manager
+        </button>
+        <button
+          className={`py-2 px-6 ${activeTab === 'manager' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('manager')}
+        >
+          Dropdown Manager
+        </button>
+        <button
+          className={`py-2 px-6 ${activeTab === 'regularSavings' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('regularSavings')}
+        >
+          Interest Rate
+        </button>
+        <button
+          className={`py-2 px-6 ${activeTab === 'archive' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('archive')}
+        >
+          Archive
+        </button>
+      </div>
+
+      <div className="border-t border-gray-200 mb-4" />
+
+      <div>
+        {activeTab === 'button' && (
+          <ButtonManagerTab 
+            setActiveTab={setActiveTab} 
+            setArchivedButtons={setArchivedButtons} 
+          />
+        )}
+        {activeTab === 'manager' && (
+          <DropdownManagerTab
+            setActiveTab={setActiveTab}
+            archiveData={archiveData}
+            setArchiveData={setArchiveData}
+            dropdownData={dropdownData}
+            setDropdownData={setDropdownData}
+          />
+        )}
+        {activeTab === 'regularSavings' && (
+          <InterestRateTab
+            onArchiveMember={(member) => {
+              setArchivedSavings(prev => [...prev, member]);
+            }}
+            switchToArchive={() => setActiveTab('archive')}
+          />
+        )}
+        {activeTab === 'archive' && (
+          <ArchiveTab
+            archiveData={archiveData}
+            setArchiveData={setArchiveData}
+            handleRestoreDropdown={handleAddDropdown}
+            handleDeleteDropdownPermanently={handleAddButton}
+            archivedMembers={archivedSavings}
+            handleRestoreMember={handleRestoreMember}
+            handleDeleteMemberPermanently={handleDeleteSavingsPermanently}
+            archivedButtons={archivedButtons}
+            setArchivedButtons={setArchivedButtons}
+          />
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default SavingsModule;

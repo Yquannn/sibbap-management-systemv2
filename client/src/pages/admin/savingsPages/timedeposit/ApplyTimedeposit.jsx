@@ -14,7 +14,7 @@ const MemberAndCoAccountForm = () => {
   // Initialize form data with fetched member data where applicable.
   const [formData, setFormData] = useState({
     // MEMBER'S PERSONAL INFORMATION
-    accountType: "",
+    account_type: "", // Changed accountType to account_type to match API
     memberCode: selectedMember?.memberCode || "",
     memberLastName: selectedMember?.last_name || "",
     memberMiddleName: selectedMember?.middle_name || "",
@@ -28,30 +28,63 @@ const MemberAndCoAccountForm = () => {
     memberContactNumber: selectedMember?.contact_number || "",
     memberCompleteAddress: selectedMember?.barangay || "",
     // CO‑ACCOUNT HOLDER PERSONAL INFORMATION
-    coLastName: "",
-    coMiddleName: "",
-    coFirstName: "",
-    coExtension: "",
-    coDOB: "",
-    coPlaceOfBirth: "",
-    coAge: "",
-    coGender: "",
-    coCivilStatus: "",
-    coContactNumber: "",
-    coRelationship: "",
-    coCompleteAddress: "",
+    has_co_maker: false, // Add flag to track if co-maker exists
+    co_last_name: "", 
+    co_middle_name: "",
+    co_first_name: "",
+    co_extension_name: "",
+    co_date_of_birth: "",
+    co_place_of_birth: "",
+    co_age: "",
+    co_gender: "",
+    co_civil_status: "",
+    co_contact_number: "",
+    co_relationship_primary: "",
+    co_complete_address: "",
     coUploadPicture: null
   });
 
   // Change handlers for text/select fields and file uploads.
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // If any co-maker field is filled, set has_co_maker to true
+    if (name.startsWith('co_') && value && !formData.has_co_maker) {
+      setFormData(prev => ({ ...prev, [name]: value, has_co_maker: true }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
+    // If account type changes to INDIVIDUAL, clear co-maker fields
+    if (name === 'account_type' && value === 'INDIVIDUAL') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        has_co_maker: false,
+        co_last_name: "",
+        co_middle_name: "",
+        co_first_name: "",
+        co_extension_name: "",
+        co_date_of_birth: "",
+        co_place_of_birth: "",
+        co_age: "",
+        co_gender: "",
+        co_civil_status: "",
+        co_contact_number: "",
+        co_relationship_primary: "",
+        co_complete_address: "",
+        coUploadPicture: null
+      }));
+    }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0] || null;
-    setFormData((prev) => ({ ...prev, coUploadPicture: file }));
+    setFormData(prev => ({ 
+      ...prev, 
+      coUploadPicture: file,
+      has_co_maker: prev.has_co_maker || !!file
+    }));
   };
 
   // State to control display of the TimedepositAmountModal.
@@ -60,7 +93,28 @@ const MemberAndCoAccountForm = () => {
   // When the Next button is clicked, show the modal.
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Parent Form Data:", formData);
+    
+    // Prepare data for backend
+    const dataForBackend = { ...formData };
+    
+    // If no co-maker info is provided, set co-maker fields to null
+    if (!formData.has_co_maker || formData.account_type === 'INDIVIDUAL') {
+      dataForBackend.co_last_name = null;
+      dataForBackend.co_middle_name = null;
+      dataForBackend.co_first_name = null;
+      dataForBackend.co_extension_name = null;
+      dataForBackend.co_date_of_birth = null;
+      dataForBackend.co_place_of_birth = null;
+      dataForBackend.co_age = null;
+      dataForBackend.co_gender = null;
+      dataForBackend.co_civil_status = null;
+      dataForBackend.co_contact_number = null;
+      dataForBackend.co_relationship_primary = null;
+      dataForBackend.co_complete_address = null;
+      dataForBackend.coUploadPicture = null;
+    }
+    
+    console.log("Parent Form Data:", dataForBackend);
     setShowAmountModal(true);
   };
 
@@ -69,6 +123,9 @@ const MemberAndCoAccountForm = () => {
   const selectClass = "border border-gray-300 bg-gray-50 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNSA3LjVMMTAgMTIuNUwxNSA3LjUiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 bg-center-y";
   const labelClass = "text-sm font-medium text-gray-700 mb-1";
   const readOnlyClass = "bg-gray-100 cursor-not-allowed";
+
+  // Hide co-maker fields if account type is INDIVIDUAL
+  const showCoMakerSection = formData.account_type !== 'INDIVIDUAL';
 
   return (
     <div className="">
@@ -83,14 +140,15 @@ const MemberAndCoAccountForm = () => {
             <div className="flex flex-col">
               <label className={labelClass}>Account Type</label>
               <select
-                name="accountType"
-                value={formData.accountType}
+                name="account_type"
+                value={formData.account_type}
                 onChange={handleChange}
                 className={selectClass}
               >
                 <option value="">Select an item</option>
-                <option value="Savings">Individual</option>
-                <option value="Time Deposit">Joint Account</option>
+                <option value="INDIVIDUAL">Individual</option>
+                <option value="JOINT">Joint Account</option>
+                <option value="FIXED">Fixed</option>
               </select>
             </div>
             {/* Member Code */}
@@ -258,162 +316,164 @@ const MemberAndCoAccountForm = () => {
         </section>
 
         {/* CO‑ACCOUNT HOLDER PERSONAL INFORMATION */}
-        <section className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-          <h2 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-3">
-            CO‑ACCOUNT HOLDER PERSONAL INFORMATION
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="flex flex-col">
-              <label className={labelClass}>Last Name</label>
-              <input
-                type="text"
-                name="coLastName"
-                value={formData.coLastName}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Last Name"
-              />
+        {showCoMakerSection && (
+          <section className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-3">
+              CO‑ACCOUNT HOLDER PERSONAL INFORMATION
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="flex flex-col">
+                <label className={labelClass}>Last Name</label>
+                <input
+                  type="text"
+                  name="co_last_name"
+                  value={formData.co_last_name}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Last Name"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Middle Name</label>
+                <input
+                  type="text"
+                  name="co_middle_name"
+                  value={formData.co_middle_name}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Middle Name"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>First Name</label>
+                <input
+                  type="text"
+                  name="co_first_name"
+                  value={formData.co_first_name}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="First Name"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Extension Name</label>
+                <input
+                  type="text"
+                  name="co_extension_name"
+                  value={formData.co_extension_name}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="e.g. Jr, Sr"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Date of Birth</label>
+                <input
+                  type="date"
+                  name="co_date_of_birth"
+                  value={formData.co_date_of_birth}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Place of Birth</label>
+                <input
+                  type="text"
+                  name="co_place_of_birth"
+                  value={formData.co_place_of_birth}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Place of Birth"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Age</label>
+                <input
+                  type="number"
+                  name="co_age"
+                  value={formData.co_age}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Age"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Gender</label>
+                <select
+                  name="co_gender"
+                  value={formData.co_gender}
+                  onChange={handleChange}
+                  className={selectClass}
+                >
+                  <option value="">Select an item</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Civil Status</label>
+                <select
+                  name="co_civil_status"
+                  value={formData.co_civil_status}
+                  onChange={handleChange}
+                  className={selectClass}
+                >
+                  <option value="">Select an item</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Widowed">Widowed</option>
+                  <option value="Divorced">Divorced</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Contact Number</label>
+                <input
+                  type="text"
+                  name="co_contact_number"
+                  value={formData.co_contact_number}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Contact Number"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClass}>Relationship to Primary</label>
+                <select
+                  name="co_relationship_primary"
+                  value={formData.co_relationship_primary}
+                  onChange={handleChange}
+                  className={selectClass}
+                >
+                  <option value="">Select an item</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Child">Child</option>
+                  <option value="Sibling">Sibling</option>
+                  <option value="Parent">Parent</option>
+                  <option value="Relative">Relative</option>
+                  <option value="Friend">Friend</option>
+                  <option value="Brother">Brother</option>
+                </select>
+              </div>
+              <div className="flex flex-col lg:col-span-2">
+                <label className={labelClass}>Complete Address</label>
+                <input
+                  type="text"
+                  name="co_complete_address"
+                  value={formData.co_complete_address}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Complete Address"
+                />
+              </div>
             </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Middle Name</label>
-              <input
-                type="text"
-                name="coMiddleName"
-                value={formData.coMiddleName}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Middle Name"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>First Name</label>
-              <input
-                type="text"
-                name="coFirstName"
-                value={formData.coFirstName}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="First Name"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Extension Name</label>
-              <input
-                type="text"
-                name="coExtension"
-                value={formData.coExtension}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="e.g. Jr, Sr"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Date of Birth</label>
-              <input
-                type="date"
-                name="coDOB"
-                value={formData.coDOB}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Place of Birth</label>
-              <input
-                type="text"
-                name="coPlaceOfBirth"
-                value={formData.coPlaceOfBirth}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Place of Birth"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Age</label>
-              <input
-                type="number"
-                name="coAge"
-                value={formData.coAge}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Age"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Gender</label>
-              <select
-                name="coGender"
-                value={formData.coGender}
-                onChange={handleChange}
-                className={selectClass}
-              >
-                <option value="">Select an item</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Civil Status</label>
-              <select
-                name="coCivilStatus"
-                value={formData.coCivilStatus}
-                onChange={handleChange}
-                className={selectClass}
-              >
-                <option value="">Select an item</option>
-                <option value="Single">Single</option>
-                <option value="Married">Married</option>
-                <option value="Widowed">Widowed</option>
-                <option value="Divorced">Divorced</option>
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Contact Number</label>
-              <input
-                type="text"
-                name="coContactNumber"
-                value={formData.coContactNumber}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Contact Number"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className={labelClass}>Relationship to Primary</label>
-              <select
-                name="coRelationship"
-                value={formData.coRelationship}
-                onChange={handleChange}
-                className={selectClass}
-              >
-                <option value="">Select an item</option>
-                <option value="Spouse">Spouse</option>
-                <option value="Child">Child</option>
-                <option value="Sibling">Sibling</option>
-                <option value="Parent">Parent</option>
-                <option value="Relative">Relative</option>
-                <option value="Friend">Friend</option>
-              </select>
-            </div>
-            <div className="flex flex-col lg:col-span-2">
-              <label className={labelClass}>Complete Address</label>
-              <input
-                type="text"
-                name="coCompleteAddress"
-                value={formData.coCompleteAddress}
-                onChange={handleChange}
-                className={inputClass}
-                placeholder="Complete Address"
-              />
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Submit Button */}
         <div className="flex justify-end mt-8">
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
             className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium px-8 py-3 rounded-lg flex items-center gap-2 shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300"
           >
             Next <span className="text-xl">→</span>

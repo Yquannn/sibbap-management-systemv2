@@ -1,60 +1,47 @@
 import React, { useState } from "react";
-import { Modal, Dropdown, Select, Tabs, message } from "antd";
-import { HiOutlineFilter, HiOutlineClock, HiOutlineUser } from "react-icons/hi";
-import { MdEdit, MdArchive, MdAdd } from "react-icons/md";
+import { Modal, Dropdown, Menu, Tabs, Input, Button } from "antd";
+import { HiOutlineFilter } from "react-icons/hi";
+import { 
+  Plus, Archive as LucideArchive, Edit, Trash2 
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { DownOutlined } from "@ant-design/icons";
 
-const { Option } = Select;
 const { TabPane } = Tabs;
 
-// Added validation rules
-const VALIDATION_RULES = {
-  loanType: (value) => !!value || "Loan Type is required",
-  interestRate: (value) => !!value || "Interest Rate is required",
-  loanableAmount: (value) => !!value || "Loanable Amount is required",
-  serviceFee: (value) => !!value || "Service Fee is required",
-};
-
-// Enhanced loan types with more details
-const LOAN_TYPES = [
-  {
-    value: "Personal Loan",
-    description: "Short-term loan for personal expenses",
-    maxTerm: 36,
-    requirements: ["Valid ID", "Proof of Income", "Bank Statement"],
-  },
-  {
-    value: "Housing Loan",
-    description: "Long-term loan for home purchase or construction",
-    maxTerm: 300,
-    requirements: ["Property Documents", "Income Tax Returns", "Employment Certificate"],
-  },
-  // ... other loan types remain the same
+// --- DUMMY DATA -----------------------------------------------------
+const dummyLoans = [
+  { id: 1, loanType: "Personal Loan", interestRate: "2%", loanableAmount: "₱10,000", serviceFee: "3%", penaltyFee: "2%", membershipFee: "₱200" },
+  { id: 2, loanType: "Housing Loan", interestRate: "1.75%", loanableAmount: "₱200,000", serviceFee: "1.2%", penaltyFee: "2%", membershipFee: "₱500" },
+  { id: 3, loanType: "Car Loan", interestRate: "1.75%", loanableAmount: "₱50,000", serviceFee: "1.2%", penaltyFee: "2%", membershipFee: "₱300" },
+  { id: 4, loanType: "Salary Loan", interestRate: "2%", loanableAmount: "₱5,000", serviceFee: "3%", penaltyFee: "2%", membershipFee: "₱150" },
+  { id: 5, loanType: "Mortgage Loan", interestRate: "1.75%", loanableAmount: "₱1,000,000", serviceFee: "1.2%", penaltyFee: "2%", membershipFee: "₱700" },
+  { id: 6, loanType: "OFW Assistance Loan", interestRate: "2%", loanableAmount: "₱200,000", serviceFee: "5%", penaltyFee: "2%", membershipFee: "₱400" },
+  { id: 7, loanType: "Agriculture Loan", interestRate: "3.5%", loanableAmount: "₱100,000", serviceFee: "3%", penaltyFee: "2%", membershipFee: "₱250" },
+  { id: 8, loanType: "Educational Loan", interestRate: "1.75%", loanableAmount: "₱50,000", serviceFee: "5%", penaltyFee: "2%", membershipFee: "₱180" },
 ];
 
-const LoanModule = () => {
-  const navigate = useNavigate();
-  
-  // Sample data for loan configurations
-  const [loans, setLoans] = useState([
-    {
-      id: 1,
-      loanType: "Personal Loan",
-      interestRate: "1.75%",
-      loanableAmount: "₱50,000",
-      serviceFee: "3%",
-    },
-    {
-      id: 2,
-      loanType: "Housing Loan",
-      interestRate: "3.5%",
-      loanableAmount: "₱1,000,000",
-      serviceFee: "1.2%",
-    },
-  ]);
+const dummyArchivedLoans = [
+  { id: 9, loanType: "Emergency Loan", interestRate: "4%", loanableAmount: "₱15,000", serviceFee: "2.5%", penaltyFee: "2%", archivedDate: "2025-03-15", membershipFee: "₱250" },
+  { id: 10, loanType: "Business Loan", interestRate: "3%", loanableAmount: "₱500,000", serviceFee: "2%", penaltyFee: "2%", archivedDate: "2025-02-28", membershipFee: "₱600" },
+  { id: 11, loanType: "Medical Loan", interestRate: "1.5%", loanableAmount: "₱75,000", serviceFee: "1%", penaltyFee: "2%", archivedDate: "2025-03-01", membershipFee: "₱400" },
+  { id: 12, loanType: "Calamity Loan", interestRate: "1%", loanableAmount: "₱25,000", serviceFee: "0.5%", penaltyFee: "2%", archivedDate: "2025-01-20", membershipFee: "₱100" },
+];
 
-  // State for managing modal
+// Sample dropdown data remains unchanged
+const filterPlaceholders = {
+  all: "Search loans...",
+  loanType: "Search by Loan Type...",
+  interestRate: "Search by Interest Rate...",
+  loanableAmount: "Search by Loanable Amount...",
+  serviceFee: "Search by Service Fee...",
+};
+
+const LoanModule = () => {
+  // LOANS + ARCHIVE states
+  const [loans, setLoans] = useState(dummyLoans);
+  const [archivedLoans, setArchivedLoans] = useState(dummyArchivedLoans);
+
+  // Add/Edit Loan Modal (includes penaltyFee and membershipFee)
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingLoan, setEditingLoan] = useState(null);
   const [newLoan, setNewLoan] = useState({
@@ -62,27 +49,24 @@ const LoanModule = () => {
     interestRate: "",
     loanableAmount: "",
     serviceFee: "",
+    penaltyFee: "",
+    membershipFee: "",
   });
-  const [validationErrors, setValidationErrors] = useState({});
 
-  // State for search and filter
+  // Delete Confirmation Modal
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [loanToDelete, setLoanToDelete] = useState(null);
+
+  // Tab / Filter states
+  const [activeTab, setActiveTab] = useState("1");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterOption, setFilterOption] = useState("loanType");
-  const filterPlaceholders = {
-    loanType: "Search by loan type...",
-    interestRate: "Search by interest rate...",
-    loanableAmount: "Search by loanable amount...",
-    serviceFee: "Search by service fee...",
-  };
+  const [filterOption, setFilterOption] = useState("all");
 
-  // Filter loans based on search term and filter option
-  const filteredLoans = loans.filter((loan) => {
-    return loan[filterOption]
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-  });
+  const navigate = useNavigate();
 
-  // Handler for adding new loan
+  // ---------------------------------------------------------
+  // LOAN TYPE TAB: Handlers
+  // ---------------------------------------------------------
   const handleAddNewLoan = () => {
     setEditingLoan(null);
     setNewLoan({
@@ -90,239 +74,328 @@ const LoanModule = () => {
       interestRate: "",
       loanableAmount: "",
       serviceFee: "",
+      penaltyFee: "",
+      membershipFee: "",
     });
-    setValidationErrors({});
     setIsModalVisible(true);
   };
 
-  // Handler for editing loan
   const handleEditLoan = (loan) => {
     setEditingLoan(loan);
-    setNewLoan({ ...loan });
-    setValidationErrors({});
+    setNewLoan({
+      loanType: loan.loanType,
+      interestRate: loan.interestRate,
+      loanableAmount: loan.loanableAmount,
+      serviceFee: loan.serviceFee,
+      penaltyFee: loan.penaltyFee || "",
+      membershipFee: loan.membershipFee || "",
+    });
     setIsModalVisible(true);
   };
 
-  // Handler for archiving loan
-  const handleArchive = (loan) => {
-    Modal.confirm({
-      title: "Archive Loan Configuration",
-      content: `Are you sure you want to archive ${loan.loanType}?`,
-      onOk() {
-        setLoans(loans.filter((item) => item.id !== loan.id));
-        message.success("Loan configuration archived successfully");
-      },
-    });
-  };
-
-  // Validate form data
-  const validateForm = () => {
-    const errors = {};
-    for (const [key, validator] of Object.entries(VALIDATION_RULES)) {
-      const result = validator(newLoan[key]);
-      if (result !== true) {
-        errors[key] = result;
-      }
-    }
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Handler for modal OK button
   const handleModalOk = () => {
-    if (!validateForm()) {
-      return;
-    }
+    // Ensure the membershipFee always has a peso sign
+    const formattedMembershipFee = newLoan.membershipFee.startsWith("₱") 
+        ? newLoan.membershipFee
+        : `₱${newLoan.membershipFee}`;
 
-    if (editingLoan) {
-      // Update existing loan
-      setLoans(
-        loans.map((loan) =>
-          loan.id === editingLoan.id ? { ...newLoan, id: loan.id } : loan
-        )
-      );
-      message.success("Loan configuration updated successfully");
+    // Now, format other fields similarly as done previously
+    let formattedInterestRate;
+    if (newLoan.interestRate.trim().toUpperCase() === "N/A") {
+      formattedInterestRate = "N/A";
+    } else if (newLoan.interestRate.includes("%")) {
+      formattedInterestRate = newLoan.interestRate;
     } else {
-      // Add new loan
-      setLoans([...loans, { ...newLoan, id: Date.now() }]);
-      message.success("Loan configuration added successfully");
+      formattedInterestRate = newLoan.interestRate + "%";
     }
-    setIsModalVisible(false);
-  };
 
-  // Handler for modal cancel button
+    let formattedServiceFee;
+    if (newLoan.serviceFee.trim().toUpperCase() === "N/A") {
+      formattedServiceFee = "N/A";
+    } else if (newLoan.serviceFee.includes("%")) {
+      formattedServiceFee = newLoan.serviceFee;
+    } else {
+      formattedServiceFee = newLoan.serviceFee + "%";
+    }
+
+    let formattedPenaltyFee = newLoan.penaltyFee.includes("%")
+      ? newLoan.penaltyFee
+      : newLoan.penaltyFee + "%";
+
+    let formattedLoanableAmount = newLoan.loanableAmount.includes("₱")
+      ? newLoan.loanableAmount
+      : "₱" + newLoan.loanableAmount;
+
+    const formattedLoan = {
+      ...newLoan,
+      interestRate: formattedInterestRate,
+      serviceFee: formattedServiceFee,
+      penaltyFee: formattedPenaltyFee,
+      loanableAmount: formattedLoanableAmount,
+      membershipFee: formattedMembershipFee // Ensure the membership fee has the peso sign
+    };
+
+    // Update existing loan or create a new one
+    if (editingLoan) {
+      const updatedLoans = loans.map((l) =>
+        l.id === editingLoan.id ? { ...l, ...formattedLoan } : l
+      );
+      setLoans(updatedLoans);
+    } else {
+      const newLoanId = loans.length > 0 ? Math.max(...loans.map((l) => l.id)) + 1 : 1;
+      setLoans([...loans, { id: newLoanId, ...formattedLoan }]);
+    }
+
+    // Reset form state and close modal
+    setNewLoan({
+      loanType: "",
+      interestRate: "",
+      loanableAmount: "",
+      serviceFee: "",
+      penaltyFee: "",
+      membershipFee: "", // Reset membership fee too
+    });
+    setEditingLoan(null);
+    setIsModalVisible(false);
+};
+
+
+
   const handleModalCancel = () => {
     setIsModalVisible(false);
+    setEditingLoan(null);
   };
 
-  // Filter menu items
-  const filterItems = [
-    {
-      key: "loanType",
-      label: "Loan Type",
-    },
-    {
-      key: "interestRate",
-      label: "Interest Rate",
-    },
-    {
-      key: "loanableAmount",
-      label: "Loanable Amount",
-    },
-    {
-      key: "serviceFee",
-      label: "Service Fee",
-    },
-  ];
+  // ---------------------------------------------------------
+  // ARCHIVE TAB: Handlers
+  // ---------------------------------------------------------
+  const handleArchiveLoan = (loan) => {
+    const updatedLoans = loans.filter((item) => item.id !== loan.id);
+    setLoans(updatedLoans);
 
-  // Filter menu component
+    const today = new Date().toISOString().split("T")[0];
+    const archivedLoan = { ...loan, archivedDate: today };
+    setArchivedLoans([...archivedLoans, archivedLoan]);
+    setActiveTab("3");
+  };
+
+  const handleRestoreLoan = (loan) => {
+    const updatedArchived = archivedLoans.filter((item) => item.id !== loan.id);
+    setArchivedLoans(updatedArchived);
+    const { archivedDate, ...restoredLoan } = loan;
+    setLoans([...loans, restoredLoan]);
+    setActiveTab("1");
+  };
+
+  const showDeleteConfirmModal = (loan) => {
+    setLoanToDelete(loan);
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (loanToDelete) {
+      const updatedArchived = archivedLoans.filter((item) => item.id !== loanToDelete.id);
+      setArchivedLoans(updatedArchived);
+      setLoanToDelete(null);
+    }
+    setIsDeleteModalVisible(false);
+  };
+
+  const handleCancelDelete = () => {
+    setLoanToDelete(null);
+    setIsDeleteModalVisible(false);
+  };
+
+  // ---------------------------------------------------------
+  // FILTER: Logic + Menu
+  // ---------------------------------------------------------
   const filterMenu = (
-    <div className="bg-white shadow-lg rounded-md p-2 w-48">
-      {filterItems.map((item) => (
-        <div
-          key={item.key}
-          className={`px-4 py-2 cursor-pointer rounded-md ${
-            filterOption === item.key ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
-          }`}
-          onClick={() => setFilterOption(item.key)}
-        >
-          {item.label}
-        </div>
-      ))}
-    </div>
+    <Menu
+      onClick={(e) => {
+        setFilterOption(e.key);
+        setSearchTerm("");
+      }}
+    >
+      <Menu.Item key="all">All</Menu.Item>
+      <Menu.Item key="loanType">Loan Type</Menu.Item>
+      <Menu.Item key="interestRate">Interest Rate</Menu.Item>
+      <Menu.Item key="loanableAmount">Loanable Amount</Menu.Item>
+      <Menu.Item key="serviceFee">Service Fee</Menu.Item>
+    </Menu>
   );
 
+  const filteredLoans = loans.filter((loan) => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    if (filterOption === "loanType") {
+      return loan.loanType.toLowerCase().includes(lowerSearchTerm);
+    } else if (filterOption === "interestRate") {
+      return loan.interestRate.toLowerCase().includes(lowerSearchTerm);
+    } else if (filterOption === "loanableAmount") {
+      return loan.loanableAmount.toLowerCase().includes(lowerSearchTerm);
+    } else if (filterOption === "serviceFee") {
+      return loan.serviceFee.toLowerCase().includes(lowerSearchTerm);
+    }
+    return (
+      loan.loanType.toLowerCase().includes(lowerSearchTerm) ||
+      loan.interestRate.toLowerCase().includes(lowerSearchTerm) ||
+      loan.loanableAmount.toLowerCase().includes(lowerSearchTerm) ||
+      loan.serviceFee.toLowerCase().includes(lowerSearchTerm) ||
+      (loan.penaltyFee || "").toLowerCase().includes(lowerSearchTerm)
+    );
+  });
+
+  const filteredArchivedLoans = archivedLoans.filter((loan) => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    if (filterOption === "loanType") {
+      return loan.loanType.toLowerCase().includes(lowerSearchTerm);
+    } else if (filterOption === "interestRate") {
+      return loan.interestRate.toLowerCase().includes(lowerSearchTerm);
+    } else if (filterOption === "loanableAmount") {
+      return loan.loanableAmount.toLowerCase().includes(lowerSearchTerm);
+    } else if (filterOption === "serviceFee") {
+      return loan.serviceFee.toLowerCase().includes(lowerSearchTerm);
+    }
+    return (
+      loan.loanType.toLowerCase().includes(lowerSearchTerm) ||
+      loan.interestRate.toLowerCase().includes(lowerSearchTerm) ||
+      loan.loanableAmount.toLowerCase().includes(lowerSearchTerm) ||
+      loan.serviceFee.toLowerCase().includes(lowerSearchTerm) ||
+      (loan.penaltyFee || "").toLowerCase().includes(lowerSearchTerm)
+    );
+  });
+
+  // ---------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header with Date/Time and User Info */}
-      <div className="mb-6 flex justify-between items-center bg-white rounded-lg shadow p-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center text-gray-600">
-            <HiOutlineClock className="mr-2" />
-            <span className="text-sm">2025-04-09 15:35:16 UTC</span>
-          </div>
-          <div className="flex items-center text-gray-600">
-            <HiOutlineUser className="mr-2" />
-            <span className="text-sm">Yquannn</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="bg-white rounded-lg shadow-md">
-        <Tabs 
-          defaultActiveKey="1"
-          className="p-4"
-          tabBarStyle={{
-            marginBottom: '16px',
-          }}
-        >
-          <TabPane tab="Loan Type" key="1">
-            {/* Action Buttons and Search */}
-            <div className="flex items-center justify-between mb-6">
-              <button
-                onClick={handleAddNewLoan}
-                className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
-              >
-                <MdAdd className="mr-2" />
-                Add New Loan Configuration
-              </button>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  placeholder={filterPlaceholders[filterOption]}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <Dropdown overlay={filterMenu} trigger={["click"]}>
-                  <button className="p-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200">
-                    <HiOutlineFilter className="text-gray-600 text-xl" />
-                  </button>
-                </Dropdown>
-              </div>
+    <div className="p-6 space-y-4">
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        tabBarStyle={{
+          fontWeight: "bold",
+          fontSize: "14px",
+          color: "#4A90E2",
+          fontFamily: "Helvetica, Arial, sans-serif",
+        }}
+      >
+        {/* TAB 1: Loan Type */}
+        <TabPane tab="Loan Type" key="1">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handleAddNewLoan}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Add New Loan Configuration
+            </button>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                placeholder={filterPlaceholders[filterOption]}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border px-3 py-2 rounded"
+              />
+              <Dropdown overlay={filterMenu} trigger={["click"]}>
+                <button className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                  <HiOutlineFilter size={20} />
+                </button>
+              </Dropdown>
             </div>
+          </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Loan Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Interest Rate
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Loanable Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Service Fee
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+          <div className="overflow-x-auto mt-4">
+            <table className="min-w-full bg-white border rounded shadow">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="py-2 px-4 border-b font-bold text-[#4A90E2]">Loan Type</th>
+                  <th className="py-2 px-4 border-b font-bold text-[#4A90E2] text-center">Interest Rate</th>
+                  <th className="py-2 px-4 border-b font-bold text-[#4A90E2]">Loanable Amount</th>
+                  <th className="py-2 px-4 border-b font-bold text-[#4A90E2]">Service Fee</th>
+                  <th className="py-2 px-4 border-b font-bold text-[#4A90E2]">Penalty Fee</th>
+                  <th className="py-2 px-4 border-b font-bold text-[#4A90E2]">Membership Fee</th>
+                  <th className="py-2 px-4 border-b font-bold text-[#4A90E2]">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLoans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">{loan.loanType}</td>
+                    <td className="py-2 px-4 border-b text-center">{loan.interestRate}</td>
+                    <td className="py-2 px-4 border-b">{loan.loanableAmount}</td>
+                    <td className="py-2 px-4 border-b">{loan.serviceFee}</td>
+                    <td className="py-2 px-4 border-b">{loan.penaltyFee}</td>
+                    <td className="py-2 px-4 border-b">{loan.membershipFee}</td>
+                    <td className="py-2 px-4 border-b">
+                      <button
+                        onClick={() => handleEditLoan(loan)}
+                        className="px-2 py-1 bg-green-500 text-white rounded mr-2"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleArchiveLoan(loan)}
+                        className="px-2 py-1 bg-yellow-500 text-white rounded"
+                      >
+                        Archive
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredLoans.map((loan) => (
-                    <tr key={loan.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {loan.loanType}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {loan.interestRate}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {loan.loanableAmount}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {loan.serviceFee}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => handleEditLoan(loan)}
-                          className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 mr-2 transition-colors duration-200"
-                        >
-                          <MdEdit className="mr-1" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleArchive(loan)}
-                          className="inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors duration-200"
-                        >
-                          <MdArchive className="mr-1" />
-                          Archive
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </TabPane>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabPane>
 
-          <TabPane tab="Dropdown Manager" key="2">
-            {/* Content for Dropdown Manager */}
-            <div className="p-4">
-              <h3 className="text-lg font-medium text-gray-900">Dropdown Manager Content</h3>
-              {/* Add your dropdown manager content here */}
-            </div>
-          </TabPane>
+        {/* TAB 3: Archive */}
+        <TabPane tab="Archive" key="3">
+          <div className="overflow-x-auto mt-4">
+            <table className="min-w-full bg-white border rounded shadow">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Loan Type</th>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Interest Rate</th>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Loanable Amount</th>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Service Fee</th>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Penalty Fee</th>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Membership Fee</th>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Archived Date</th>
+                  <th className="py-2 px-4 border-b text-left font-bold text-[#4A90E2]">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArchivedLoans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">{loan.loanType}</td>
+                    <td className="py-2 px-4 border-b">{loan.interestRate}</td>
+                    <td className="py-2 px-4 border-b">{loan.loanableAmount}</td>
+                    <td className="py-2 px-4 border-b">{loan.serviceFee}</td>
+                    <td className="py-2 px-4 border-b">{loan.penaltyFee}</td>
+                    <td className="py-2 px-4 border-b">{loan.membershipFee}</td>
+                    <td className="py-2 px-4 border-b">{loan.archivedDate}</td>
+                    <td className="py-2 px-4 border-b flex space-x-2">
+                      <button
+                        onClick={() => handleRestoreLoan(loan)}
+                        className="px-2 py-1 bg-blue-500 text-white rounded"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => showDeleteConfirmModal(loan)}
+                        className="px-2 py-1 bg-red-500 text-white rounded"
+                      >
+                        Delete Permanently
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabPane>
+      </Tabs>
 
-          <TabPane tab="Archive" key="3">
-            {/* Content for Archive */}
-            <div className="p-4">
-              <h3 className="text-lg font-medium text-gray-900">Archive Content</h3>
-              {/* Add your archive content here */}
-            </div>
-          </TabPane>
-        </Tabs>
-      </div>
-
-      {/* Modal */}
+      {/* MODAL: Add/Edit Loan Configuration */}
       <Modal
         title={editingLoan ? "Edit Loan Configuration" : "Add New Loan Configuration"}
         visible={isModalVisible}
@@ -330,97 +403,89 @@ const LoanModule = () => {
         onCancel={handleModalCancel}
         okText="Save"
         cancelText="Cancel"
-        className="rounded-lg"
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Loan Type
-            </label>
-            <Select
-              placeholder="Select loan type"
-              className="w-full"
+            <label className="block text-sm font-medium mb-1">Loan Type</label>
+            <Input
+              placeholder="Enter loan type"
               value={newLoan.loanType}
-              onChange={(value) => setNewLoan({ ...newLoan, loanType: value })}
-              status={validationErrors.loanType ? "error" : ""}
-            >
-              {LOAN_TYPES.map((type) => (
-                <Option key={type.value} value={type.value}>
-                  {type.value}
-                </Option>
-              ))}
-            </Select>
-            {validationErrors.loanType && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.loanType}</p>
-            )}
+              onChange={(e) => setNewLoan({ ...newLoan, loanType: e.target.value })}
+              className="w-full border rounded px-3 py-2"
+            />
           </div>
-
-          {/* Interest Rate */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Interest Rate
-            </label>
-            <Select
-              placeholder="Select interest rate"
-              className="w-full"
+            <label className="block text-sm font-medium mb-1">Interest Rate</label>
+            <Input
+              placeholder="Enter interest rate (e.g., 2% or N/A)"
               value={newLoan.interestRate}
-              onChange={(value) => setNewLoan({ ...newLoan, interestRate: value })}
-              status={validationErrors.interestRate ? "error" : ""}
-            >
-              <Option value="1.75%">1.75%</Option>
-              <Option value="2%">2%</Option>
-              <Option value="3.5%">3.5%</Option>
-            </Select>
-            {validationErrors.interestRate && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.interestRate}</p>
-            )}
+              onChange={(e) => setNewLoan({ ...newLoan, interestRate: e.target.value })}
+              className="w-full border rounded px-3 py-2"
+            />
+            <small className="text-gray-500">Example: 1.75%, 2%, 3.5% or N/A</small>
           </div>
-
-          {/* Loanable Amount */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Loanable Amount
-            </label>
-            <Select
-              placeholder="Select loanable amount"
-              className="w-full"
+            <label className="block text-sm font-medium mb-1">Loanable Amount</label>
+            <Input
+              placeholder="Enter maximum loanable amount (e.g., ₱10,000)"
               value={newLoan.loanableAmount}
-              onChange={(value) => setNewLoan({ ...newLoan, loanableAmount: value })}
-              status={validationErrors.loanableAmount ? "error" : ""}
-            >
-              <Option value="₱5,000">₱5,000</Option>
-              <Option value="₱10,000">₱10,000</Option>
-              <Option value="₱50,000">₱50,000</Option>
-              <Option value="₱100,000">₱100,000</Option>
-              <Option value="₱200,000">₱200,000</Option>
-              <Option value="₱1,000,000">₱1,000,000</Option>
-            </Select>
-            {validationErrors.loanableAmount && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.loanableAmount}</p>
-            )}
+              onChange={(e) => setNewLoan({ ...newLoan, loanableAmount: e.target.value })}
+              className="w-full border rounded px-3 py-2"
+            />
+            <small className="text-gray-500">
+              This defines the maximum amount the member can borrow.
+            </small>
           </div>
-
-          {/* Service Fee */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Service Fee
-            </label>
-            <Select
-              placeholder="Select service fee"
-              className="w-full"
+            <label className="block text-sm font-medium mb-1">Service Fee</label>
+            <Input
+              placeholder="Enter service fee (e.g., 3% or N/A)"
               value={newLoan.serviceFee}
-              onChange={(value) => setNewLoan({ ...newLoan, serviceFee: value })}
-              status={validationErrors.serviceFee ? "error" : ""}
-            >
-              <Option value="3%">3%</Option>
-              <Option value="1.2%">1.2%</Option>
-              <Option value="5%">5%</Option>
-            </Select>
-            {validationErrors.serviceFee && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.serviceFee}</p>
-            )}
+              onChange={(e) => setNewLoan({ ...newLoan, serviceFee: e.target.value })}
+              className="w-full border rounded px-3 py-2"
+            />
+            <small className="text-gray-500">Example: 1.2%, 3%, 5% or N/A</small>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Penalty Fee</label>
+            <Input
+              placeholder="Enter penalty fee (e.g., 2%)"
+              value={newLoan.penaltyFee}
+              onChange={(e) => setNewLoan({ ...newLoan, penaltyFee: e.target.value })}
+              className="w-full border rounded px-3 py-2"
+            />
+            <small className="text-gray-500">
+              Example: 2% per month penalty for late payments
+            </small>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Membership Fee</label>
+            <Input
+  placeholder="Enter membership fee (e.g., 200)"
+  value={newLoan.membershipFee}
+  onChange={(e) => setNewLoan({ ...newLoan, membershipFee: e.target.value })}
+  className="w-full border rounded px-3 py-2"
+/>
+
+            <small className="text-gray-500">Example: ₱200 for new members</small>
           </div>
         </div>
+      </Modal>
+
+      {/* MODAL: Delete Loan Confirmation */}
+      <Modal
+        title="Delete Loan Configuration"
+        visible={isDeleteModalVisible}
+        onOk={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        okText="Delete"
+        cancelText="Cancel"
+        okButtonProps={{ style: { backgroundColor: "#f44336", borderColor: "#f44336" } }}
+      >
+        <p>
+          Are you sure you want to permanently delete the "{loanToDelete?.loanType}" loan configuration?
+        </p>
+        <p className="mt-2 text-red-500">This action cannot be undone.</p>
       </Modal>
     </div>
   );

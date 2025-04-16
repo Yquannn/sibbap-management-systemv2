@@ -61,6 +61,9 @@ import MembersModule from "./pages/admin/system maintenance/MembersModule";
 import RegularAnalytics from "./pages/members/home/SavingsAnalytics";
 import ShareCapitalInfo from "./pages/admin/savingsPages/shareCapital/SharecapitalInfo";
 
+import TimedepositRollover from "./pages/admin/savingsPages/timedeposit/TimedepositRollover"
+import TimedepositEarlyWithdrawal from "./pages/admin/savingsPages/timedeposit/TimedepositEarlyWithdrawal";
+
 function App() {
   return (
     <Routes>
@@ -114,6 +117,8 @@ function App() {
     <Route path="regular-savings-deposit/:memberId" element={<TransactionForm />} />
     <Route path="regular-savings-withdrawal/:memberId" element={<TransactionForm />} />
     <Route path="member/share-capital/:memberId" element={<ShareCapitalInfo />} />
+    <Route path="timedeposit-early-withdrawal/:timeDepositId" element={<TimedepositEarlyWithdrawal />} />
+    <Route path="timedeposit-rollover/:timeDepositId" element={<TimedepositRollover />} />
 
 
 

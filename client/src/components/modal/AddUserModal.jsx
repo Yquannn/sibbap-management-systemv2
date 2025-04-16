@@ -251,14 +251,14 @@ const UserModal = ({ onClose, user, onSave }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-1">
-                    Email <span className="text-red-500">*</span>
+                    User Name <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="email"
+                    type="text"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Enter email address"
+                    placeholder="Enter User Name"
                     className={`mt-1 p-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
                   {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
