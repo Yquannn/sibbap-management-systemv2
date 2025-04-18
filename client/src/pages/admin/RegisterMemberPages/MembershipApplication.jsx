@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import PersonalInformation from "./PersonalInformation";
-import LegalAndDocuments from "./LegalBeneficiariesAndDocuments";
 
 // Pre-initialize the state with every key your backend expects.
 const initialFormData = {
@@ -37,7 +37,6 @@ const initialFormData = {
   legalBeneficiaries: {
     primary: { fullName: "", relationship: "", contactNumber: "" },
     secondary: { fullName: "", relationship: "", contactNumber: "" },
-    // For simplicity, we start with empty arrays.
     additional: [],
     characterReferences: []
   },
@@ -51,20 +50,10 @@ const initialFormData = {
 };
 
 const Membership = () => {
-  const [activeTab, setActiveTab] = useState(0);
   const [formData, setFormData] = useState(initialFormData);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-
-  const tabs = ["PERSONAL INFORMATION", "LEGAL BENEFICIARIES & DOCUMENTS"];
-
-  const handlePrevious = () => {
-    if (activeTab > 0) setActiveTab(activeTab - 1);
-  };
-
-  const handleNext = () => {
-    if (activeTab < tabs.length - 1) setActiveTab(activeTab + 1);
-  };
+  const navigate = useNavigate();
 
   // Flatten the state by merging all sections into one object.
   const flattenFormData = (data) => {
@@ -78,9 +67,6 @@ const Membership = () => {
       secondary_beneficiary_name: data.legalBeneficiaries.secondary.fullName,
       secondary_beneficiary_relationship: data.legalBeneficiaries.secondary.relationship,
       secondary_beneficiary_contact: data.legalBeneficiaries.secondary.contactNumber,
-      // For simplicity, we'll ignore additional beneficiaries and character references
-      // or you can join them into comma‑separated strings if needed.
-      // Files will remain under their keys.
       ...data.documents
     };
   };
@@ -100,14 +86,26 @@ const Membership = () => {
     return formDataObj;
   };
 
-  const handleSave = async () => {
+  const handleSubmit = async (validatedData) => {
     try {
-      const flatData = flattenFormData(formData);
+      // Update the form data with the validated data from PersonalInformation
+      setFormData(prevData => ({
+        ...prevData,
+        personalInfo: validatedData.personalInfo,
+        contactInfo: validatedData.contactInfo
+      }));
+
+      const flatData = flattenFormData({
+        ...formData,
+        personalInfo: validatedData.personalInfo,
+        contactInfo: validatedData.contactInfo
+      });
+      
       const formDataObj = objectToFormData(flatData);
       
-      // Debug: log the FormData keys/values.
+      // Debug: log the FormData keys/values
       for (let pair of formDataObj.entries()) {
-        // Console log was empty here
+        console.log(pair[0], pair[1]);
       }
       
       const response = await axios.post(
@@ -115,7 +113,9 @@ const Membership = () => {
         formDataObj,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
+      
       setSuccessMessage(response.data.message || "Member Registration successful!");
+      navigate("/members-registration");
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error during registration:", error);
@@ -130,47 +130,18 @@ const Membership = () => {
     setShowSuccessModal(false);
     // Reset form data after successful submission
     setFormData(initialFormData);
-    // Reset to first tab
-    setActiveTab(0);
   };
 
   return (
     <div className="flex items-center justify-center w-full h-full">
       <div className="w-full h-full max-w-none rounded-lg p-2">
-        {/* Step Tabs */}
-        <div className="flex border-b-2 mb-4 overflow-x-auto">
-          {tabs.map((tab, index) => (
-            <div
-              key={index}
-              onClick={() => setActiveTab(index)}
-              className={`py-4 px-6 text-lg font-bold cursor-pointer border-b-4 transition-all duration-300 ${
-                index === activeTab
-                  ? "border-green-600 text-green-700"
-                  : "border-gray-300 text-gray-600 hover:text-green-700 hover:border-green-500"
-              }`}
-            >
-              {tab}
-            </div>
-          ))}
-        </div>
-
         {/* Step Content */}
         <div className="mt-4">
-          {activeTab === 0 && (
-            <PersonalInformation
-              handleNext={handleNext}
-              formData={formData}
-              setFormData={setFormData}
-            />
-          )}
-          {activeTab === 1 && (
-            <LegalAndDocuments
-              handlePrevious={handlePrevious}
-              handleSave={handleSave}
-              formData={formData}
-              setFormData={setFormData}
-            />
-          )}
+          <PersonalInformation
+            handleNext={handleSubmit}
+            formData={formData}
+            setFormData={setFormData}
+          />
         </div>
       </div>
 

@@ -1,31 +1,34 @@
-import { useState, useEffect } from 'react';
-import { Calendar, ChevronDown, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Calendar, AlertCircle, CheckCircle, X } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+
 
 export default function TimeDepositRollover() {
   const navigate = useNavigate();
   const { timeDepositId } = useParams();
-  
+
   const [timeDeposit, setTimeDeposit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // store returned rollover_id
+  const [rolloverId, setRolloverId] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const [rolloverOptions, setRolloverOptions] = useState({
     selectedTerm: 12,
     includeInterest: true,
-    additionalDeposit: 0,
   });
-
-  const [isTermDropdownOpen, setIsTermDropdownOpen] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   const termOptions = [6, 12];
 
+  // interest‐rate lookup (unchanged)
   const calculateInterestRate = (amount, termMonths) => {
-    const parsedAmount = parseFloat(amount);
-    const parsedTermMonths = parseInt(termMonths, 10);
-
-    if (isNaN(parsedAmount) || isNaN(parsedTermMonths)) return 0;
+    const amt = parseFloat(amount);
+    const m = parseInt(termMonths, 10);
+    if (isNaN(amt) || isNaN(m)) return 0;
 
     const rates = {
       6: [
@@ -35,7 +38,7 @@ export default function TimeDepositRollover() {
         { threshold: 300000, rate: 0.0225 },
         { threshold: 400000, rate: 0.025 },
         { threshold: 500000, rate: 0.0325 },
-        { threshold: Infinity, rate: 0.035 }
+        { threshold: Infinity, rate: 0.035 },
       ],
       12: [
         { threshold: 10000, rate: 0.01 },
@@ -44,211 +47,356 @@ export default function TimeDepositRollover() {
         { threshold: 300000, rate: 0.0275 },
         { threshold: 400000, rate: 0.03 },
         { threshold: 500000, rate: 0.035 },
-        { threshold: Infinity, rate: 0.04 }
-      ]
+        { threshold: Infinity, rate: 0.04 },
+      ],
     };
 
-    const termRates = rates[parsedTermMonths];
-    if (!termRates) return 0;
-
+    const termRates = rates[m] || [];
     for (let i = termRates.length - 1; i >= 0; i--) {
-      if (parsedAmount >= termRates[i].threshold) {
+      if (amt >= termRates[i].threshold) {
         return termRates[i].rate;
       }
     }
     return 0;
   };
 
+  // fetch original deposit
   useEffect(() => {
-    const fetchTimeDeposit = async () => {
+    async function fetchTD() {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:3001/api/timedepositor/${timeDepositId}`);
-        const result = await response.json();
-        
-        if (result.success) {
-          setTimeDeposit(result.data.timeDeposit);
-          setRolloverOptions(prev => ({
-            ...prev,
-            selectedTerm: result.data.timeDeposit.fixedTerm
+        const { data } = await axios.get(
+          `http://localhost:3001/api/timedepositor/${timeDepositId}`
+        );
+        if (data.success) {
+          setTimeDeposit(data.data.timeDeposit);
+          setRolloverOptions((p) => ({
+            ...p,
+            selectedTerm: data.data.timeDeposit.fixedTerm,
           }));
         } else {
-          setError('Failed to fetch time deposit data');
+          setError("Failed to load time deposit");
         }
-      } catch (err) {
-        setError('Error fetching time deposit data');
-        console.error('Error:', err);
+      } catch (e) {
+        console.error(e);
+        setError("Error fetching time deposit: " + (e.response?.data?.message || e.message));
       } finally {
         setLoading(false);
       }
-    };
-
-    if (timeDepositId) {
-      fetchTimeDeposit();
     }
+    if (timeDepositId) fetchTD();
   }, [timeDepositId]);
-
-  const totalRolloverAmount = timeDeposit
-    ? (rolloverOptions.includeInterest 
-        ? timeDeposit.amount + timeDeposit.interest + rolloverOptions.additionalDeposit 
-        : timeDeposit.amount + rolloverOptions.additionalDeposit)
-    : 0;
-
-  const newInterestRate = calculateInterestRate(totalRolloverAmount, rolloverOptions.selectedTerm);
-
-  const calculateNewMaturityDate = () => {
-    const today = new Date();
-    const newDate = new Date(today);
-    newDate.setMonth(today.getMonth() + rolloverOptions.selectedTerm);
-    return newDate.toISOString().split('T')[0];
-  };
-
-  const handleRollover = () => {
-    console.log("Processing rollover with options:", {
-      ...rolloverOptions,
-      totalAmount: totalRolloverAmount,
-      newInterestRate: newInterestRate,
-      newMaturityDate: calculateNewMaturityDate()
-    });
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
 
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
-  if (!timeDeposit) return <div className="p-4">No time deposit data found</div>;
+  if (!timeDeposit)
+    return <div className="p-4 text-gray-600">No data found.</div>;
+
+  // Calculated values
+  const totalRolloverAmount = rolloverOptions.includeInterest
+    ? parseFloat(timeDeposit.amount) +
+      parseFloat(timeDeposit.interest || 0)
+    : parseFloat(timeDeposit.amount);
+
+  const newInterestRate = calculateInterestRate(
+    totalRolloverAmount,
+    rolloverOptions.selectedTerm
+  );
+
+  const calculateNewMaturityDate = () => {
+    const today = new Date();
+    const dt = new Date(today);
+    dt.setMonth(dt.getMonth() + rolloverOptions.selectedTerm);
+    return dt.toISOString().split("T")[0];
+  };
+
+  // Build and send rollover payload
+  const handleRollover = async () => {
+    setSubmitLoading(true);
+    setError(null);
+
+    try {
+      // Format maturity date correctly
+      const maturityDate = timeDeposit.maturityDate ? 
+        (typeof timeDeposit.maturityDate === 'string' ? 
+          timeDeposit.maturityDate.split("T")[0] : 
+          new Date(timeDeposit.maturityDate).toISOString().split("T")[0]) : 
+        '';
+
+      const payload = {
+        timeDepositId: parseInt(timeDepositId, 10),
+        rollover_date: new Date().toISOString().split("T")[0],
+        previous_maturity_date: maturityDate,
+        new_maturity_date: calculateNewMaturityDate(),
+        interest_earned: rolloverOptions.includeInterest
+          ? parseFloat(timeDeposit.interest || 0)
+          : 0,
+        rollover_amount: totalRolloverAmount,
+        created_by:
+          sessionStorage.getItem("username") || "Unknown User",
+      };
+
+      console.log("Sending payload:", payload);
+
+      const response = await axios.post(
+        "http://localhost:3001/api/timedeposit/rollover",
+        payload
+      );
+      
+      console.log("Response:", response);
+      
+      // The controller returns the created record directly
+      if (response.status === 201 && response.data) {
+        const result = response.data;
+        setRolloverId(result.id || result.rollover_transaction_number);
+        setShowSuccess(true);
+        // No longer need the auto-navigation after a timeout
+        // The user will now click a button in the modal to navigate back
+      } else {
+        setError("Failed to rollover. Unexpected response format.");
+      }
+    } catch (e) {
+      console.error("Rollover error:", e);
+      if (e.response && e.response.data && e.response.data.error) {
+        setError(e.response.data.error);
+      } else {
+        setError("Error submitting rollover: " + e.message);
+      }
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const closeSuccessModal = () => {
+    setShowSuccess(false);
+    navigate(-1);
+  };
+
+  const fmt = (num) =>
+    parseFloat(num).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
   return (
-    <div className="p-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm">
+    <div className="p-6 relative">
+      <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-medium">Time Deposit Rollover</h2>
-          <button onClick={() => navigate(-1)} className="text-gray-500">
+          <h2 className="text-xl font-medium">
+            Time Deposit Rollover
+          </h2>
+          <button
+            onClick={() => navigate(-1)}
+            className="text-gray-500"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="grid gap-6 mb-6">
-          {/* Current Deposit Details */}
-          <div className="border-b pb-4">
-            <h3 className="font-medium mb-4">Current Deposit Details</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Account Number</label>
-                <div className="font-medium">{timeDeposit.account_number}</div>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Principal Amount</label>
-                <div className="font-medium">{timeDeposit.amount.toLocaleString()}</div>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Interest Earned</label>
-                <div className="font-medium">{timeDeposit.interest.toLocaleString()}</div>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Maturity Date</label>
-                <div className="font-medium">{new Date(timeDeposit.maturityDate).toLocaleDateString()}</div>
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            {error}
+          </div>
+        )}
+
+        {/* Current Details */}
+        <div className="border-b pb-4 mb-6">
+          <h3 className="font-medium mb-4">
+            Current Deposit Details
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-600">
+                Account #
+              </label>
+              <div className="font-medium">
+                {timeDeposit.account_number}
               </div>
             </div>
-          </div>
-
-          {/* Rollover Options */}
-          <div>
-            <h3 className="font-medium mb-4">Rollover Options</h3>
-            
-            <div className="space-y-4">
-              {/* Term Selection */}
-              <div>
-                <label className="text-sm text-gray-600 block mb-1">Select Term</label>
-                <select
-                  className="w-full border rounded-lg p-2"
-                  value={rolloverOptions.selectedTerm}
-                  onChange={(e) => setRolloverOptions({
-                    ...rolloverOptions,
-                    selectedTerm: parseInt(e.target.value)
-                  })}
-                >
-                  {termOptions.map(term => (
-                    <option key={term} value={term}>{term} months</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Include Interest Option */}
-              <div>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="mr-2"
-                    checked={rolloverOptions.includeInterest}
-                    onChange={(e) => setRolloverOptions({
-                      ...rolloverOptions,
-                      includeInterest: e.target.checked
-                    })}
-                  />
-                  <span>Include earned interest</span>
-                </label>
-              </div>
-
-              {/* Additional Deposit */}
-              <div>
-                <label className="text-sm text-gray-600 block mb-1">Additional Deposit</label>
-                <input
-                  type="number"
-                  className="w-full border rounded-lg p-2"
-                  value={rolloverOptions.additionalDeposit}
-                  onChange={(e) => setRolloverOptions({
-                    ...rolloverOptions,
-                    additionalDeposit: parseFloat(e.target.value) || 0
-                  })}
-                />
+            <div>
+              <label className="text-sm text-gray-600">
+                Principal
+              </label>
+              <div className="font-medium">
+                {fmt(timeDeposit.amount)}
               </div>
             </div>
-          </div>
-
-          {/* Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Rollover Summary</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-sm text-gray-600">Total Amount</span>
-                <div className="font-medium">{totalRolloverAmount.toLocaleString()}</div>
+            <div>
+              <label className="text-sm text-gray-600">
+                Interest Earned
+              </label>
+              <div className="font-medium">
+                {fmt(timeDeposit.interest || 0)}
               </div>
-              <div>
-                <span className="text-sm text-gray-600">New Interest Rate</span>
-                <div className="font-medium">{(newInterestRate * 100).toFixed(2)}%</div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-600">New Term</span>
-                <div className="font-medium">{rolloverOptions.selectedTerm} months</div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-600">New Maturity Date</span>
-                <div className="font-medium">{calculateNewMaturityDate()}</div>
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">
+                Maturity Date
+              </label>
+              <div className="font-medium">
+                {timeDeposit.maturityDate ? 
+                  new Date(timeDeposit.maturityDate).toLocaleDateString() :
+                  "Not set"
+                }
               </div>
             </div>
           </div>
         </div>
 
+        {/* Rollover Options */}
+        <div className="mb-6">
+          <h3 className="font-medium mb-4">Rollover Options</h3>
+          <div className="space-y-4">
+            {/* Term */}
+            <div>
+              <label className="text-sm text-gray-600 block mb-1">
+                Term
+              </label>
+              <select
+                className="w-full border rounded p-2"
+                value={rolloverOptions.selectedTerm}
+                onChange={(e) =>
+                  setRolloverOptions((p) => ({
+                    ...p,
+                    selectedTerm: parseInt(e.target.value, 10),
+                  }))
+                }
+              >
+                {termOptions.map((m) => (
+                  <option key={m} value={m}>
+                    {m} months
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Include Interest */}
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  className="mr-2"
+                  checked={rolloverOptions.includeInterest}
+                  onChange={(e) =>
+                    setRolloverOptions((p) => ({
+                      ...p,
+                      includeInterest: e.target.checked,
+                    }))
+                  }
+                />
+                Include earned interest
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="bg-gray-50 p-4 rounded mb-6">
+          <h3 className="font-medium mb-3">Summary</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm text-gray-600">
+                Total Amount
+              </span>
+              <div className="font-medium">
+                {fmt(totalRolloverAmount)}
+              </div>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">
+                New Rate
+              </span>
+              <div className="font-medium">
+                {(newInterestRate * 100).toFixed(2)}%
+              </div>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">Term</span>
+              <div className="font-medium">
+                {rolloverOptions.selectedTerm} months
+              </div>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">
+                New Maturity
+              </span>
+              <div className="font-medium">
+                {calculateNewMaturityDate()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
         <div className="flex items-center justify-between">
           <button
+            disabled={submitLoading}
             onClick={handleRollover}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className={`px-6 py-2 rounded-lg text-white ${
+              submitLoading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
-            Confirm Rollover
+            {submitLoading
+              ? "Processing..."
+              : "Confirm Rollover"}
           </button>
-          <p className="text-sm text-gray-500">
-            <AlertCircle className="inline h-4 w-4 mr-1" />
-            Early termination penalties may apply
+          <p className="text-sm text-gray-500 flex items-center">
+            <AlertCircle className="h-4 w-4 mr-1" />
+            Penalties may apply
           </p>
         </div>
       </div>
 
+      {/* Success Modal */}
       {showSuccess && (
-        <div className="fixed bottom-4 right-4 bg-green-100 text-green-800 p-4 rounded-lg shadow">
-          <div className="flex items-center">
-            <CheckCircle className="h-5 w-5 mr-2" />
-            <span>Rollover request submitted successfully</span>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+            <div className="text-center mb-4">
+              <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-green-100 text-green-600 mb-4">
+                <CheckCircle className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-medium text-green-800">Success!</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-center text-gray-600">
+                Time deposit rollover successfully submitted.
+              </p>
+              <p className="text-center font-medium mt-2">
+                Rollover ID: #{rolloverId}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded mb-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-600">Amount:</span>
+                  <div className="font-medium">{fmt(totalRolloverAmount)}</div>
+                </div>
+                <div>
+                  <span className="text-gray-600">New Term:</span>
+                  <div className="font-medium">{rolloverOptions.selectedTerm} months</div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Interest Rate:</span>
+                  <div className="font-medium">{(newInterestRate * 100).toFixed(2)}%</div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Maturity Date:</span>
+                  <div className="font-medium">{calculateNewMaturityDate()}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
+              <button
+                onClick={closeSuccessModal}
+                className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,62 +1,59 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useParams } from "react-router-dom";
 import PersonalInformationReg from "./PersonalInformationReg";
 import LegalAndDocuments from "./LegalBeneficiaries";
 import InitialContribution from "./InitialContribution";
-import MobilePortal from "./MemberPortal";
-// import Success from "./Success";
-import { useParams } from "react-router-dom";
 
-// Use numeric defaults for financial values.
+// Allow null values in financial defaults
 const defaultInitialContribution = {
-  share_capital: 0,
-  membership_fee: 300,
-  identification_card_fee: 150,
-  kalinga_fund_fee: 100,
-  initial_savings: 100,
+  share_capital: null,
+  membership_fee: null,
+  identification_card_fee: null,
+  kalinga_fund_fee: null,
+  initial_savings: null,
+};
+
+// Default values for legal beneficiaries and documents
+const initialLegalBeneficiaries = {
+  primary: { fullName: "", relationship: "", contactNumber: "" },
+  secondary: { fullName: "", relationship: "", contactNumber: "" },
+  additional: [],
+  characterReferences: [
+    { fullName: "", position: "", contactNumber: "" },
+    { fullName: "", position: "", contactNumber: "" },
+  ],
+};
+
+const initialDocuments = {
+  id_picture: null,
+  barangay_clearance: null,
+  tax_identification_id: null,
+  valid_id: null,
+  membership_agreement: null,
 };
 
 const MemberRegistration = () => {
-  // Track the active step index.
   const [activeTab, setActiveTab] = useState(0);
-
-  // Shared state for multi-step form data.
   const [formData, setFormData] = useState({
     personalInfo: {},
     contactInfo: {},
-    legalBeneficiaries: {
-      primary: { fullName: "", relationship: "", contactNumber: "" },
-      secondary: { fullName: "", relationship: "", contactNumber: "" },
-      additional: [],
-      characterReferences: [
-        { fullName: "", position: "", contactNumber: "" },
-        { fullName: "", position: "", contactNumber: "" },
-      ],
-    },
+    legalBeneficiaries: { ...initialLegalBeneficiaries },
     initialContribution: { ...defaultInitialContribution },
-    documents: {},
-    mobilePortal: {},
-  });
+    documents: { ...initialDocuments }  });
 
-  // State for controlling the success modal.
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Read memberId and mode from URL parameters.
   const { mode, memberId } = useParams();
-
-  // Determine if the Initial Contribution step should be removed.
   const removeInitialContribution = mode === "add" || mode === "edit";
 
-  // Build the tabs array conditionally.
   const tabs = [
     "PERSONAL INFORMATION",
     "LEGAL BENEFICIARIES & DOCUMENTS",
     ...(!removeInitialContribution ? ["INITIAL CONTRIBUTION"] : []),
-    // "MOBILE PORTAL",
   ];
 
-  // Fetch member data on mount or when memberId changes.
   useEffect(() => {
     const fetchMemberData = async () => {
       try {
@@ -64,7 +61,15 @@ const MemberRegistration = () => {
           `http://localhost:3001/api/member/${memberId}`
         );
         const fetchedData = response.data;
-        // Map fetched data into the formData structure.
+        
+        // Extract primary and secondary beneficiaries from the nested structure
+        const primaryBeneficiary = fetchedData.legalBeneficiaries?.primary || {};
+        const secondaryBeneficiary = fetchedData.legalBeneficiaries?.secondary || {};
+        const additionalBeneficiaries = fetchedData.legalBeneficiaries?.additional || [];
+        
+        // Extract character references from the array
+        const characterReferences = fetchedData.characterReferences || [];
+        
         setFormData({
           personalInfo: {
             first_name: fetchedData.first_name || "",
@@ -101,39 +106,45 @@ const MemberRegistration = () => {
           },
           legalBeneficiaries: {
             primary: {
-              fullName: fetchedData.primary_beneficiary_name || "",
-              relationship: fetchedData.primary_beneficiary_relationship || "",
-              contactNumber: fetchedData.primary_beneficiary_contact || "",
+              fullName: primaryBeneficiary.beneficiaryName || "",
+              relationship: primaryBeneficiary.relationship || "",
+              contactNumber: primaryBeneficiary.beneficiaryContactNumber || "",
             },
             secondary: {
-              fullName: fetchedData.secondary_beneficiary_name || "",
-              relationship: fetchedData.secondary_beneficiary_relationship || "",
-              contactNumber: fetchedData.secondary_beneficiary_contact || "",
+              fullName: secondaryBeneficiary.beneficiaryName || "",
+              relationship: secondaryBeneficiary.relationship || "",
+              contactNumber: secondaryBeneficiary.beneficiaryContactNumber || "",
             },
-            additional: [],
-            characterReferences: [
-              { fullName: "", position: "", contactNumber: "" },
-              { fullName: "", position: "", contactNumber: "" },
-            ],
+            additional: additionalBeneficiaries.map(beneficiary => ({
+              fullName: beneficiary.beneficiaryName || "",
+              relationship: beneficiary.relationship || "",
+              contactNumber: beneficiary.beneficiaryContactNumber || "",
+            })),
+            characterReferences: characterReferences.length > 0 
+              ? characterReferences.map(ref => ({
+                  fullName: ref.fullName || "",
+                  position: ref.position || "",
+                  contactNumber: ref.contactNumber || "",
+                }))
+              : [
+                  { fullName: "", position: "", contactNumber: "" },
+                  { fullName: "", position: "", contactNumber: "" },
+                ],
           },
           initialContribution: {
-            share_capital: fetchedData.share_capital || defaultInitialContribution.share_capital,
-            membership_fee: fetchedData.membership_fee || defaultInitialContribution.membership_fee,
-            identification_card_fee: fetchedData.identification_card_fee || defaultInitialContribution.identification_card_fee,
-            kalinga_fund_fee: fetchedData.kalinga_fund_fee || defaultInitialContribution.kalinga_fund_fee,
-            initial_savings: fetchedData.initial_savings || defaultInitialContribution.initial_savings,
+            share_capital: fetchedData.share_capital ?? null,
+            membership_fee: fetchedData.membership_fee ?? null,
+            identification_card_fee: fetchedData.identification_card_fee ?? null,
+            kalinga_fund_fee: fetchedData.kalinga_fund_fee ?? null,
+            initial_savings: fetchedData.initial_savings ?? null,
           },
           documents: {
             membership_agreement: fetchedData.membership_agreement || null,
             id_picture: fetchedData.id_picture || null,
             barangay_clearance: fetchedData.barangay_clearance || null,
-            tax_identification: fetchedData.tax_identification_id || null,
+            tax_identification_id: fetchedData.tax_identification_id || null,
             valid_id: fetchedData.valid_id || null,
-          },
-          mobilePortal: {
-            portalUsername: fetchedData.portalUsername || "",
-            portalPassword: fetchedData.portalPassword || "",
-          },
+          }
         });
       } catch (error) {
         console.error("Error fetching member data:", error);
@@ -145,7 +156,6 @@ const MemberRegistration = () => {
     }
   }, [memberId]);
 
-  // Navigation functions for step tabs.
   const handlePrevious = () => {
     if (activeTab > 0) {
       setActiveTab(activeTab - 1);
@@ -158,38 +168,122 @@ const MemberRegistration = () => {
     }
   };
 
-  // Modified handleSave now accepts local contribution data.
-  const handleSave = async (localContributionData) => {
-    // Use the passed contribution data; if not provided, fallback to parent's state.
-    const financials = localContributionData || formData.initialContribution;
-    const combinedData = {
-      share_capital: financials.share_capital,
-      membership_fee: financials.membership_fee,
-      identification_card_fee: financials.identification_card_fee,
-      kalinga_fund_fee: financials.kalinga_fund_fee,
-      initial_savings: financials.initial_savings,
+  const handleSave = async (formDataToSave) => {
+    // Use the provided form data or the current form state
+    const currentFormData = formDataToSave || formData;
+    const { personalInfo, contactInfo, legalBeneficiaries, documents } = currentFormData;
+    
+    // Prepare data according to the backend's expected structure
+    const updateData = {
+      // Personal information fields
+      registration_type: personalInfo.registration_type || "",
+      last_name: personalInfo.last_name || "",
+      first_name: personalInfo.first_name || "",
+      middle_name: personalInfo.middle_name || "",
+      extension_name: personalInfo.extension_name || "",
+      tin_number: personalInfo.tin_number || "",
+      date_of_birth: personalInfo.date_of_birth || "",
+      birthplace_province: personalInfo.birthplace_province || "",
+      number_of_dependents: personalInfo.number_of_dependents || "",
+      age: personalInfo.age || "",
+      sex: personalInfo.sex || "",
+      civil_status: personalInfo.civil_status || "",
+      religion: personalInfo.religion || "",
+      highest_educational_attainment: personalInfo.highest_educational_attainment || "",
+      annual_income: personalInfo.annual_income || "",
+      occupation_source_of_income: personalInfo.occupation_source_of_income || "",
+      spouse_name: personalInfo.spouse_name || "",
+      spouse_occupation_source_of_income: personalInfo.spouse_occupation_source_of_income || "",
+      
+      // Contact information fields
+      contact_number: contactInfo.contact_number || "",
+      house_no_street: contactInfo.house_no_street || "",
+      barangay: contactInfo.barangay || "",
+      city: contactInfo.city || "",
+      
+      // Format legal beneficiaries to match the backend structure
+      legalBeneficiaries: {
+        primary: {
+          beneficiaryName: legalBeneficiaries.primary.fullName || "",
+          relationship: legalBeneficiaries.primary.relationship || "",
+          beneficiaryContactNumber: legalBeneficiaries.primary.contactNumber || "",
+        },
+        secondary: {
+          beneficiaryName: legalBeneficiaries.secondary.fullName || "",
+          relationship: legalBeneficiaries.secondary.relationship || "",
+          beneficiaryContactNumber: legalBeneficiaries.secondary.contactNumber || "",
+        },
+        additional: legalBeneficiaries.additional.map(beneficiary => ({
+          beneficiaryName: beneficiary.fullName || "",
+          relationship: beneficiary.relationship || "",
+          beneficiaryContactNumber: beneficiary.contactNumber || "",
+        })),
+      },
+      
+      // Format character references to match the backend structure
+      characterReferences: legalBeneficiaries.characterReferences.filter(ref => ref.fullName).map(ref => ({
+        fullName: ref.fullName || "",
+        position: ref.position || "",
+        contactNumber: ref.contactNumber || "",
+      })),
     };
 
-    console.log("Combined financial data:", combinedData);
-
     try {
-      const response = await axios.patch(
-        `http://localhost:3001/api/members/${memberId}/financials`,
-        combinedData,
-        { headers: { "Content-Type": "application/json" } }
+      // Create FormData object
+      const formDataObj = new FormData();
+      
+      // Add all text fields to FormData
+      // Convert nested objects to JSON strings
+      for (const [key, value] of Object.entries(updateData)) {
+        if (value !== null && value !== undefined) {
+          if (typeof value === 'object') {
+            formDataObj.append(key, JSON.stringify(value));
+          } else {
+            formDataObj.append(key, value);
+          }
+        }
+      }
+      
+      // Add file fields with EXACT names matching the Multer configuration
+      if (documents.id_picture instanceof File) {
+        formDataObj.append('id_picture', documents.id_picture);
+      }
+      
+      if (documents.barangay_clearance instanceof File) {
+        formDataObj.append('barangay_clearance', documents.barangay_clearance);
+      }
+      
+      if (documents.tax_identification_id instanceof File) {
+        formDataObj.append('tax_identification_id', documents.tax_identification_id);
+      }
+      
+      if (documents.valid_id instanceof File) {
+        formDataObj.append('valid_id', documents.valid_id);
+      }
+      
+      if (documents.membership_agreement instanceof File) {
+        formDataObj.append('membership_agreement', documents.membership_agreement);
+      }
+
+      // Send the request without setting Content-Type header
+      // Let the browser set it automatically with the correct boundary
+      const response = await axios.put(
+        `http://localhost:3001/api/member/update-info/${memberId}`,
+        formDataObj,
+        { headers: {} }
       );
-      setSuccessMessage("Membership successfully!");
+      
+      setSuccessMessage("Member information updated successfully!");
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error updating member data:", error);
-      alert("Error updating member data: " + error.message);
+      alert("Error updating member data: " + (error.response?.data?.message || error.message));
     }
   };
 
   return (
     <div className="flex items-center justify-center w-full h-full">
       <div className="w-full h-full max-w-none rounded-lg p-2">
-        {/* Step Tabs */}
         <div className="flex border-b-2 mb-4 overflow-x-auto">
           {tabs.map((tab, index) => (
             <div
@@ -206,7 +300,6 @@ const MemberRegistration = () => {
           ))}
         </div>
 
-        {/* Step Content */}
         <div className="mt-4">
           {activeTab === 0 && (
             <PersonalInformationReg
@@ -230,22 +323,36 @@ const MemberRegistration = () => {
           {!removeInitialContribution && activeTab === 2 && (
             <InitialContribution
               handlePrevious={handlePrevious}
-              handleNext={handleSave}  // Pass handleSave as the callback.
-              formData={formData}
-              setFormData={setFormData}
               isReadOnly={false}
             />
           )}
         </div>
       </div>
-
+      
       {/* Success Modal */}
-      {/* {showSuccessModal && (
-        <Success
-          message={successMessage}
-          onClose={() => setShowSuccessModal(false)}
-        />
-      )} */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="mt-2 text-lg font-medium text-gray-900">{successMessage}</h3>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500"
+                  onClick={() => setShowSuccessModal(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

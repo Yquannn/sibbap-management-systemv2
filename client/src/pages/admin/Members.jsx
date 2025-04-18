@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
-import { UserPlus, Search, Filter, ChevronDown, Eye, Edit, Trash, Plus } from 'lucide-react';
+import { UserPlus, Search, Filter, ChevronDown, Eye, Edit, Trash, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import MemberProfileModal from '../../components/modal/MemberProfileModal';
 import AddMemberModal from '../../components/modal/AddMemberModal';
 import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdAttachMoney } from 'react-icons/md';
@@ -23,6 +23,10 @@ const Members = () => {
   const [filterMemberType, setFilterMemberType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [totalMember, setTotalMember] = useState(0);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const navigate = useNavigate();
 
@@ -96,10 +100,32 @@ const Members = () => {
       );
   }, [allMembers, searchTerm, filterMemberType, filterStatus]);
 
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentMembers = filteredMembers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
+
+  // Handle pagination changes
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return;
+    setCurrentPage(pageNumber);
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   useEffect(() => {
     fetchMembers();
     FetchTotalMember();
   }, [fetchMembers]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterMemberType, filterStatus]);
 
   const openModal = (type, member = null) => {
     setModalState({
@@ -166,102 +192,100 @@ const Members = () => {
         <p className="text-gray-600">View and manage all registered members</p>
       </div>
 
- 
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-  {/* Total Members Card */}
-  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-    <div className="p-5 flex items-center">
-      <div className="rounded-full bg-blue-100 p-3 mr-4">
-        <MdPeople className="text-2xl text-blue-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Members Card */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-blue-100 p-3 mr-4">
+              <MdPeople className="text-2xl text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Total Members</p>
+              <p className="text-xl font-bold">{totalMember.toLocaleString()}</p>
+            </div>
+          </div>
+          <div className="bg-blue-50 px-5 py-2">
+            <p className="text-xs text-blue-600">All registered members</p>
+          </div>
+        </div>
+        
+        {/* Active Members Card */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-green-100 p-3 mr-4">
+              <MdCheckCircle className="text-2xl text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Active Members</p>
+              <p className="text-xl font-bold">
+                {allMembers.filter(member => 
+                  !member.status || member.status.toLowerCase() === "active"
+                ).length.toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="bg-green-50 px-5 py-2">
+            <p className="text-xs text-green-600">
+              {((allMembers.filter(member => 
+                !member.status || member.status.toLowerCase() === "active"
+              ).length / totalMember) * 100).toFixed(1)}% of total
+            </p>
+          </div>
+        </div>
+        
+        {/* Member Types Distribution */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-purple-100 p-3 mr-4">
+              <MdPeople className="text-2xl text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Regular Members</p>
+              <p className="text-xl font-bold">
+                {allMembers.filter(member => 
+                  member.member_type === "Regular Member"
+                ).length.toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="bg-purple-50 px-5 py-2">
+            <p className="text-xs text-purple-600">
+              vs {allMembers.filter(member => 
+                member.member_type === "Partial Member"
+              ).length.toLocaleString()} partial members
+            </p>
+          </div>
+        </div>
+        
+        {/* New Members This Month */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+          <div className="p-5 flex items-center">
+            <div className="rounded-full bg-orange-100 p-3 mr-4">
+              <UserPlus className="text-2xl text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">New This Month</p>
+              <p className="text-xl font-bold">
+                {(() => {
+                  const now = new Date();
+                  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                  return allMembers.filter(member => {
+                    // Assuming members have a created_at or join_date field
+                    const joinDate = member.created_at ? new Date(member.created_at) : null;
+                    return joinDate && joinDate >= firstDayOfMonth;
+                  }).length;
+                })()}
+              </p>
+            </div>
+          </div>
+          <div className="bg-orange-50 px-5 py-2">
+            <p className="text-xs text-orange-600">Growth rate: 5.2% ↑</p>
+          </div>
+        </div>
       </div>
-      <div>
-        <p className="text-sm text-gray-500 font-medium">Total Members</p>
-        <p className="text-xl font-bold">{totalMember.toLocaleString()}</p>
-      </div>
-    </div>
-    <div className="bg-blue-50 px-5 py-2">
-      <p className="text-xs text-blue-600">All registered members</p>
-    </div>
-  </div>
-  
-  {/* Active Members Card */}
-  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-    <div className="p-5 flex items-center">
-      <div className="rounded-full bg-green-100 p-3 mr-4">
-        <MdCheckCircle className="text-2xl text-green-600" />
-      </div>
-      <div>
-        <p className="text-sm text-gray-500 font-medium">Active Members</p>
-        <p className="text-xl font-bold">
-          {allMembers.filter(member => 
-            !member.status || member.status.toLowerCase() === "active"
-          ).length.toLocaleString()}
-        </p>
-      </div>
-    </div>
-    <div className="bg-green-50 px-5 py-2">
-      <p className="text-xs text-green-600">
-        {((allMembers.filter(member => 
-          !member.status || member.status.toLowerCase() === "active"
-        ).length / totalMember) * 100).toFixed(1)}% of total
-      </p>
-    </div>
-  </div>
-  
-  {/* Member Types Distribution */}
-  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-    <div className="p-5 flex items-center">
-      <div className="rounded-full bg-purple-100 p-3 mr-4">
-        <MdPeople className="text-2xl text-purple-600" />
-      </div>
-      <div>
-        <p className="text-sm text-gray-500 font-medium">Regular Members</p>
-        <p className="text-xl font-bold">
-          {allMembers.filter(member => 
-            member.member_type === "Regular Member"
-          ).length.toLocaleString()}
-        </p>
-      </div>
-    </div>
-    <div className="bg-purple-50 px-5 py-2">
-      <p className="text-xs text-purple-600">
-        vs {allMembers.filter(member => 
-          member.member_type === "Partial Member"
-        ).length.toLocaleString()} partial members
-      </p>
-    </div>
-  </div>
-  
-  {/* New Members This Month */}
-  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-    <div className="p-5 flex items-center">
-      <div className="rounded-full bg-orange-100 p-3 mr-4">
-        <UserPlus className="text-2xl text-orange-600" />
-      </div>
-      <div>
-        <p className="text-sm text-gray-500 font-medium">New This Month</p>
-        <p className="text-xl font-bold">
-          {(() => {
-            const now = new Date();
-            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            return allMembers.filter(member => {
-              // Assuming members have a created_at or join_date field
-              const joinDate = member.created_at ? new Date(member.created_at) : null;
-              return joinDate && joinDate >= firstDayOfMonth;
-            }).length;
-          })()}
-        </p>
-      </div>
-    </div>
-    <div className="bg-orange-50 px-5 py-2">
-      <p className="text-xs text-orange-600">Growth rate: 5.2% ↑</p>
-    </div>
-  </div>
-</div>
 
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-
         {message.text && (
           <div className={`font-medium px-4 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
             {message.text}
@@ -337,12 +361,12 @@ const Members = () => {
         </div>
       )}
 
-      {/* Members Table */}
+      {/* Members Table with Max Height */}
       {!loading && !error && (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" style={{ maxHeight: '450px' }}>
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -371,14 +395,14 @@ const Members = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredMembers.length === 0 ? (
+                {currentMembers.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                       No members found matching your criteria
                     </td>
                   </tr>
                 ) : (
-                  filteredMembers.map((member, index) => (
+                  currentMembers.map((member, index) => (
                     <tr key={`${member.memberId}-${index}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -436,20 +460,6 @@ const Members = () => {
                           >
                             <Eye className="w-6 h-6" />
                           </button>
-                          {/* <button 
-                            className="p-1 text-yellow-600 hover:text-yellow-900 rounded-full hover:bg-yellow-100"
-                            onClick={() => openModal('editOpen', member)}
-                            title="Edit Member"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="p-1 text-red-600 hover:text-red-900 rounded-full hover:bg-red-100"
-                            onClick={() => handleDelete(member.memberId)}
-                            title="Delete Member"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button> */}
                         </div>
                       </td>
                     </tr>
@@ -458,6 +468,95 @@ const Members = () => {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {filteredMembers.length > 0 && (
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between">
+              <div className="flex items-center mb-4 sm:mb-0">
+                <span className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(indexOfLastItem, filteredMembers.length)}
+                  </span>{" "}
+                  of <span className="font-medium">{filteredMembers.length}</span> members
+                </span>
+                
+                <div className="ml-4">
+                  <select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    className="text-sm border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value={5}>5 per page</option>
+                    <option value={10}>10 per page</option>
+                    <option value={25}>25 per page</option>
+                    <option value={50}>50 per page</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+                    currentPage === 1
+                      ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                      : "text-gray-700 bg-white hover:bg-gray-100"
+                  }`}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                </button>
+                
+                <div className="flex items-center">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Logic to determine which page numbers to show
+                    let pageNumber;
+                    
+                    if (totalPages <= 5) {
+                      // If we have 5 or fewer pages, show all of them
+                      pageNumber = i + 1;
+                    } else if (currentPage <= 3) {
+                      // If we're near the start, show 1 through 5
+                      pageNumber = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      // If we're near the end, show the last 5 pages
+                      pageNumber = totalPages - 4 + i;
+                    } else {
+                      // Otherwise show 2 before and 2 after current page
+                      pageNumber = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md ${
+                          currentPage === pageNumber
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 bg-white hover:bg-gray-100"
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+                    currentPage === totalPages
+                      ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                      : "text-gray-700 bg-white hover:bg-gray-100"
+                  }`}
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

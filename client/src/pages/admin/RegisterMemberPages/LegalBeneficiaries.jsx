@@ -14,7 +14,7 @@ const initialLegalBeneficiaries = {
 const initialDocuments = {
   id_picture: null,
   barangay_clearance: null,
-  tax_identification: null,
+  tax_identification_id: null,
   valid_id: null,
   membership_agreement: null,
 };
@@ -22,7 +22,7 @@ const initialDocuments = {
 const documentTypes = [
   { name: "id_picture", label: "Profile Picture" },
   { name: "barangay_clearance", label: "Barangay Clearance" },
-  { name: "tax_identification", label: "Tax Identification" },
+  { name: "tax_identification_id", label: "Tax Identification" },
   { name: "valid_id", label: "Valid ID" },
   { name: "membership_agreement", label: "Membership Agreement" },
 ];
@@ -33,54 +33,130 @@ const LegalAndDocuments = ({
   formData,
   setFormData,
   isReadOnly,
-  fetchedData, // optional fetched data if available
+  fetchedData,
 }) => {
   const [dragActive, setDragActive] = useState(null);
+  const [displayDocuments, setDisplayDocuments] = useState({});
 
-  // When fetchedData is provided, merge its legal beneficiaries and documents into the parent's formData
+  // Helper function to get file type from name
+  const getFileTypeFromName = (filename) => {
+    if (!filename) return "application/octet-stream";
+    const extension = filename.split('.').pop().toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'pdf':
+        return 'application/pdf';
+      default:
+        return 'application/octet-stream';
+    }
+  };
+
+  // Initialize form data with fetched data
   useEffect(() => {
     if (fetchedData) {
-      if (fetchedData.legalBeneficiaries) {
-        setFormData((prev) => ({
-          ...prev,
-          legalBeneficiaries: {
-            ...initialLegalBeneficiaries,
-            ...fetchedData.legalBeneficiaries,
-            primary: {
-              ...initialLegalBeneficiaries.primary,
-              ...(fetchedData.legalBeneficiaries.primary || {}),
+      // Map primary beneficiary from fetched data
+      const primaryFromFetch = fetchedData.beneficiaryName
+        ? {
+            fullName: fetchedData.beneficiaryName || "",
+            relationship: fetchedData.relationship || "",
+            contactNumber: fetchedData.beneficiaryContactNumber || "",
+          }
+        : {};
+
+      // Map character reference from fetched data
+      const referenceFromFetch = fetchedData.referenceName
+        ? [
+            {
+              fullName: fetchedData.referenceName || "",
+              position: fetchedData.position || "",
+              contactNumber: fetchedData.referenceContactNumber || "",
             },
-            secondary: {
-              ...initialLegalBeneficiaries.secondary,
-              ...(fetchedData.legalBeneficiaries.secondary || {}),
-            },
-            additional:
-              fetchedData.legalBeneficiaries.additional ||
-              initialLegalBeneficiaries.additional,
-            characterReferences:
-              fetchedData.legalBeneficiaries.characterReferences &&
-              fetchedData.legalBeneficiaries.characterReferences.length > 0
-                ? fetchedData.legalBeneficiaries.characterReferences
-                : initialLegalBeneficiaries.characterReferences,
-          },
-        }));
-      }
-      if (fetchedData.documents) {
-        setFormData((prev) => ({
-          ...prev,
-          documents: {
-            ...initialDocuments,
-            ...fetchedData.documents,
-          },
-        }));
-      }
+          ]
+        : [];
+
+      // Process document filenames into display objects
+      const documentDisplayInfo = {};
+      
+      const documentMappings = {
+        id_picture: fetchedData.id_picture,
+        barangay_clearance: fetchedData.barangay_clearance,
+        tax_identification_id: fetchedData.tax_identification_id,
+        valid_id: fetchedData.valid_id,
+        membership_agreement: fetchedData.membership_agreement
+      };
+
+      // Create display info for each document
+      Object.entries(documentMappings).forEach(([key, filename]) => {
+        if (filename) {
+          documentDisplayInfo[key] = {
+            name: filename,
+            type: getFileTypeFromName(filename),
+            size: 0, // Size unknown from filename alone
+            isExistingFile: true
+          };
+        }
+      });
+      
+      // Update display documents state
+      setDisplayDocuments(documentDisplayInfo);
+
+      // Update form data with fetched data
+      setFormData((prev) => {
+        // Create a deep copy of previous form data to avoid mutation issues
+        const updatedFormData = { ...prev };
+        
+        // Initialize or update legalBeneficiaries
+        if (!updatedFormData.legalBeneficiaries) {
+          updatedFormData.legalBeneficiaries = { ...initialLegalBeneficiaries };
+        }
+        
+        // Update primary beneficiary
+        updatedFormData.legalBeneficiaries.primary = {
+          ...initialLegalBeneficiaries.primary,
+          ...primaryFromFetch,
+          ...(prev.legalBeneficiaries?.primary || {})
+        };
+        
+        // Update secondary beneficiary (preserve existing data)
+        updatedFormData.legalBeneficiaries.secondary = {
+          ...initialLegalBeneficiaries.secondary,
+          ...(prev.legalBeneficiaries?.secondary || {})
+        };
+        
+        // Preserve additional beneficiaries
+        updatedFormData.legalBeneficiaries.additional = 
+          prev.legalBeneficiaries?.additional || [];
+        
+        // Update character references
+        updatedFormData.legalBeneficiaries.characterReferences = 
+          referenceFromFetch.length > 0
+            ? [
+                ...referenceFromFetch,
+                ...(initialLegalBeneficiaries.characterReferences.slice(1))
+              ]
+            : prev.legalBeneficiaries?.characterReferences || 
+              initialLegalBeneficiaries.characterReferences;
+        
+        // Initialize or update documents
+        if (!updatedFormData.documents) {
+          updatedFormData.documents = { ...initialDocuments };
+        }
+        
+        // Only preserve actual File objects, not overwrite with string filenames
+        // This prevents losing uploaded files when fetched data arrives
+        return updatedFormData;
+      });
     }
   }, [fetchedData, setFormData]);
 
-  // Merge existing legal beneficiaries from formData with defaults
+  // Extract or create the legalBeneficiaries object from formData
   const legalBeneficiaries = {
     ...initialLegalBeneficiaries,
-    ...formData.legalBeneficiaries,
+    ...(formData.legalBeneficiaries || {}),
     primary: {
       ...initialLegalBeneficiaries.primary,
       ...(formData.legalBeneficiaries?.primary || {}),
@@ -97,8 +173,8 @@ const LegalAndDocuments = ({
         : initialLegalBeneficiaries.characterReferences,
   };
 
-  // Merge documents from formData with defaults
-  const documents = { ...initialDocuments, ...formData.documents };
+  // Extract or create the documents object from formData
+  const documents = { ...initialDocuments, ...(formData.documents || {}) };
 
   // Handlers for legal beneficiaries
   const handlePrimaryChange = (e) => {
@@ -106,8 +182,11 @@ const LegalAndDocuments = ({
     setFormData((prev) => ({
       ...prev,
       legalBeneficiaries: {
-        ...legalBeneficiaries,
-        primary: { ...legalBeneficiaries.primary, [name]: value },
+        ...(prev.legalBeneficiaries || initialLegalBeneficiaries),
+        primary: { 
+          ...(prev.legalBeneficiaries?.primary || initialLegalBeneficiaries.primary),
+          [name]: value 
+        },
       },
     }));
   };
@@ -117,30 +196,43 @@ const LegalAndDocuments = ({
     setFormData((prev) => ({
       ...prev,
       legalBeneficiaries: {
-        ...legalBeneficiaries,
-        secondary: { ...legalBeneficiaries.secondary, [name]: value },
+        ...(prev.legalBeneficiaries || initialLegalBeneficiaries),
+        secondary: { 
+          ...(prev.legalBeneficiaries?.secondary || initialLegalBeneficiaries.secondary),
+          [name]: value 
+        },
       },
     }));
   };
 
   const handleAdditionalChange = (index, e) => {
     const { name, value } = e.target;
-    const updatedAdditional = legalBeneficiaries.additional.map((ben, i) =>
-      i === index ? { ...ben, [name]: value } : ben
-    );
-    setFormData((prev) => ({
-      ...prev,
-      legalBeneficiaries: { ...legalBeneficiaries, additional: updatedAdditional },
-    }));
+    setFormData((prev) => {
+      const additional = prev.legalBeneficiaries?.additional || [];
+      const updatedAdditional = [...additional];
+      
+      // Update the specific beneficiary at index
+      if (updatedAdditional[index]) {
+        updatedAdditional[index] = { ...updatedAdditional[index], [name]: value };
+      }
+      
+      return {
+        ...prev,
+        legalBeneficiaries: {
+          ...(prev.legalBeneficiaries || initialLegalBeneficiaries),
+          additional: updatedAdditional
+        }
+      };
+    });
   };
 
   const handleAddAdditionalBeneficiary = () => {
     setFormData((prev) => ({
       ...prev,
       legalBeneficiaries: {
-        ...legalBeneficiaries,
+        ...(prev.legalBeneficiaries || initialLegalBeneficiaries),
         additional: [
-          ...legalBeneficiaries.additional,
+          ...(prev.legalBeneficiaries?.additional || []),
           { fullName: "", relationship: "", contactNumber: "" },
         ],
       },
@@ -149,22 +241,34 @@ const LegalAndDocuments = ({
 
   const handleCharacterChange = (index, e) => {
     const { name, value } = e.target;
-    const updatedReferences = legalBeneficiaries.characterReferences.map((ref, i) =>
-      i === index ? { ...ref, [name]: value } : ref
-    );
-    setFormData((prev) => ({
-      ...prev,
-      legalBeneficiaries: { ...legalBeneficiaries, characterReferences: updatedReferences },
-    }));
+    setFormData((prev) => {
+      const refs = prev.legalBeneficiaries?.characterReferences || 
+                  initialLegalBeneficiaries.characterReferences;
+      const updatedRefs = [...refs];
+      
+      // Update the specific reference at index
+      if (updatedRefs[index]) {
+        updatedRefs[index] = { ...updatedRefs[index], [name]: value };
+      }
+      
+      return {
+        ...prev,
+        legalBeneficiaries: {
+          ...(prev.legalBeneficiaries || initialLegalBeneficiaries),
+          characterReferences: updatedRefs
+        }
+      };
+    });
   };
 
   const handleAddCharacterReference = () => {
     setFormData((prev) => ({
       ...prev,
       legalBeneficiaries: {
-        ...legalBeneficiaries,
+        ...(prev.legalBeneficiaries || initialLegalBeneficiaries),
         characterReferences: [
-          ...legalBeneficiaries.characterReferences,
+          ...(prev.legalBeneficiaries?.characterReferences || 
+             initialLegalBeneficiaries.characterReferences),
           { fullName: "", position: "", contactNumber: "" },
         ],
       },
@@ -174,17 +278,41 @@ const LegalAndDocuments = ({
   // Handlers for documents upload
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      documents: { ...prev.documents, [name]: files[0] },
-    }));
+    if (files && files[0]) {
+      const file = files[0];
+      
+      // Update form data with file
+      setFormData((prev) => ({
+        ...prev,
+        documents: { ...(prev.documents || {}), [name]: file },
+      }));
+      
+      // Update display documents
+      setDisplayDocuments(prev => ({
+        ...prev,
+        [name]: {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          isExistingFile: false
+        }
+      }));
+    }
   };
 
   const handleRemove = (name) => {
+    // Remove file from form data
     setFormData((prev) => ({
       ...prev,
-      documents: { ...prev.documents, [name]: null },
+      documents: { ...(prev.documents || {}), [name]: null },
     }));
+    
+    // Remove from display documents
+    setDisplayDocuments(prev => {
+      const newDisplay = { ...prev };
+      delete newDisplay[name];
+      return newDisplay;
+    });
   };
 
   // Drag and drop handlers
@@ -209,11 +337,25 @@ const LegalAndDocuments = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(null);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      
+      // Update form data with file
       setFormData((prev) => ({
         ...prev,
-        documents: { ...prev.documents, [name]: e.dataTransfer.files[0] },
+        documents: { ...(prev.documents || {}), [name]: file },
+      }));
+      
+      // Update display documents
+      setDisplayDocuments(prev => ({
+        ...prev,
+        [name]: {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          isExistingFile: false
+        }
       }));
     }
   };
@@ -221,7 +363,8 @@ const LegalAndDocuments = ({
   // Helper function to format file size
   const getFileSize = (file) => {
     if (!file) return "";
-    
+    if (file.isExistingFile) return "Saved file";
+
     const fileSizeKB = file.size / 1024;
     if (fileSizeKB < 1024) {
       return `${fileSizeKB.toFixed(2)} KB`;
@@ -238,9 +381,11 @@ const LegalAndDocuments = ({
       <input
         name={name}
         placeholder={placeholder}
-        value={value}
+        value={value || ""}
         onChange={onChange}
-        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+        className={`w-full px-4 py-2 ${
+          disabled ? 'bg-gray-100' : 'bg-gray-50'
+        } border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors`}
         disabled={disabled}
       />
     </div>
@@ -256,18 +401,7 @@ const LegalAndDocuments = ({
 
   // Icon components
   const File = ({ size, className }) => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
       <polyline points="14 2 14 8 20 8"></polyline>
       <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -277,16 +411,7 @@ const LegalAndDocuments = ({
   );
 
   const Upload = ({ className }) => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
       <polyline points="17 8 12 3 7 8"></polyline>
       <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -294,86 +419,108 @@ const LegalAndDocuments = ({
   );
 
   const X = ({ size }) => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   );
 
+  // Check if a document is available (either in form data or display documents)
+  const isDocumentAvailable = (name) => {
+    return (
+      (formData.documents && formData.documents[name]) ||
+      (displayDocuments && displayDocuments[name])
+    );
+  };
+
+  // Get document display info for rendering
+  const getDocumentDisplayInfo = (name) => {
+    return displayDocuments[name] || 
+           (formData.documents && formData.documents[name] ? {
+             name: formData.documents[name].name,
+             size: formData.documents[name].size,
+             isExistingFile: false
+           } : null);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-8">
-      {/* <h2 className="text-2xl font-bold text-green-600 mb-6 flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        LEGAL BENEFICIARIES & DOCUMENTS
-      </h2> */}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Column: Legal Beneficiaries */}
         <div className="space-y-6">
           <Section title="Primary Beneficiary">
-            <InputField
-              name="fullName"
-              placeholder="Full Name"
-              value={legalBeneficiaries.primary.fullName}
-              onChange={handlePrimaryChange}
-              disabled={isReadOnly}
-            />
-            <InputField
-              name="relationship"
-              placeholder="Relationship"
-              value={legalBeneficiaries.primary.relationship}
-              onChange={handlePrimaryChange}
-              disabled={isReadOnly}
-            />
-            <InputField
-              name="contactNumber"
-              placeholder="Contact Number"
-              value={legalBeneficiaries.primary.contactNumber}
-              onChange={handlePrimaryChange}
-              disabled={isReadOnly}
-            />
+            <div className={`p-4 ${legalBeneficiaries.primary.fullName ? 'bg-green-50 border border-green-100' : 'bg-gray-50'} rounded-lg mb-3`}>
+              <InputField
+                label="Full Name"
+                name="fullName"
+                placeholder="Full Name"
+                value={legalBeneficiaries.primary.fullName}
+                onChange={handlePrimaryChange}
+                disabled={isReadOnly}
+              />
+              <InputField
+                label="Relationship"
+                name="relationship"
+                placeholder="Relationship"
+                value={legalBeneficiaries.primary.relationship}
+                onChange={handlePrimaryChange}
+                disabled={isReadOnly}
+              />
+              <InputField
+                label="Contact Number"
+                name="contactNumber"
+                placeholder="Contact Number"
+                value={legalBeneficiaries.primary.contactNumber}
+                onChange={handlePrimaryChange}
+                disabled={isReadOnly}
+              />
+              {legalBeneficiaries.primary.fullName && fetchedData?.beneficiaryName && (
+                <div className="mt-2 text-xs text-green-700 bg-green-50 px-3 py-1 rounded-md inline-block">
+                  ✓ Existing beneficiary from records
+                </div>
+              )}
+            </div>
           </Section>
 
           <Section title="Secondary Beneficiary">
-            <InputField
-              name="fullName"
-              placeholder="Full Name"
-              value={legalBeneficiaries.secondary.fullName}
-              onChange={handleSecondaryChange}
-              disabled={isReadOnly}
-            />
-            <InputField
-              name="relationship"
-              placeholder="Relationship"
-              value={legalBeneficiaries.secondary.relationship}
-              onChange={handleSecondaryChange}
-              disabled={isReadOnly}
-            />
-            <InputField
-              name="contactNumber"
-              placeholder="Contact Number"
-              value={legalBeneficiaries.secondary.contactNumber}
-              onChange={handleSecondaryChange}
-              disabled={isReadOnly}
-            />
+            <div className={`p-4 ${legalBeneficiaries.secondary.fullName ? 'bg-green-50 border border-green-100' : 'bg-gray-50'} rounded-lg mb-3`}>
+              <InputField
+                label="Full Name"
+                name="fullName"
+                placeholder="Full Name"
+                value={legalBeneficiaries.secondary.fullName}
+                onChange={handleSecondaryChange}
+                disabled={isReadOnly}
+              />
+              <InputField
+                label="Relationship"
+                name="relationship"
+                placeholder="Relationship"
+                value={legalBeneficiaries.secondary.relationship}
+                onChange={handleSecondaryChange}
+                disabled={isReadOnly}
+              />
+              <InputField
+                label="Contact Number"
+                name="contactNumber"
+                placeholder="Contact Number"
+                value={legalBeneficiaries.secondary.contactNumber}
+                onChange={handleSecondaryChange}
+                disabled={isReadOnly}
+              />
+              {legalBeneficiaries.secondary.fullName && fetchedData?.secondaryBeneficiaryName && (
+                <div className="mt-2 text-xs text-green-700 bg-green-50 px-3 py-1 rounded-md inline-block">
+                  ✓ Existing beneficiary from records
+                </div>
+              )}
+            </div>
           </Section>
 
           <Section title="Additional Beneficiaries">
             {legalBeneficiaries.additional.map((ben, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-lg mb-3">
+              <div key={index} className={`p-4 ${ben.fullName ? 'bg-green-50 border border-green-100' : 'bg-gray-50'} rounded-lg mb-3`}>
                 <InputField
+                  label="Full Name"
                   name="fullName"
                   placeholder="Full Name"
                   value={ben.fullName}
@@ -381,6 +528,7 @@ const LegalAndDocuments = ({
                   disabled={isReadOnly}
                 />
                 <InputField
+                  label="Relationship"
                   name="relationship"
                   placeholder="Relationship"
                   value={ben.relationship}
@@ -388,12 +536,18 @@ const LegalAndDocuments = ({
                   disabled={isReadOnly}
                 />
                 <InputField
+                  label="Contact Number"
                   name="contactNumber"
                   placeholder="Contact Number"
                   value={ben.contactNumber}
                   onChange={(e) => handleAdditionalChange(index, e)}
                   disabled={isReadOnly}
                 />
+                {ben.fullName && fetchedData?.additionalBeneficiaries && (
+                  <div className="mt-2 text-xs text-green-700 bg-green-50 px-3 py-1 rounded-md inline-block">
+                    ✓ Existing beneficiary from records
+                  </div>
+                )}
               </div>
             ))}
             {!isReadOnly && (
@@ -402,43 +556,43 @@ const LegalAndDocuments = ({
                 onClick={handleAddAdditionalBeneficiary}
                 className="flex items-center text-green-600 hover:text-green-800 font-medium text-sm mt-2 transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Add Another Beneficiary
+                + Add Another Beneficiary
               </button>
             )}
           </Section>
 
           <Section title="Character References">
             {legalBeneficiaries.characterReferences.map((ref, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-lg mb-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <InputField
-                    label="Full Name"
-                    name="fullName"
-                    placeholder="Full Name"
-                    value={ref.fullName}
-                    onChange={(e) => handleCharacterChange(index, e)}
-                    disabled={isReadOnly}
-                  />
-                  <InputField
-                    label="Position"
-                    name="position"
-                    placeholder="Position"
-                    value={ref.position}
-                    onChange={(e) => handleCharacterChange(index, e)}
-                    disabled={isReadOnly}
-                  />
-                  <InputField
-                    label="Contact Number"
-                    name="contactNumber"
-                    placeholder="Contact Number"
-                    value={ref.contactNumber}
-                    onChange={(e) => handleCharacterChange(index, e)}
-                    disabled={isReadOnly}
-                  />
-                </div>
+              <div key={index} className={`p-4 ${ref.fullName ? 'bg-green-50 border border-green-100' : 'bg-gray-50'} rounded-lg mb-3`}>
+                <InputField
+                  label="Full Name"
+                  name="fullName"
+                  placeholder="Full Name"
+                  value={ref.fullName}
+                  onChange={(e) => handleCharacterChange(index, e)}
+                  disabled={isReadOnly}
+                />
+                <InputField
+                  label="Position"
+                  name="position"
+                  placeholder="Position"
+                  value={ref.position}
+                  onChange={(e) => handleCharacterChange(index, e)}
+                  disabled={isReadOnly}
+                />
+                <InputField
+                  label="Contact Number"
+                  name="contactNumber"
+                  placeholder="Contact Number"
+                  value={ref.contactNumber}
+                  onChange={(e) => handleCharacterChange(index, e)}
+                  disabled={isReadOnly}
+                />
+                {ref.fullName && index === 0 && fetchedData?.referenceName && (
+                  <div className="mt-2 text-xs text-green-700 bg-green-50 px-3 py-1 rounded-md inline-block">
+                    ✓ Existing reference from records
+                  </div>
+                )}
               </div>
             ))}
             {!isReadOnly && (
@@ -447,10 +601,7 @@ const LegalAndDocuments = ({
                 onClick={handleAddCharacterReference}
                 className="flex items-center text-green-600 hover:text-green-800 font-medium text-sm mt-2 transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Add Another Reference
+                + Add Another Reference
               </button>
             )}
           </Section>
@@ -460,37 +611,31 @@ const LegalAndDocuments = ({
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
             <h2 className="text-lg font-semibold text-gray-800">Required Documents</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Please upload the following documents in JPG, PNG or PDF format
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Please upload the following documents in JPG, PNG or PDF format</p>
           </div>
-          
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {documentTypes.map(({ name, label }) => (
                 <div key={name} className="flex flex-col">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {label}
-                  </label>
-                  
-                  {formData.documents && formData.documents[name] ? (
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+                  {isDocumentAvailable(name) ? (
                     <div className="flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex-shrink-0 mr-3">
-                        <File size={24} className="text-blue-500" />
-                      </div>
+                      <File size={24} className="text-blue-500 mr-3" />
                       <div className="flex-grow">
                         <p className="text-sm font-medium text-gray-800 truncate">
-                          {formData.documents[name].name}
+                          {getDocumentDisplayInfo(name)?.name || 
+                           (formData.documents && formData.documents[name]?.name)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {getFileSize(formData.documents[name])}
+                          {getFileSize(getDocumentDisplayInfo(name) || formData.documents?.[name])}
+                          {getDocumentDisplayInfo(name)?.isExistingFile && " • Already uploaded"}
                         </p>
                       </div>
                       {!isReadOnly && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(name)}
-                          className="flex-shrink-0 ml-2 text-gray-400 hover:text-red-500"
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemove(name)} 
+                          className="ml-2 text-gray-400 hover:text-red-500"
                           aria-label="Remove file"
                         >
                           <X size={18} />
@@ -502,39 +647,31 @@ const LegalAndDocuments = ({
                       className={`relative border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center
                         ${dragActive === name ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
                       `}
-                      onDragEnter={(e) => handleDragEnter(e, name)}
-                      onDragLeave={handleDragLeave}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, name)}
+                      onDragEnter={(e) => !isReadOnly && handleDragEnter(e, name)}
+                      onDragLeave={(e) => !isReadOnly && handleDragLeave(e)}
+                      onDragOver={(e) => !isReadOnly && handleDragOver(e)}
+                      onDrop={(e) => !isReadOnly && handleDrop(e, name)}
                     >
-                      <div className="text-center">
-                        <Upload 
-                          className="mx-auto h-10 w-10 text-gray-400" 
-                          aria-hidden="true"
-                        />
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-500">
-                            Drag and drop your file here, or
-                            <label 
-                              htmlFor={`file-upload-${name}`} 
-                              className="relative cursor-pointer ml-1 text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                            >
-                              browse
-                              <input
-                                id={`file-upload-${name}`}
-                                name={name}
-                                type="file"
-                                className="sr-only"
-                                onChange={handleFileChange}
-                                disabled={isReadOnly}
-                              />
-                            </label>
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            PNG, JPG, PDF up to 10MB
-                          </p>
-                        </div>
-                      </div>
+                      <Upload className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 text-center">
+                        {!isReadOnly ? (
+                          <>
+                            Drag & drop or <label htmlFor={`file-upload-${name}`} className="text-blue-600 cursor-pointer">browse</label>
+                            <input 
+                              id={`file-upload-${name}`} 
+                              name={name} 
+                              type="file" 
+                              className="sr-only" 
+                              onChange={handleFileChange} 
+                              disabled={isReadOnly}
+                              accept=".jpg,.jpeg,.png,.pdf"
+                            />
+                          </>
+                        ) : (
+                          "No file uploaded"
+                        )}
+                      </p>
+                      {!isReadOnly && <p className="text-xs text-gray-500 mt-1">PNG, JPG, PDF • 10MB max</p>}
                     </div>
                   )}
                 </div>
@@ -547,24 +684,18 @@ const LegalAndDocuments = ({
       {/* Navigation Buttons */}
       <div className="flex justify-between mt-8 pt-4 border-t border-gray-200">
         <button
-          onClick={handlePrevious}
           type="button"
+          onClick={handlePrevious}
           className="flex items-center px-6 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
           Previous
         </button>
         <button
-          onClick={() => handleNext(formData)}
           type="button"
+          onClick={() => handleNext(formData)}
           className="flex items-center px-8 py-3 bg-green-600 rounded-lg text-white hover:bg-green-700 transition-colors shadow-sm"
         >
-          Next
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
+          {isReadOnly ? "Continue" : "Save"}
         </button>
       </div>
     </div>

@@ -87,10 +87,17 @@ const PersonalInformation = ({
     return isValid;
   };
 
-  const handleNextClick = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      handleNext();
+      // Prepare the combined data
+      const combinedData = {
+        personalInfo: formData.personalInfo,
+        contactInfo: formData.contactInfo
+      };
+      
+      // Call handleNext with the combined data
+      handleNext(combinedData);
     } else {
       // Scroll to first error
       const firstErrorField = document.querySelector(".error-field");
@@ -225,7 +232,7 @@ const PersonalInformation = ({
   };
 
   return (
-    <form className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {/* Personal Information Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
@@ -266,11 +273,10 @@ const PersonalInformation = ({
       {/* Bottom Navigation */}
       <div className="flex justify-end py-4">
         <button
-          type="button"
-          onClick={handleNextClick}
+          type="submit"
           className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
-          Continue to Next Step
+          Submit
         </button>
       </div>
     </form>

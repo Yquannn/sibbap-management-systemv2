@@ -1,138 +1,201 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { useParams } from "react-router-dom";
 
-const InitialContribution = ({
-  handleNext,
-  formData = {},
-  setFormData,
-  isReadOnly = false,
-}) => {
-  // Default initial values
-  const defaultInitialContribution = {
+const InitialContribution = ({ handlePrevious, isReadOnly }) => {
+  const { memberId } = useParams();
+
+  const [localData, setLocalData] = useState({
     share_capital: null,
-    membership_fee: 300,
-    identification_card_fee: 150,
-    kalinga_fund_fee: 100,
-    initial_savings: 100,
+    identification_card_fee: null,
+    membership_fee: null,
+    kalinga_fund_fee: null,
+    initial_savings: null,
+  });
+  const [errors, setErrors] = useState({});
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const fields = {
+    share_capital: { label: "Share Capital", min: 1000 },
+    identification_card_fee: { label: "ID Card Fee", min: 0 },
+    membership_fee: { label: "Membership Fee", min: 100 },
+    kalinga_fund_fee: { label: "Kalinga Fund Fee", min: 0 },
+    initial_savings: { label: "Initial Savings", min: 0 },
   };
 
-  const { memberId } = useParams();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  // Fetch existing values on mount
+  // useEffect(() => {
+  //   axios
+  //     .get(`http://localhost:3001/api/members/${memberId}/financials`)
+  //     .then(({ data }) => {
+  //       setLocalData({
+  //         share_capital: data.share_capital,
+  //         identification_card_fee: data.identification_card_fee,
+  //         membership_fee: data.membership_fee,
+  //         kalinga_fund_fee: data.kalinga_fund_fee,
+  //         initial_savings: data.initial_savings,
+  //       });
+  //     })
+  //     .catch((err) => console.error("Fetch error:", err));
+  // }, [memberId]);
 
+  // Recalculate total & validate
   useEffect(() => {
-    if (!memberId) {
-      console.error("Member ID is missing");
-    }
-  }, [memberId]);
+    const sum = Object.values(localData).reduce(
+      (acc, v) => acc + (parseFloat(v) || 0),
+      0
+    );
+    setTotal(sum);
 
-  // Initialize with default values
-  const [localContribution, setLocalContribution] = useState(defaultInitialContribution);
+    const newErr = {};
+    Object.entries(localData).forEach(([k, v]) => {
+      if (v === null) newErr[k] = "This field is required";
+      else if (isNaN(v)) newErr[k] = "Please enter a valid number";
+      else if (v < fields[k].min)
+        newErr[k] = `${fields[k].label} must be at least ₱${fields[k]
+          .min.toLocaleString()}`;
+    });
+    setErrors(newErr);
+  }, [localData]);
 
-  // Handle user input updates
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setLocalContribution((prev) => ({
-      ...prev,
-      [name]: value === "" ? 0 : Number(value),
+    setLocalData((p) => ({
+      ...p,
+      [name]: value === "" ? null : parseFloat(value),
     }));
   };
 
-  const handleSubmit = () => {
-    console.log("Local contribution data:", localContribution);
+  const formatCurrency = (amt) =>
+    amt == null
+      ? ""
+      : new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+        }).format(amt);
 
-    // Update parent's formData
-    setFormData((prev) => ({
-      ...prev,
-      initialContribution: localContribution,
-    }));
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (Object.keys(errors).length) return;
 
-    // Show success modal
-    setSuccessMessage("Initial contribution has been successfully recorded!");
-    setShowSuccessModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowSuccessModal(false);
-    // Call parent's handleSave (passed as handleNext) with the updated local data
-    // after the modal is closed
-    handleNext(localContribution);
+    setIsLoading(true);
+    try {
+      await axios.patch(
+        `http://localhost:3001/api/members/${memberId}/financials`,
+        localData
+      );
+      setSuccessMsg("Initial contribution saved successfully.");
+      // <— you can navigate or call a parent callback here
+    } catch (err) {
+      setErrors({ api: err.response?.data?.message || err.message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 relative">
-      <div className="space-y-4">
-        {[
-          { label: "Share capital contribution amount", name: "share_capital" },
-          { label: "Membership fee", name: "membership_fee" },
-          { label: "Identification Card fee", name: "identification_card_fee" },
-          { label: "Kalinga fund fee", name: "kalinga_fund_fee" },
-          { label: "Initial savings", name: "initial_savings" },
-        ].map(({ label, name }) => (
-          <div key={name} className="flex flex-col sm:flex-row sm:items-center">
-            <label htmlFor={name} className="text-gray-700 font-medium w-full sm:w-1/2 mb-1 sm:mb-0">
-              {label}:
-            </label>
-            <div className="w-full sm:w-1/2">
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-600">₱</span>
-                <input
-                  type="number"
-                  id={name}
-                  name={name}
-                  value={localContribution[name] || ""}
-                  onChange={handleChange}
-                  disabled={isReadOnly}
-                  className="pl-8 w-full py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="mt-8 flex justify-end">
-        <button
-          onClick={handleSubmit}
-          disabled={isReadOnly}
-          className="flex items-center px-8 py-3 bg-green-600 rounded-lg text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Submit
-        </button>
-      </div>
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-xl shadow-lg p-8"
+    >
+      <h2 className="text-2xl font-bold text-green-600 mb-6">
+        Initial Contribution
+      </h2>
 
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Success!</h2>
-              <p className="text-gray-600 mb-6">{successMessage}</p>
-              
-              {/* Calculate total contribution */}
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <p className="font-medium text-gray-700 mb-2">Total Contribution:</p>
-                <p className="text-xl font-bold text-green-600">
-                  ₱{Object.values(localContribution).reduce((sum, value) => sum + (value || 0), 0).toLocaleString()}
-                </p>
-              </div>
-              
-              <button
-                onClick={handleCloseModal}
-                className="w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
+      {successMsg && (
+        <div className="mb-4 p-3 bg-green-50 text-green-800 rounded">
+          {successMsg}
         </div>
       )}
-    </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Inputs */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Financial Details</h3>
+          {Object.entries(fields).map(([key, { label, min }]) => (
+            <div key={key} className="mb-4">
+              <label className="block text-sm font-medium mb-1">
+                {label}
+              </label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  ₱
+                </span>
+                <input
+                  name={key}
+                  type="number"
+                  step="0.01"
+                  min={min}
+                  value={localData[key] ?? ""}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  className={`w-full pl-8 pr-3 py-2 border rounded ${
+                    errors[key]
+                      ? "border-red-500"
+                      : "border-gray-300 focus:border-green-500"
+                  }`}
+                />
+              </div>
+              {errors[key] && (
+                <p className="text-red-600 text-sm mt-1">
+                  {errors[key]}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Summary */}
+        <div className="bg-gray-50 rounded-xl border p-6">
+          <h3 className="font-medium mb-4">Summary</h3>
+          {Object.entries(fields).map(([key, { label }]) => (
+            <div
+              key={key}
+              className="flex justify-between py-1 border-b last:border-none"
+            >
+              <span>{label}</span>
+              <span>
+                {localData[key] == null
+                  ? "—"
+                  : formatCurrency(localData[key])}
+              </span>
+            </div>
+          ))}
+          <div className="mt-4 flex justify-between font-semibold">
+            <span>Total</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+        </div>
+      </div>
+
+      {errors.api && (
+        <div className="mt-4 text-red-600">{errors.api}</div>
+      )}
+
+      <div className="flex justify-between mt-8 pt-4 border-t">
+        <button
+          type="button"
+          onClick={handlePrevious}
+          disabled={isLoading}
+          className="px-6 py-2 border rounded"
+        >
+          Previous
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading || Object.keys(errors).length > 0}
+          className={`px-6 py-2 text-white rounded ${
+            isLoading || Object.keys(errors).length
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700"
+          }`}
+        >
+          {isLoading ? "Saving..." : "Submit"}
+        </button>
+      </div>
+    </form>
   );
 };
 

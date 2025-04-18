@@ -90,6 +90,9 @@ const generateUniqueAccountNumber = async () => {
 };
 
 
+
+
+
 exports.updateMemberFinancials = async (memberId, financialData) => {
   const connection = await db.getConnection();
 
@@ -103,75 +106,86 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
     password
   } = financialData;
 
-  if (
-    share_capital == null ||
-    identification_card_fee == null ||
-    membership_fee == null ||
-    kalinga_fund_fee == null ||
-    initial_savings == null
-  ) {
-    throw new Error("All financial data fields must be provided and cannot be null.");
-  }
-
+  // Store the original share_capital value for member type determination
   const initial_shared_capital = share_capital;
 
   try {
     await connection.beginTransaction();
 
-    // Generate memberCode and memberType using share_capital
-    const { memberCode, memberType } = await generateUniqueMemberCode(share_capital);
-
-    const updateQuery = `
-      UPDATE members SET
-        share_capital = ?,
-        initial_shared_capital = ?,
-        identification_card_fee = ?,
-        membership_fee = ?,
-        kalinga_fund_fee = ?,
-        initial_savings = ?,
-        memberCode = ?,
-        member_type = ?,
-        status = 'Active'
-      WHERE memberId = ?
-    `;
-    const [result] = await connection.execute(updateQuery, [
-      share_capital,
-      initial_shared_capital,
-      identification_card_fee,
-      membership_fee,
-      kalinga_fund_fee,
-      initial_savings,
-      memberCode,
-      memberType,
-      memberId
-    ]);
-
-    if (result.affectedRows === 0) {
-      throw new Error("No rows updated. Check that the memberId exists.");
+    // Only generate memberCode and memberType if share_capital is provided
+    let memberCode = null;
+    let memberType = null;
+    if (share_capital !== null) {
+      const memberInfo = await generateUniqueMemberCode(share_capital);
+      memberCode = memberInfo.memberCode;
+      memberType = memberInfo.memberType;
     }
 
-    const defaultEmail = email || memberCode;
-    const defaultPassword = password || memberCode;
-    const accountStatus = "NOT ACTIVATED";
+    // Build dynamic UPDATE query based on non-null values
+    const updateFields = [];
+    const updateValues = [];
 
-    const accountQuery = `
-      INSERT INTO member_account (memberId, email, password, accountStatus)
-      VALUES (?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE 
-        email = VALUES(email), 
-        password = VALUES(password), 
-        accountStatus = VALUES(accountStatus)
-    `;
-    await connection.execute(accountQuery, [
-      memberId,
-      defaultEmail,
-      defaultPassword,
-      accountStatus
-    ]);
+    // Helper function to add field if value is not null
+    const addFieldIfNotNull = (field, value) => {
+      if (value !== null) {
+        updateFields.push(`${field} = ?`);
+        updateValues.push(value);
+      }
+    };
 
-    // Only add savings and a transaction record if initial_savings > 0
-    if (initial_savings > 0) {
-      // Insert into regular_savings table
+    addFieldIfNotNull('share_capital', share_capital);
+    addFieldIfNotNull('initial_shared_capital', initial_shared_capital);
+    addFieldIfNotNull('identification_card_fee', identification_card_fee);
+    addFieldIfNotNull('membership_fee', membership_fee);
+    addFieldIfNotNull('kalinga_fund_fee', kalinga_fund_fee);
+    addFieldIfNotNull('initial_savings', initial_savings);
+    
+    if (memberCode !== null) {
+      addFieldIfNotNull('memberCode', memberCode);
+      addFieldIfNotNull('member_type', memberType);
+      addFieldIfNotNull('status', 'Active');
+    }
+
+    // Only proceed with update if there are fields to update
+    if (updateFields.length > 0) {
+      const updateQuery = `
+        UPDATE members SET
+          ${updateFields.join(', ')}
+        WHERE memberId = ?
+      `;
+      updateValues.push(memberId);
+
+      const [result] = await connection.execute(updateQuery, updateValues);
+
+      if (result.affectedRows === 0) {
+        throw new Error("No rows updated. Check that the memberId exists.");
+      }
+    }
+
+    // Only create member account if memberCode is generated
+    if (memberCode) {
+      const defaultEmail = email || memberCode;
+      const defaultPassword = password || memberCode;
+      const accountStatus = "NOT ACTIVATED";
+
+      const accountQuery = `
+        INSERT INTO member_account (memberId, email, password, accountStatus)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE 
+          email = VALUES(email), 
+          password = VALUES(password), 
+          accountStatus = VALUES(accountStatus)
+      `;
+      await connection.execute(accountQuery, [
+        memberId,
+        defaultEmail,
+        defaultPassword,
+        accountStatus
+      ]);
+    }
+
+    // Only process savings if initial_savings is provided and greater than 0
+    if (initial_savings !== null && initial_savings > 0) {
       const accountNumber = await generateUniqueAccountNumber();
       const savingsQuery = `
         INSERT INTO regular_savings (memberId, account_number, amount)
@@ -179,20 +193,11 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
       `;
       await connection.execute(savingsQuery, [memberId, accountNumber, initial_savings]);
 
-      // ------------------ Add Regular Transaction History Entry ------------------
-      // Generate a unique transaction number (ensure you implement this function)
       const transactionNumber = await generateTransactionNumber();
-      // Set authorized user type (adjust or pass this value as needed)
       const authorizedUserType = "System";
-      // Define transaction type (e.g., "Initial Savings Deposit")
       const transactionType = "Initial Savings Deposit";
-      // Use initial_savings as the transaction amount (adjust if needed)
-      const transactionAmount = initial_savings;
-      // Use current date/time
       const transactionDateTime = new Date();
 
-      // Retrieve the corresponding savingsId for the member from the regular_savings table
-      // Ordering by savingsId DESC ensures you get the most recent record if multiple exist
       const getSavingsIdQuery = `
         SELECT savingsId 
         FROM regular_savings 
@@ -208,7 +213,6 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
 
       const savingsId = rows[0].savingsId;
 
-      // Now, insert the transaction record using the valid savingsId
       const transactionQuery = `
         INSERT INTO regular_savings_transaction 
           (transaction_number, authorized, transaction_type, amount, transaction_date_time, regular_savings_id)
@@ -219,16 +223,14 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
         transactionNumber,
         authorizedUserType,
         transactionType,
-        transactionAmount,
+        initial_savings,
         transactionDateTime,
         savingsId
       ]);
-      // ---------------------------------------------------------------------------
     }
 
     await connection.commit();
-
-    return { success: true, message: "Membership Successfully." };
+    return { success: true, message: "Membership Successfully Updated." };
 
   } catch (err) {
     await connection.rollback();

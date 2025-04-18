@@ -53,7 +53,6 @@ import SavingsDashboard from "./pages/admin/savingsPages/SavingsDashboard";
 import LoanDashboard from "./pages/admin/loanPages/LoanDashboard";
 import MemberRegistrationList from "./pages/admin/RegisterMemberPages/MemberRegistrationList";
 import MemberRegistration from "./pages/admin/RegisterMemberPages/MemberRegistration";
-import MemberRegistrationParent from "./pages/admin/RegisterMemberPages/MemberRegistrationParent";
 import MemberApplicant from "./pages/admin/RegisterMemberPages/MemberApplicant";
 import LoanModule from "./pages/admin/system maintenance/LoanModule";
 import SavingsModule from "./pages/admin/system maintenance/SavingsModule";

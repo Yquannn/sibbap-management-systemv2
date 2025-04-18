@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
-import { UserPlus, Search, Filter, ChevronDown, Edit, UserCheck, Plus } from 'lucide-react';
+import { UserPlus, Search, Filter, ChevronDown, Edit, UserCheck, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MdPeople, MdCheckCircle, MdRemoveCircleOutline, MdCalendarToday } from 'react-icons/md';
 
 const apiBaseURL = 'http://localhost:3001/api';
@@ -19,6 +19,10 @@ const Members = () => {
   const [newRegistrationsThisMonth, setNewRegistrationsThisMonth] = useState(0);
   const [completeMembers, setCompleteMembers] = useState(0);
   const [incompleteMembers, setIncompleteMembers] = useState(0);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const navigate = useNavigate();
 
@@ -123,7 +127,19 @@ const Members = () => {
     }
     
     setMembers(filteredMembers);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [allMembers, searchTerm, filterCompletion, filterStatus]);
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentMembers = members.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(members.length / itemsPerPage);
 
   // Initial fetch of all members
   useEffect(() => {
@@ -188,25 +204,6 @@ const Members = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        {/* <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-          <button 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center font-medium hover:bg-blue-700 transition-colors"
-            onClick={() => navigate('/member-registration/new')}
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add New Member
-          </button>
-        </div> */}
-
-        {message.text && (
-          <div className={`font-medium px-4 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {message.text}
-          </div>
-        )}
       </div>
 
       {/* Search & Filter Bar */}
@@ -280,9 +277,9 @@ const Members = () => {
       {/* Members Table */}
       {!loading && !error && (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -305,14 +302,14 @@ const Members = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {members.length === 0 ? (
+                {currentMembers.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                       No members found matching your criteria
                     </td>
                   </tr>
                 ) : (
-                  members.map((member, index) => (
+                                      currentMembers.map((member, index) => (
                     <tr key={`${member.memberId}-${index}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -391,7 +388,98 @@ const Members = () => {
               </tbody>
             </table>
           </div>
-          {/* Pagination Here if needed */}
+          
+          {/* Pagination Controls */}
+          {members.length > 0 && (
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between">
+              <div className="flex items-center mb-4 sm:mb-0">
+                <span className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(indexOfLastItem, members.length)}
+                  </span>{" "}
+                  of <span className="font-medium">{members.length}</span> members
+                </span>
+                
+                <div className="ml-4">
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1); // Reset to first page when changing items per page
+                    }}
+                    className="text-sm border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value={5}>5 per page</option>
+                    <option value={10}>10 per page</option>
+                    <option value={25}>25 per page</option>
+                    <option value={50}>50 per page</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+                    currentPage === 1
+                      ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                      : "text-gray-700 bg-white hover:bg-gray-100"
+                  }`}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                </button>
+                
+                <div className="flex items-center">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Logic to determine which page numbers to show
+                    let pageNumber;
+                    
+                    if (totalPages <= 5) {
+                      // If we have 5 or fewer pages, show all of them
+                      pageNumber = i + 1;
+                    } else if (currentPage <= 3) {
+                      // If we're near the start, show 1 through 5
+                      pageNumber = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      // If we're near the end, show the last 5 pages
+                      pageNumber = totalPages - 4 + i;
+                    } else {
+                      // Otherwise show 2 before and 2 after current page
+                      pageNumber = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => setCurrentPage(pageNumber)}
+                        className={`px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md ${
+                          currentPage === pageNumber
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 bg-white hover:bg-gray-100"
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${
+                    currentPage === totalPages
+                      ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                      : "text-gray-700 bg-white hover:bg-gray-100"
+                  }`}
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

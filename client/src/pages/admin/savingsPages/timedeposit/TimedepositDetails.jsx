@@ -284,10 +284,10 @@ const ActionsPanel = ({ daysRemaining, timeDepositId, accountStatus }) => {
       <div className="p-6">
         <div className="space-y-4">
           <button onClick={() => navigate(`/timedeposit-rollover/${timeDepositId}`)}
-            disabled={isRolloverDisabled}
+            // disabled={isRolloverDisabled}
             className={`w-full py-2.5 px-4 rounded-lg transition flex items-center justify-center ${
               isRolloverDisabled 
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                ? '' //bg-gray-200 text-gray-500 cursor-not-allowed
                 : 'bg-indigo-600 hover:bg-indigo-700 text-white'
             }`}>
             <ArrowPathIcon className="w-5 h-5 mr-2" />

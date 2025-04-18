@@ -22,7 +22,7 @@ const upload = multer({ storage });
 const multiUpload = upload.fields([
   { name: 'id_picture', maxCount: 1 },
   { name: 'barangay_clearance', maxCount: 1 },
-  { name: 'tax_identification', maxCount: 1 },
+  { name: 'tax_identification_id', maxCount: 1 },
   { name: 'valid_id', maxCount: 1 },
   { name: 'membership_agreement', maxCount: 1 }
 ]);

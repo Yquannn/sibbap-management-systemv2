@@ -16,12 +16,12 @@ exports.getMembers = async (req, res) => {
       ma.email, 
       ma.password, 
       ma.accountStatus, 
-      b.beneficiaryName, 
+      b.full_name, 
       b.relationship, 
-      b.beneficiaryContactNumber, 
-      c.referenceName, 
+      b.contact_number, 
+      c.full_name, 
       c.position, 
-      c.referenceContactNumber,
+      c.contact_number,
       s.amount AS savingsAmount
     FROM members mi
     LEFT JOIN member_account ma ON mi.memberId = ma.memberId
@@ -135,6 +135,10 @@ exports.getMembers = async (req, res) => {
 // };
 
 
+
+  
+
+
 exports.fetchedMemberById = async (req, res) => {
   const id = req.params.id;
 
@@ -191,34 +195,97 @@ exports.fetchedMemberById = async (req, res) => {
 
 
 
+
 exports.getMemberById = async (req, res) => {
-  const id = req.params.id;
-  if (!id || typeof id !== 'string' || id.trim() === '') {
+  const memberId = req.params.id;
+  if (!memberId || typeof memberId !== 'string' || !memberId.trim()) {
     return res.status(400).json({ message: 'Invalid member ID' });
   }
 
-  // Assuming you want to join on memberId being the common key between the tables
-  const query = `
-    SELECT m.*, ma.email, ma.password, ma.accountStatus
-    FROM members m
-    LEFT JOIN member_account ma ON m.memberId = ma.memberId  
-    WHERE m.memberId = ?`;
-    
-
   try {
-    const results = await queryDatabase(query, [id]);
-    if (results.length > 0) {
-      res.json(results[0]);
-    } else {
-      res.status(404).json({ message: 'Member not found' });
+    // 1) Core member + account info
+    const [member] = await queryDatabase(
+      `
+      SELECT 
+        m.*,
+        ma.email,
+        ma.accountStatus
+      FROM members m
+      LEFT JOIN member_account ma 
+        ON m.memberId = ma.memberId
+      WHERE m.memberId = ?
+      `,
+      [memberId]
+    );
+    if (!member) {
+      return res.status(404).json({ message: 'Member not found' });
     }
+
+    // 2) Fetch beneficiaries with explicit aliases
+    const benRows = await queryDatabase(
+      `
+      SELECT
+        type,
+        full_name               AS beneficiaryName,
+        relationship,
+        contact_number          AS beneficiaryContactNumber
+      FROM beneficiaries
+      WHERE memberId = ?
+      `,
+      [memberId]
+    );
+
+    // initialize
+    const legalBeneficiaries = {
+      primary:   { beneficiaryName: '', relationship: '', beneficiaryContactNumber: '' },
+      secondary: { beneficiaryName: '', relationship: '', beneficiaryContactNumber: '' },
+      additional: []
+    };
+
+    // distribute
+    for (const b of benRows) {
+      const entry = {
+        beneficiaryName: b.beneficiaryName,
+        relationship:    b.relationship,
+        beneficiaryContactNumber: b.beneficiaryContactNumber
+      };
+      if (b.type === 'primary') {
+        legalBeneficiaries.primary = entry;
+      } else if (b.type === 'secondary') {
+        legalBeneficiaries.secondary = entry;
+      } else {
+        legalBeneficiaries.additional.push(entry);
+      }
+    }
+
+    // 3) Fetch character references with explicit aliases
+    const refRows = await queryDatabase(
+      `
+      SELECT
+        full_name     AS fullName,
+        position,
+        contact_number AS contactNumber
+      FROM character_references
+      WHERE memberId = ?
+      `,
+      [memberId]
+    );
+
+    // 4) Respond
+    return res.json({
+      ...member,
+      legalBeneficiaries,
+      characterReferences: refRows.map(r => ({
+        fullName:      r.fullName,
+        position:      r.position,
+        contactNumber: r.contactNumber
+      }))
+    });
   } catch (error) {
-    console.error('Error fetching data from MySQL:', error);
-    res.status(500).json({ message: 'Error fetching data from MySQL' });
+    console.error('Error fetching member data:', error);
+    return res.status(500).json({ message: 'Error fetching data from MySQL' });
   }
 };
-
-
 
 
 exports.memberApplication = async (req, res) => {
@@ -280,8 +347,8 @@ exports.memberApplication = async (req, res) => {
       ? req.files.barangay_clearance[0].filename
       : null;
   const taxIdentificationId =
-    req.files && req.files.tax_identification && req.files.tax_identification[0]
-      ? req.files.tax_identification[0].filename
+    req.files && req.files.tax_identification_id && req.files.tax_identification_id[0]
+      ? req.files.tax_identification_ids[0].filename
       : null;
   const validId =
     req.files && req.files.valid_id && req.files.valid_id[0]
@@ -362,10 +429,6 @@ exports.memberApplication = async (req, res) => {
   };
 
   // For testing, we use the helper to check if the application is complete.
-  // Here, only "last_name" is required.
-  const status = isApplicationComplete(sanitizedData) ? "Completed" : "Incomplete";
-  // Attach status to our data object.
-  sanitizedData.status = status;
 
   const connection = await db.getConnection();
 
@@ -382,8 +445,8 @@ exports.memberApplication = async (req, res) => {
          birthplace_province, age, sex, civil_status, highest_educational_attainment,
          occupation_source_of_income, spouse_name, spouse_occupation_source_of_income,
          contact_number, house_no_street, barangay, city, id_picture,
-         barangay_clearance, tax_identification_id, valid_id, membership_agreement, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         barangay_clearance, tax_identification_id, valid_id, membership_agreement)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const memberParams = [
       sanitizedData.registration_type,
@@ -415,7 +478,6 @@ exports.memberApplication = async (req, res) => {
       sanitizedData.tax_identification_id,
       sanitizedData.valid_id,
       sanitizedData.membership_agreement,
-      sanitizedData.status
     ];
     const [memberResult] = await connection.execute(memberQuery, memberParams);
 
@@ -529,7 +591,10 @@ exports.updateMember = async (req, res) => {
     return res.status(400).json({ message: 'Invalid member ID' });
   }
 
-  // Destructure all expected fields from req.body
+  // Parse JSON body
+  const formData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+  // Destructure fields
   const {
     registration_type,
     last_name,
@@ -554,23 +619,38 @@ exports.updateMember = async (req, res) => {
     barangay,
     city,
     tax_identification_id,
-  } = req.body;
+    legalBeneficiaries = {}
+  } = formData;
 
-  // File-based columns: if files are provided via req.file or req.files
-  // Here we assume the filenames for these fields are provided in req.body,
-  // or you can customize this to check req.files if you're uploading files.
-  const barangay_clearance = req.body.barangay_clearance || (req.files && req.files.barangay_clearance ? req.files.barangay_clearance[0].filename : null);
-  const valid_id = req.body.valid_id || (req.files && req.files.valid_id ? req.files.valid_id[0].filename : null);
-  const membership_agreement = req.body.membership_agreement || (req.files && req.files.membership_agreement ? req.files.membership_agreement[0].filename : null);
+  // Document types to check (use correct keys)
+  const documentTypes = [
+    'id_picture',
+    'barangay_clearance',
+    'tax_identification_id',
+    'valid_id',
+    'membership_agreement'
+  ];
+
+  const documents = {};
+  documentTypes.forEach(key => {
+    if (req.files?.[key]?.[0]) {
+      documents[key] = req.files[key][0].filename;
+    } else if (formData[key]) {
+      documents[key] = formData[key];
+    }
+  });
 
   const connection = await db.getConnection();
-
   try {
     await connection.beginTransaction();
 
+    // Determine completeness based on all document fields
+    const docsComplete = documentTypes.every(key => documents[key]);
+    const statusValue = docsComplete ? 'Completed' : 'Incomplete';
+
+    // Update main member record including status
     const updateQuery = `
-      UPDATE members
-      SET 
+      UPDATE members SET
         registration_type = ?,
         last_name = ?,
         first_name = ?,
@@ -593,12 +673,15 @@ exports.updateMember = async (req, res) => {
         house_no_street = ?,
         barangay = ?,
         city = ?,
+        id_picture = ?,
         barangay_clearance = ?,
         tax_identification_id = ?,
         valid_id = ?,
-        membership_agreement = ?
+        membership_agreement = ?,
+        status = ?
       WHERE memberId = ?
     `;
+
     const params = [
       registration_type,
       last_name,
@@ -622,26 +705,54 @@ exports.updateMember = async (req, res) => {
       house_no_street,
       barangay,
       city,
-      barangay_clearance,
-      tax_identification_id,
-      valid_id,
-      membership_agreement,
+      documents.id_picture || null,
+      documents.barangay_clearance || null,
+      documents.tax_identification_id || null,
+      documents.valid_id || null,
+      documents.membership_agreement || null,
+      statusValue,
       id
     ];
-
     await connection.execute(updateQuery, params);
+
+    // Refresh beneficiaries if provided
+    if (legalBeneficiaries) {
+      // await connection.execute('DELETE FROM beneficiaries WHERE memberId = ?', [id]);
+      const allBens = [];
+      if (legalBeneficiaries.primary?.fullName) allBens.push({ type: 'primary', ...legalBeneficiaries.primary });
+      if (legalBeneficiaries.secondary?.fullName) allBens.push({ type: 'secondary', ...legalBeneficiaries.secondary });
+      (legalBeneficiaries.additional || []).forEach(b => {
+        if (b.fullName) allBens.push({ type: 'additional', ...b });
+      });
+      for (const b of allBens) {
+        await connection.execute(
+          'INSERT INTO beneficiaries(memberId, type, full_name, relationship, contact_number) VALUES(?, ?, ?, ?, ?)',
+          [id, b.type, b.fullName, b.relationship, b.contactNumber]
+        );
+      }
+
+      // Refresh character references
+      // await connection.execute('DELETE FROM character_references WHERE memberId = ?', [id]);
+      (legalBeneficiaries.characterReferences || []).forEach(async r => {
+        if (r.fullName) {
+          await connection.execute(
+            'INSERT INTO character_references(memberId, full_name, position, contact_number) VALUES(?, ?, ?, ?)',
+            [id, r.fullName, r.position, r.contactNumber]
+          );
+        }
+      });
+    }
+
     await connection.commit();
-    res.json({ message: 'Member updated successfully' });
+    res.json({ message: 'Member updated successfully', memberId: id, status: statusValue });
   } catch (error) {
-    console.error('Error updating member data:', error);
     await connection.rollback();
-    res.status(500).json({ message: 'Error updating member information' });
+    console.error('Error updating member:', error);
+    res.status(500).json({ message: 'Error updating member', error: error.message });
   } finally {
-    await connection.release();
+    connection.release();
   }
 };
-
-
 
 
 
@@ -712,12 +823,12 @@ exports.getAllMemberApplicants = async (req, res) => {
         ma.email, 
         ma.password, 
         ma.accountStatus, 
-        b.beneficiaryName, 
+        b.full_name, 
         b.relationship, 
-        b.beneficiaryContactNumber, 
-        c.referenceName, 
+        b.contact_number, 
+        c.full_name, 
         c.position, 
-        c.referenceContactNumber,
+        c.contact_number,
         s.amount AS savingsAmount
       FROM members m
       LEFT JOIN member_account ma ON m.memberId = ma.memberId
