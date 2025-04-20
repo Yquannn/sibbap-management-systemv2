@@ -27,81 +27,97 @@ const TimeDeposit = {
     co_relationship_primary,
     co_complete_address
   }) => {
+    // 1) Grab a single connection from the pool
+    const conn = await db.getConnection();
+  
     try {
-      await db.beginTransaction();
-
-      const sql = `
-        INSERT INTO time_deposit (
-          memberId, account_number, amount, fixedTerm, interest_rate, interest, 
-          payout, maturityDate, account_status, account_type
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      
-      const params = [
-        memberId,
-        account_number,
-        amount,
-        fixedTerm,
-        interest_rate,
-        interest,
-        payout,
-        maturityDate,
-        "PRE-MATURE",
-        account_type,
-      ];
-
-      const [result] = await db.execute(sql, params);
-      const timeDepositId = result.insertId;
-
+      // 2) Begin transaction on that connection
+      await conn.beginTransaction();
+  
+      // 3) Insert the time_deposit record
+      const [depositResult] = await conn.execute(
+        `INSERT INTO time_deposit (
+           memberId, account_number, amount, fixedTerm,
+           interest_rate, interest, payout, maturityDate,
+           account_status, account_type
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          memberId,
+          account_number,
+          amount,
+          fixedTerm,
+          interest_rate,
+          interest,
+          payout,
+          maturityDate,
+          "PRE-MATURE",
+          account_type,
+        ]
+      );
+      const timeDepositId = depositResult.insertId;
+  
+      // 4) If there’s a co-maker, insert that too
       if (co_last_name || co_first_name) {
-        const coSql = `
-          INSERT INTO time_deposit_co_makers (
-            time_deposit_id, co_last_name, co_middle_name, co_first_name, 
-            co_extension_name, co_date_of_birth, co_place_of_birth, co_age, 
-            co_gender, co_civil_status, co_contact_number, 
-            co_relationship_primary, co_complete_address
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        
-        const coParams = [
-          timeDepositId,
-          co_last_name,
-          co_middle_name,
-          co_first_name,
-          co_extension_name,
-          co_date_of_birth,
-          co_place_of_birth,
-          co_age,
-          co_gender,
-          co_civil_status,
-          co_contact_number,
-          co_relationship_primary,
-          co_complete_address,
-        ];
-        
-        await db.execute(coSql, coParams);
+        await conn.execute(
+          `INSERT INTO time_deposit_co_makers (
+             time_deposit_id, co_last_name, co_middle_name,
+             co_first_name, co_extension_name, co_date_of_birth,
+             co_place_of_birth, co_age, co_gender,
+             co_civil_status, co_contact_number,
+             co_relationship_primary, co_complete_address
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            timeDepositId,
+            co_last_name,
+            co_middle_name,
+            co_first_name,
+            co_extension_name,
+            co_date_of_birth,
+            co_place_of_birth,
+            co_age,
+            co_gender,
+            co_civil_status,
+            co_contact_number,
+            co_relationship_primary,
+            co_complete_address,
+          ]
+        );
       }
-
-      const transactionResult = await TimeDeposit.createTimeDepositTransaction({
-        time_deposit_id: timeDepositId,
-        transaction_number: generateTransactionNumber(),
-        transaction_date_time: new Date(),
-        transaction_type: "Deposit",
-        amount,
-        authorized_by: authorized_by || "System",
-        user_type: user_type || "System",
-        remarks: "Initial deposit"
-      });
-
-      await db.commit();
-      return { depositResult: result, transactionResult };
-    } catch (error) {
-      await db.rollback();
-      throw error;
+  
+      // 5) Record the initial‐deposit transaction
+      await conn.execute(
+        `INSERT INTO time_deposit_transactions (
+           time_deposit_id, transaction_number,
+           transaction_date_time, transaction_type,
+           amount, authorized_by, user_type, remarks
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          timeDepositId,
+          generateTransactionNumber(),
+          new Date(),
+          "Deposit",
+          amount,
+          authorized_by || "System",
+          user_type || "System",
+          "Initial deposit"
+        ]
+      );
+  
+      // 6) Commit the whole lot
+      await conn.commit();
+  
+      // 7) Return what you need
+      return { depositResult };
+    } catch (err) {
+      // Roll it back on any error
+      await conn.rollback();
+      throw err;
+    } finally {
+      // Put the connection back in the pool
+      conn.release();
     }
   },
+  
 
   createTimeDepositTransaction: async ({
     time_deposit_id,

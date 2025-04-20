@@ -12,18 +12,18 @@ exports.createTimeDeposit = async (req, res) => {
     authorized_by,
     user_type,
     // Co-maker fields
-    last_name,
-    middle_name,
-    first_name,
-    extension_name,
-    date_of_birth,
-    place_of_birth,
-    age,
-    gender,
-    civil_status,
-    contact_number,
-    relationship_primary,
-    complete_address,
+    co_last_name,
+    co_middle_name,
+    co_first_name,
+    co_extension_name,
+    co_date_of_birth,
+    co_place_of_birth,
+    co_age,
+    co_gender,
+    co_civil_status,
+    co_contact_number,
+    co_relationship_primary,
+    co_complete_address,
     // Time deposit fields
     interest_rate,
     interest,
@@ -52,18 +52,18 @@ exports.createTimeDeposit = async (req, res) => {
       authorized_by: safeValue(authorized_by), // Assuming req.userId is set by authentication middleware
       user_type: safeValue(user_type), // Assuming req.userType is set by authentication middleware
       // Include co-maker fields with co_ prefix
-      co_last_name: safeValue(last_name),
-      co_middle_name: safeValue(middle_name),
-      co_first_name: safeValue(first_name),
-      co_extension_name: safeValue(extension_name),
-      co_date_of_birth: safeValue(date_of_birth),
-      co_place_of_birth: safeValue(place_of_birth),
-      co_age: safeValue(age),
-      co_gender: safeValue(gender),
-      co_civil_status: safeValue(civil_status),
-      co_contact_number: safeValue(contact_number), 
-      co_relationship_primary: safeValue(relationship_primary),
-      co_complete_address: safeValue(complete_address)
+      co_last_name: safeValue(co_last_name),
+      co_middle_name: safeValue(co_middle_name),
+      co_first_name: safeValue(co_first_name),
+      co_extension_name: safeValue(co_extension_name),
+      co_date_of_birth: safeValue(co_date_of_birth),
+      co_place_of_birth: safeValue(co_place_of_birth),
+      co_age: safeValue(co_age),
+      co_gender: safeValue(co_gender),
+      co_civil_status: safeValue(co_civil_status),
+      co_contact_number: safeValue(co_contact_number), 
+      co_relationship_primary: safeValue(co_relationship_primary),
+      co_complete_address: safeValue(co_complete_address)
     };
 
     // Debug: log the payload to ensure no undefined values are present.
@@ -97,17 +97,19 @@ exports.createTimeDeposit = async (req, res) => {
 exports.getActiveTimeDeposits = async (req, res) => {
   try {
     const deposits = await TimeDeposit.getAllActive();
-    if (deposits.length === 0) {
-      return res.status(404).json({ error: "No active time deposits found." });
-    }
+    
+    // Return an empty array with 200 status instead of 404
     res.status(200).json({
       success: true,
       count: deposits.length,
-      data: deposits,
+      data: deposits || [], // Ensure we always return an array even if null is returned
     });
   } catch (err) {
     console.error("Error fetching active time deposits:", err.message);
-    res.status(500).json({ error: "Error fetching active time deposits." });
+    res.status(500).json({ 
+      success: false,
+      error: "Error fetching active time deposits." 
+    });
   }
 };
 

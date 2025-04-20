@@ -111,7 +111,7 @@ const MemberAndCoAccountForm = () => {
       dataForBackend.co_contact_number = null;
       dataForBackend.co_relationship_primary = null;
       dataForBackend.co_complete_address = null;
-      dataForBackend.coUploadPicture = null;
+      dataForBackend.co_UploadPicture = null;
     }
     
     console.log("Parent Form Data:", dataForBackend);

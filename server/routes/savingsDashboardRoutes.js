@@ -4,7 +4,7 @@ const savingsDashboardController = require('../controllers/savingsDashboardContr
 
 
 // Get notifications by userId
-router.get('/summary', savingsDashboardController.getSavingsDashboardSummary);
+router.get('/savings-summary', savingsDashboardController.getSavingsDashboardSummary);
 
 
 

@@ -48,11 +48,17 @@ const ShareCapital = () => {
         throw new Error("Failed to fetch members");
       }
       const fetchedMembers = response.data.members || response.data;
-      setAllMembers(fetchedMembers);
-      calculateAnalytics(fetchedMembers);
+      
+      // Ensure fetchedMembers is always an array
+      const membersArray = Array.isArray(fetchedMembers) ? fetchedMembers : [];
+      
+      setAllMembers(membersArray);
+      calculateAnalytics(membersArray);
       setError(null);
     } catch (err) {
       setError("Error fetching members: " + err.message);
+      // Initialize with empty array on error
+      setAllMembers([]);
     } finally {
       setLoading(false);
     }
@@ -79,13 +85,15 @@ const ShareCapital = () => {
   }, []);
 
   // Apply filtering based on search term on the full dataset.
-  const filteredMembers = allMembers.filter(member => {
-    const query = searchTerm.toLowerCase();
-    const firstName = member.first_name ? member.first_name.toLowerCase() : "";
-    const lastName = member.last_name ? member.last_name.toLowerCase() : "";
-    const code = member.memberCode ? member.memberCode.toLowerCase() : "";
-    return query === "" || firstName.includes(query) || lastName.includes(query) || code.includes(query);
-  });
+  const filteredMembers = Array.isArray(allMembers) 
+    ? allMembers.filter(member => {
+        const query = searchTerm.toLowerCase();
+        const firstName = member.first_name ? member.first_name.toLowerCase() : "";
+        const lastName = member.last_name ? member.last_name.toLowerCase() : "";
+        const code = member.memberCode ? member.memberCode.toLowerCase() : "";
+        return query === "" || firstName.includes(query) || lastName.includes(query) || code.includes(query);
+      })
+    : [];
 
   // Sort the filtered list so higher memberId values (assumed more recent) come first.
   const sortedMembers = [...filteredMembers].sort((a, b) => b.memberId - a.memberId);
@@ -94,7 +102,7 @@ const ShareCapital = () => {
   useEffect(() => {
     setTotalPages(Math.ceil(sortedMembers.length / membersPerPage) || 1);
     setCurrentPage(1);
-  }, [searchTerm, sortedMembers, membersPerPage]);
+  }, [searchTerm, sortedMembers.length, membersPerPage]);
 
   // Compute the slice for the current page
   const indexOfFirst = (currentPage - 1) * membersPerPage;
@@ -257,6 +265,18 @@ const ShareCapital = () => {
         </div>
       </div>
 
+      {/* Error display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <p className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            {error}
+          </p>
+        </div>
+      )}
+
       {/* Members Table with max height */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
@@ -331,8 +351,8 @@ const ShareCapital = () => {
         </div>
 
         {/* Pagination Footer */}
-        {/* Only render pagination if no search query is active */}
-        {searchTerm.trim() === "" && (
+        {/* Only render pagination if there are members to paginate */}
+        {sortedMembers.length > 0 && (
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between">
             <div className="flex items-center mb-4 sm:mb-0">
               <span className="text-sm text-gray-700">

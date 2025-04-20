@@ -207,6 +207,53 @@ const getTotalOutstandingBalance = async () => {
   return rows[0];
 };
 
+// Get average processing time (from application to approval)
+const getAverageProcessingTime = async () => {
+  const query = `
+    SELECT AVG(TIMESTAMPDIFF(DAY, created_at, approval_date)) AS avg_days
+    FROM loan_applications 
+    WHERE status = 'Approved' OR remarks = 'Disbursed'
+  `;
+  const [rows] = await db.execute(query);
+  return rows[0];
+};
+
+// Get loan performance metrics
+const getLoanPerformanceMetrics = async () => {
+  const query = `
+    SELECT 
+      COUNT(*) as total_loans,
+      SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) / COUNT(*) * 100 as approval_rate,
+      SUM(CASE WHEN remarks = 'Disbursed' THEN 1 ELSE 0 END) / 
+        SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) * 100 as disbursement_rate,
+      AVG(CASE 
+        WHEN loan_status = 'Completed' AND balance = 0 
+        THEN DATEDIFF(completion_date, disbursed_date)
+        ELSE NULL 
+      END) as avg_completion_days
+    FROM loan_applications
+  `;
+  const [rows] = await db.execute(query);
+  return rows[0];
+};
+
+// Get loan analysis by purpose
+const getLoanAnalysisByPurpose = async () => {
+  // const query = `
+  //   SELECT 
+  //     loan_purpose,
+  //     COUNT(*) as total_applications,
+  //     AVG(loan_amount) as avg_amount,
+  //     SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) / COUNT(*) * 100 as approval_rate
+  //   FROM loan_applications
+  //   GROUP BY loan_purpose
+  //   ORDER BY total_applications DESC
+  // `;
+  // const [rows] = await db.execute(query);
+  // return rows;
+};
+
+
 module.exports = {
   getTotalLoanApplication,
   getTotalLoanApprove,
@@ -224,5 +271,8 @@ module.exports = {
   getTotalServiceFees,
   getLoanTermDistribution,
   getTopBorrowers,
-  getTotalOutstandingBalance
+  getTotalOutstandingBalance,
+  getAverageProcessingTime,
+  getLoanPerformanceMetrics,
+  getLoanAnalysisByPurpose
 };

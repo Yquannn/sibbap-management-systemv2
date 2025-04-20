@@ -12,37 +12,33 @@ exports.getMembers = async (req, res) => {
 
     let query = `
       SELECT 
-         mi.*, 
-      ma.email, 
-      ma.password, 
-      ma.accountStatus, 
-      b.full_name, 
-      b.relationship, 
-      b.contact_number, 
-      c.full_name, 
-      c.position, 
-      c.contact_number,
-      s.amount AS savingsAmount
-    FROM members mi
-    LEFT JOIN member_account ma ON mi.memberId = ma.memberId
-    LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
-    LEFT JOIN character_references c ON mi.memberId = c.memberId
-    LEFT JOIN regular_savings s ON mi.memberId = s.memberId
-    
-    WHERE mi.status = 'Active'
+        mi.*, 
+        ma.email, 
+        ma.password, 
+        ma.accountStatus, 
+        b.full_name AS beneficiary_name, 
+        b.relationship AS beneficiary_relationship, 
+        b.contact_number AS beneficiary_contact_number, 
+        c.full_name AS character_reference_name, 
+        c.position AS character_reference_position, 
+        c.contact_number AS character_reference_contact_number,
+        s.amount AS savingsAmount
+      FROM members mi
+      LEFT JOIN member_account ma ON mi.memberId = ma.memberId
+      LEFT JOIN beneficiaries b ON mi.memberId = b.memberId
+      LEFT JOIN character_references c ON mi.memberId = c.memberId
+      LEFT JOIN regular_savings s ON mi.memberId = s.memberId
+      WHERE mi.status = 'Active'
     `;
 
     const queryParams = [];
 
     if (memberName) {
-      query += ' WHERE LOWER(mi.lastName) = ?';
+      query += ' AND LOWER(mi.lastName) = ?';
       queryParams.push(memberName);
     }
 
-    // Execute the safe query
     const members = await queryDatabase(query, queryParams);
-
-
 
     res.json(members.length > 0 ? members : { message: 'No members found' });
   } catch (error) {
@@ -583,8 +579,6 @@ exports.getMemberSavings = async (req, res) => {
   }
 };
 
-
-
 exports.updateMember = async (req, res) => {
   const id = req.params.id;
   if (!id || typeof id !== 'string' || id.trim() === '') {
@@ -594,7 +588,7 @@ exports.updateMember = async (req, res) => {
   // Parse JSON body
   const formData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-  // Destructure fields
+  // Destructure non-document fields
   const {
     registration_type,
     last_name,
@@ -618,37 +612,57 @@ exports.updateMember = async (req, res) => {
     house_no_street,
     barangay,
     city,
-    tax_identification_id,
     legalBeneficiaries = {}
   } = formData;
 
-  // Document types to check (use correct keys)
+  // Only these four count towards completeness
   const documentTypes = [
-    'id_picture',
     'barangay_clearance',
     'tax_identification_id',
     'valid_id',
     'membership_agreement'
   ];
 
-  const documents = {};
-  documentTypes.forEach(key => {
-    if (req.files?.[key]?.[0]) {
-      documents[key] = req.files[key][0].filename;
-    } else if (formData[key]) {
-      documents[key] = formData[key];
-    }
-  });
-
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Determine completeness based on all document fields
-    const docsComplete = documentTypes.every(key => documents[key]);
+    // 1) Load existing filenames, including id_picture
+    const allColumns = ['id_picture', ...documentTypes];
+    const [rows] = await connection.execute(
+      `SELECT ${allColumns.join(', ')} FROM members WHERE memberId = ?`,
+      [id]
+    );
+    const existingDocs = rows[0] || {};
+
+    // 2) Build new documents object, with id_picture handled separately
+    const documents = {};
+
+    // id_picture fallback
+    if (req.files?.id_picture?.[0]) {
+      documents.id_picture = req.files.id_picture[0].filename;
+    } else if (formData.id_picture) {
+      documents.id_picture = formData.id_picture;
+    } else {
+      documents.id_picture = existingDocs.id_picture;
+    }
+
+    // other docs
+    for (const key of documentTypes) {
+      if (req.files?.[key]?.[0]) {
+        documents[key] = req.files[key][0].filename;
+      } else if (formData[key]) {
+        documents[key] = formData[key];
+      } else {
+        documents[key] = existingDocs[key];
+      }
+    }
+
+    // Determine completeness based on only the four required docs
+    const docsComplete = documentTypes.every(key => !!documents[key]);
     const statusValue = docsComplete ? 'Completed' : 'Incomplete';
 
-    // Update main member record including status
+    // 3) Update main member record
     const updateQuery = `
       UPDATE members SET
         registration_type = ?,
@@ -681,7 +695,6 @@ exports.updateMember = async (req, res) => {
         status = ?
       WHERE memberId = ?
     `;
-
     const params = [
       registration_type,
       last_name,
@@ -705,22 +718,30 @@ exports.updateMember = async (req, res) => {
       house_no_street,
       barangay,
       city,
-      documents.id_picture || null,
-      documents.barangay_clearance || null,
-      documents.tax_identification_id || null,
-      documents.valid_id || null,
-      documents.membership_agreement || null,
+      // id_picture first
+      documents.id_picture,
+      // then the four docs
+      documents.barangay_clearance,
+      documents.tax_identification_id,
+      documents.valid_id,
+      documents.membership_agreement,
       statusValue,
       id
     ];
     await connection.execute(updateQuery, params);
 
-    // Refresh beneficiaries if provided
+    // 4) Refresh beneficiaries/character references if provided
     if (legalBeneficiaries) {
-      // await connection.execute('DELETE FROM beneficiaries WHERE memberId = ?', [id]);
+      await connection.execute('DELETE FROM beneficiaries WHERE memberId = ?', [id]);
+      await connection.execute('DELETE FROM character_references WHERE memberId = ?', [id]);
+
       const allBens = [];
-      if (legalBeneficiaries.primary?.fullName) allBens.push({ type: 'primary', ...legalBeneficiaries.primary });
-      if (legalBeneficiaries.secondary?.fullName) allBens.push({ type: 'secondary', ...legalBeneficiaries.secondary });
+      if (legalBeneficiaries.primary?.fullName) {
+        allBens.push({ type: 'primary', ...legalBeneficiaries.primary });
+      }
+      if (legalBeneficiaries.secondary?.fullName) {
+        allBens.push({ type: 'secondary', ...legalBeneficiaries.secondary });
+      }
       (legalBeneficiaries.additional || []).forEach(b => {
         if (b.fullName) allBens.push({ type: 'additional', ...b });
       });
@@ -731,8 +752,6 @@ exports.updateMember = async (req, res) => {
         );
       }
 
-      // Refresh character references
-      // await connection.execute('DELETE FROM character_references WHERE memberId = ?', [id]);
       (legalBeneficiaries.characterReferences || []).forEach(async r => {
         if (r.fullName) {
           await connection.execute(
@@ -753,6 +772,8 @@ exports.updateMember = async (req, res) => {
     connection.release();
   }
 };
+
+
 
 
 

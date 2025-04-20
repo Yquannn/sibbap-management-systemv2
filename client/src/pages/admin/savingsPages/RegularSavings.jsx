@@ -1,5 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { FaEye, FaSearch, FaFilter, FaSyncAlt, FaChevronDown } from "react-icons/fa";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  FaEye,
+  FaSearch,
+  FaSyncAlt,
+  FaChevronDown,
+} from "react-icons/fa";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -9,163 +14,222 @@ const RegularSavings = ({ openModal, handleDelete }) => {
   const [filterQuery, setFilterQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
-  const navigate = useNavigate();
 
-  // Pagination states
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
 
-  // Fetch data from the backend
-  const fetchSavings = async () => {
+  const navigate = useNavigate();
+
+  // Stable fetch function
+  const fetchSavings = useCallback(async () => {
+    setLoading(true);
+    setRefreshing(true);
     try {
-      setRefreshing(true);
-      const response = await axios.get("http://localhost:3001/api/members/savings");
-      setMembers(response.data.data);
-    } catch (error) {
-      console.error("Error fetching member savings:", error);
+      const { data } = await axios.get(
+        "http://localhost:3001/api/members/savings"
+      );
+      setMembers(Array.isArray(data.data) ? data.data : []);
+    } catch (err) {
+      console.error("Error fetching member savings:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSavings();
-  }, []);
+  }, [fetchSavings]);
 
-  // Filtering logic: filter members based on the filterQuery and status, applied on the entire dataset.
-  const filteredMembers = members.filter((member) => {
-    const query = filterQuery.toLowerCase();
-    const fullName = member.fullName ? member.fullName.toLowerCase() : "";
-    const code = member.memberCode ? member.memberCode.toLowerCase() : "";
-    const status = member.savingsStatus || "Active";
+  // Filter + sort
+  const filtered = members.filter((m) => {
+    const q = filterQuery.toLowerCase();
+    const name = (m.fullName || "").toLowerCase();
+    const code = (m.memberCode || "").toLowerCase();
+    const status = m.savingsStatus || "Active";
 
-    const matchesQuery = query === "" || fullName.includes(query) || code.includes(query);
-    const matchesStatus = selectedStatus === "All" || status === selectedStatus;
-
-    return matchesQuery && matchesStatus;
+    return (
+      (q === "" || name.includes(q) || code.includes(q)) &&
+      (selectedStatus === "All" || status === selectedStatus)
+    );
   });
 
-  // Sort filtered members by latest (assuming higher memberId is more recent)
-  const sortedMembers = [...filteredMembers].sort((a, b) => b.memberId - a.memberId);
+  const sorted = [...filtered].sort(
+    (a, b) => b.memberId - a.memberId
+  );
 
-  // Determine paginated members for when no search is active.
-  const indexOfFirst = (currentPage - 1) * itemsPerPage;
-  const indexOfLast = currentPage * itemsPerPage;
-  const paginatedMembers = sortedMembers.slice(indexOfFirst, indexOfLast);
+  // Pagination slice
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = currentPage * itemsPerPage;
+  const paginated = sorted.slice(start, end);
 
-  // If a search query is provided, display all matching records.
-  const displayMembers = filterQuery.trim() ? sortedMembers : paginatedMembers;
+  // If searching, show *all* matches; otherwise page
+  const display = filterQuery.trim() ? sorted : paginated;
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
 
-  // Calculate total pages only for the unfiltered (paginated) view.
-  const totalPages = Math.ceil(sortedMembers.length / itemsPerPage);
-
-  // Handler for page navigation
-  const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
+  // Handlers
+  const goToPage = (p) =>
+    p >= 1 && p <= totalPages && setCurrentPage(p);
+  const handleItemsChange = (e) => {
+    setItemsPerPage(+e.target.value);
+    setCurrentPage(1);
   };
-
-  // Handler for items per page change
-  const handleItemsPerPageChange = (e) => {
-    setItemsPerPage(Number(e.target.value));
-    setCurrentPage(1); // Reset to first page when changing items per page
-  };
-
-  // Handler for search Enter key: resets pagination.
   const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      setCurrentPage(1);
-    }
+    if (e.key === "Enter") setCurrentPage(1);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
 
   return (
     <div className="">
-      {/* Header and Analytics Section */}
+      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Regular Savings</h1>
-        <p className="text-gray-600">Manage and view member savings accounts</p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+          Regular Savings
+        </h1>
+        <p className="text-gray-600">
+          Manage and view member savings accounts
+        </p>
       </div>
 
       {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+        {/* Total Members */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Total Members</p>
-              <p className="text-3xl font-bold text-gray-800">{members.length}</p>
-              <p className="text-xs text-green-500 mt-2 font-medium">+3.2% from last month</p>
+              <p className="text-sm text-gray-500 mb-1">
+                Total Members
+              </p>
+              <p className="text-3xl font-bold text-gray-800">
+                {members.length}
+              </p>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
-              <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
+              {/* example icon */}
+              <svg
+                className="h-6 w-6 text-blue-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z"
+                />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+        {/* Active */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Active Accounts</p>
-              <p className="text-3xl font-bold text-gray-800">
-                {members.filter((m) => (m.savingsStatus || "Active") === "Active").length}
+              <p className="text-sm text-gray-500 mb-1">
+                Active Accounts
               </p>
-              <p className="text-xs text-green-500 mt-2 font-medium">+2.1% from last month</p>
+              <p className="text-3xl font-bold text-gray-800">
+                {
+                  members.filter(
+                    (m) =>
+                      (m.savingsStatus || "Active") === "Active"
+                  ).length
+                }
+              </p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
-              <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="h-6 w-6 text-green-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+        {/* Avg. Age */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Average Age</p>
-              <p className="text-3xl font-bold text-gray-800">
-                {Math.round(members.reduce((acc, m) => acc + (m.age || 0), 0) / (members.length || 1))}
+              <p className="text-sm text-gray-500 mb-1">
+                Average Age
               </p>
-              <p className="text-xs text-gray-500 mt-2 font-medium">Years</p>
+              <p className="text-3xl font-bold text-gray-800">
+                {Math.round(
+                  members.reduce((sum, m) => sum + (m.age || 0), 0) /
+                    (members.length || 1)
+                )}
+              </p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
-              <svg className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="h-6 w-6 text-purple-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+        {/* New This Month */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">New This Month</p>
-              <p className="text-3xl font-bold text-gray-800">
-                {members.filter((m) => {
-                  const joinDate = new Date(m.join_date || new Date());
-                  const currentDate = new Date();
-                  return (
-                    joinDate.getMonth() === currentDate.getMonth() &&
-                    joinDate.getFullYear() === currentDate.getFullYear()
-                  );
-                }).length}
+              <p className="text-sm text-gray-500 mb-1">
+                New This Month
               </p>
-              <p className="text-xs text-green-500 mt-2 font-medium">+5.3% from last month</p>
+              <p className="text-3xl font-bold text-gray-800">
+                {
+                  members.filter((m) => {
+                    const jd = new Date(m.join_date || null);
+                    const now = new Date();
+                    return (
+                      jd.getMonth() === now.getMonth() &&
+                      jd.getFullYear() === now.getFullYear()
+                    );
+                  }).length
+                }
+              </p>
             </div>
             <div className="bg-amber-100 p-3 rounded-lg">
-              <svg className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg
+                className="h-6 w-6 text-amber-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
             </div>
           </div>
@@ -176,19 +240,17 @@ const RegularSavings = ({ openModal, handleDelete }) => {
       <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
         <div className="flex flex-col md:flex-row gap-4 justify-between">
           <div className="relative md:w-1/3">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <FaSearch className="text-gray-400" />
-            </div>
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, code..."
+              placeholder="Search by name or code..."
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative">
               <select
@@ -201,99 +263,104 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                 <option value="Inactive">Inactive</option>
                 <option value="Pending">Pending</option>
               </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <FaChevronDown className="text-gray-400 text-xs" />
-              </div>
+              <FaChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
-            
+
             <button
               onClick={fetchSavings}
-              className={`flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition ${
-                refreshing ? "cursor-not-allowed opacity-70" : ""
-              }`}
               disabled={refreshing}
+              className={`flex items-center gap-2 py-2.5 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition ${
+                refreshing ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              <FaSyncAlt className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
+              <FaSyncAlt
+                className={`h-4 w-4 ${
+                  refreshing ? "animate-spin" : ""
+                }`}
+              />
+              Refresh
             </button>
           </div>
         </div>
       </div>
 
-      {/* Savings Table with max height */}
+      {/* Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+        <div className="overflow-auto max-h-[400px]">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Code Number
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Account No.
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Full Name
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Date of Birth
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Age
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Contact Number
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                {[
+                  "Code Number",
+                  "Account No.",
+                  "Full Name",
+                  "Date of Birth",
+                  "Age",
+                  "Contact Number",
+                  "Status",
+                  "Actions",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {displayMembers.length > 0 ? (
-                displayMembers.map((member, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {member.memberCode}
+              {display.length > 0 ? (
+                display.map((m, i) => (
+                  <tr
+                    key={i}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {m.memberCode}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {member.account_number || "N/A"}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {m.account_number || "N/A"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{member.fullName}</div>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {m.fullName}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(member.date_of_birth).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {new Date(m.date_of_birth).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        }
+                      )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {member.age}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {m.age}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {member.contact_number}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {m.contact_number}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          (member.savingsStatus || "Active") === "Active"
-                            ? "bg-green-100 text-green-800"
-                            : (member.savingsStatus || "Active") === "Inactive"
+                        className={`px-2 inline-flex text-xs font-semibold rounded-full ${
+                          m.savingsStatus === "Inactive"
                             ? "bg-gray-100 text-gray-800"
-                            : "bg-yellow-100 text-yellow-800"
+                            : m.savingsStatus === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
                         }`}
                       >
-                        {member.savingsStatus || "Active"}
+                        {m.savingsStatus || "Active"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
-                        onClick={() => navigate(`/regular-savings-info/${member.memberId}`)}
+                        onClick={() =>
+                          navigate(`/regular-savings-info/${m.memberId}`)
+                        }
                         className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-md hover:bg-blue-100 transition-colors"
                       >
                         <FaEye className="mr-1.5 h-3.5 w-3.5" /> View
@@ -303,10 +370,33 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="px-6 py-10 text-center text-gray-500 text-sm">
-                    {filterQuery || selectedStatus !== "All"
-                      ? "No matching records found."
-                      : "No savings data available."}
+                  <td colSpan={8} className="py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-12 w-12 text-gray-300 mb-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <p className="text-gray-500 text-lg font-medium">
+                        {filterQuery
+                          ? "No matching members found"
+                          : "No members found"}
+                      </p>
+                      <p className="text-gray-400 mt-1">
+                        {filterQuery
+                          ? "Try a different search term"
+                          : "Add members to see them here"}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -314,33 +404,33 @@ const RegularSavings = ({ openModal, handleDelete }) => {
           </table>
         </div>
 
-        {/* Table Footer with Pagination (only show pagination if no search query is active) */}
-        {filterQuery.trim() === "" && (
+        {/* Pagination */}
+        {filterQuery.trim() === "" && totalPages > 1 && (
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between">
             <div className="flex items-center mb-4 sm:mb-0">
               <span className="text-sm text-gray-700">
-                Showing <span className="font-medium">{indexOfFirst + 1}</span> to{" "}
+                Showing{" "}
+                <span className="font-medium">{start + 1}</span> to{" "}
                 <span className="font-medium">
-                  {Math.min(indexOfLast, sortedMembers.length)}
+                  {Math.min(end, sorted.length)}
                 </span>{" "}
-                of <span className="font-medium">{sortedMembers.length}</span> results
+                of <span className="font-medium">{sorted.length}</span>{" "}
+                results
               </span>
-              
               <div className="ml-4">
                 <select
                   value={itemsPerPage}
-                  onChange={handleItemsPerPageChange}
-                  className="text-sm border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={handleItemsChange}
+                  className="text-sm border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={5}>5 per page</option>
-                  <option value={10}>10 per page</option>
-                  <option value={15}>15 per page</option>
-                  <option value={25}>25 per page</option>
-                  <option value={50}>50 per page</option>
+                  {[5, 10, 15, 25, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n} per page
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
-            
             <div className="flex items-center space-x-1">
               <button
                 onClick={() => goToPage(currentPage - 1)}
@@ -351,47 +441,26 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                     : "text-gray-700 bg-white hover:bg-gray-100"
                 }`}
               >
-                <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
                 Prev
               </button>
-              
-              <div className="flex items-center">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Logic to determine which page numbers to show
-                  let pageNumber;
-                  
-                  if (totalPages <= 5) {
-                    // If we have 5 or fewer pages, show all of them
-                    pageNumber = i + 1;
-                  } else if (currentPage <= 3) {
-                    // If we're near the start, show 1 through 5
-                    pageNumber = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    // If we're near the end, show the last 5 pages
-                    pageNumber = totalPages - 4 + i;
-                  } else {
-                    // Otherwise show 2 before and 2 after current page
-                    pageNumber = currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => goToPage(pageNumber)}
-                      className={`px-3 py-1.5 mx-0.5 text-sm font-medium rounded-md ${
-                        currentPage === pageNumber
-                          ? "bg-blue-600 text-white"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  );
-                })}
-              </div>
-              
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .slice(
+                  Math.max(0, currentPage - 3),
+                  Math.min(totalPages, currentPage + 2)
+                )
+                .map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => goToPage(p)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                      p === currentPage
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 bg-white hover:bg-gray-100"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
               <button
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -402,9 +471,6 @@ const RegularSavings = ({ openModal, handleDelete }) => {
                 }`}
               >
                 Next
-                <svg className="h-4 w-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
               </button>
             </div>
           </div>

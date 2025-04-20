@@ -18,6 +18,7 @@ const savingsSummary = require('./routes/savingsDashboardRoutes'); // FIXED THIS
 const loanDashboardRoutes = require('./routes/loanDashboardRoutes'); // FIXED THIS LINE
 const timedepositRoutes = require('./routes/timedepositTransactionRoutes'); // FIXED THIS LINE
 const timedepositRolloverRoutes = require('./routes/timedepositRolloverRoutes'); // FIXED THIS LINE
+const memberMaintenanceRoutes = require('./routes/memberMaintenanceRoute'); // FIXED THIS LINE
 
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api', savingsSummary);
 app.use('/api', loanDashboardRoutes); 
 app.use('/api', timedepositRoutes);
 app.use('/api', timedepositRolloverRoutes); // FIXED THIS LINE
+app.use('/api', memberMaintenanceRoutes); // FIXED THIS LINE
 
 
 app.use((err, req, res, next) => {

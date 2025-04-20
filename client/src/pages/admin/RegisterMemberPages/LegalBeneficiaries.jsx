@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Default values for legal beneficiaries and documents
 const initialLegalBeneficiaries = {
@@ -10,6 +11,7 @@ const initialLegalBeneficiaries = {
     { fullName: "", position: "", contactNumber: "" },
   ],
 };
+
 
 const initialDocuments = {
   id_picture: null,
