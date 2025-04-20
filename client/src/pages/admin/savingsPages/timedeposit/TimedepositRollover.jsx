@@ -102,14 +102,19 @@ export default function TimeDepositRollover() {
   const handleRollover = async () => {
     setSubmitLoading(true);
     setError(null);
-
+  
     try {
       const maturityDate = timeDeposit.maturityDate ? 
         (typeof timeDeposit.maturityDate === 'string' ? 
           timeDeposit.maturityDate.split("T")[0] : 
           new Date(timeDeposit.maturityDate).toISOString().split("T")[0]) : 
         '';
-
+      
+      // Calculate new interest amount
+      const days = rolloverOptions.selectedTerm === 6 ? 182 : 365;
+      const newInterestAmount = totalRolloverAmount * newInterestRate * (days / 365);
+      const newPayout = totalRolloverAmount + newInterestAmount;
+  
       const payload = {
         timeDepositId: parseInt(timeDepositId, 10),
         rollover_date: new Date().toISOString().split("T")[0],
@@ -119,9 +124,16 @@ export default function TimeDepositRollover() {
           ? parseFloat(timeDeposit.interest || 0)
           : 0,
         rollover_amount: totalRolloverAmount,
+        // Store interest rate as string with % format for display purposes
+        new_interest_rate: (newInterestRate * 100).toFixed(2) + '%',
+        new_term: rolloverOptions.selectedTerm,
+        interest: newInterestAmount,
+        payout: newPayout,
         created_by: sessionStorage.getItem("username") || "Unknown User",
       };
-
+  
+      console.log("Sending rollover payload:", payload);
+  
       const response = await axios.post(
         "http://localhost:3001/api/timedeposit/rollover",
         payload
@@ -209,21 +221,25 @@ export default function TimeDepositRollover() {
           <h3 className="font-medium mb-4">Rollover Options</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-gray-600 block mb-1">Term</label>
-              <select
-                className="w-full border rounded p-2"
-                value={rolloverOptions.selectedTerm}
-                onChange={(e) =>
-                  setRolloverOptions((p) => ({
-                    ...p,
-                    selectedTerm: parseInt(e.target.value, 10),
-                  }))
-                }
-              >
-                {termOptions.map((m) => (
-                  <option key={m} value={m}>{m} months</option>
-                ))}
-              </select>
+            <label className="text-sm text-gray-600 block mb-1">Term</label>
+<select
+  className="w-full border rounded p-2"
+  value={rolloverOptions.selectedTerm || ""}
+  onChange={(e) =>
+    setRolloverOptions((p) => ({
+      ...p,
+      selectedTerm: parseInt(e.target.value, 10) || null, // Fallback if not a number
+    }))
+  }
+>
+  <option value="" disabled>Select term</option>
+  {termOptions.map((m) => (
+    <option key={m} value={m}>
+      {m} months
+    </option>
+  ))}
+</select>
+
             </div>
             <div>
               <label className="flex items-center">
