@@ -41,24 +41,35 @@ ChartJS.register(
 );
 
 // LoanDisbursementCard component with updated data
-const LoanDisbursementCard = ({ totalLoanDisbursed }) => {
+const LoanDisbursementCard = ({ totalLoanDisbursed, monthlyStats }) => {
   const [timeRange, setTimeRange] = useState("Last 7 days");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const disbursementData = useMemo(() => {
-    switch(timeRange) {
-      case "Yesterday":
-        return [0, 0, 0, 180000];
-      case "Today":
-        return [0, 0, 0, 50000];
-      case "Last 30 days":
-        return [180000, 220000, 200000, 240000];
-      case "Last 90 days":
-        return [160000, 190000, 220000, 250000];
-      default: // Last 7 days
-        return [150000, 200000, 180000, 220000];
+    // Default to zeros
+    const baseData = [0, 0, 0, 0];
+    
+    // If monthly stats are available, use the most recent month's data
+    if (monthlyStats && monthlyStats.length > 0) {
+      const latestMonth = monthlyStats[0];
+      baseData[3] = parseFloat(latestMonth.disbursed_amount) || 0;
     }
-  }, [timeRange]);
+    
+    return baseData;
+  }, [timeRange, monthlyStats]);
+
+  // Calculate growth rate based on available data
+  const calculateGrowthRate = () => {
+    if (!monthlyStats || monthlyStats.length < 2) return "0%";
+    
+    const currentMonth = parseFloat(monthlyStats[0]?.disbursed_amount) || 0;
+    const previousMonth = parseFloat(monthlyStats[1]?.disbursed_amount) || 0;
+    
+    if (previousMonth === 0) return "0%";
+    
+    const growthRate = ((currentMonth - previousMonth) / previousMonth) * 100;
+    return `${growthRate > 0 ? '+' : ''}${growthRate.toFixed(1)}%`;
+  };
 
   return (
     <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
@@ -79,7 +90,7 @@ const LoanDisbursementCard = ({ totalLoanDisbursed }) => {
           </p>
         </div>
         <div className="flex items-center px-3 py-1 text-sm font-medium text-green-600 bg-green-100 rounded-full">
-          23%
+          {calculateGrowthRate()}
           <svg
             className="w-3 h-3 ml-1"
             aria-hidden="true"
@@ -244,6 +255,18 @@ const RiskAssessmentCard = ({ loansByType }) => {
   // Calculate total loans
   const totalLoans = loansByType ? loansByType.reduce((acc, item) => acc + item.count, 0) : 0;
   
+  // Generate colors based on number of loan types
+  const generateColors = (count) => {
+    const baseColors = ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6'];
+    const colors = [];
+    
+    for (let i = 0; i < count; i++) {
+      colors.push(baseColors[i % baseColors.length]);
+    }
+    
+    return colors;
+  };
+  
   // Prepare data for the pie chart
   const riskScoreData = {
     labels: loansByType ? loansByType.map(item => item.loan_type) : [],
@@ -251,7 +274,7 @@ const RiskAssessmentCard = ({ loansByType }) => {
       {
         label: 'Loan Types',
         data: loansByType ? loansByType.map(item => item.count) : [],
-        backgroundColor: ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6'],
+        backgroundColor: generateColors(loansByType ? loansByType.length : 0),
         borderWidth: 0,
       },
     ],
@@ -292,7 +315,7 @@ const RiskAssessmentCard = ({ loansByType }) => {
                   label: function(context) {
                     const label = context.label || '';
                     const value = context.parsed || 0;
-                    const percentage = Math.round((value / totalLoans) * 100);
+                    const percentage = totalLoans > 0 ? Math.round((value / totalLoans) * 100) : 0;
                     return `${label}: ${percentage}% (${value} loans)`;
                   }
                 }
@@ -315,17 +338,66 @@ const RiskAssessmentCard = ({ loansByType }) => {
   );
 };
 
-// Loan Repayment Analytics Card
-const LoanRepaymentAnalyticsCard = ({ averageLoanAmount, repaymentRate, overdueLoanCount }) => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+// Loan Repayment Analytics Card - Fixed to use real data
+const LoanRepaymentAnalyticsCard = ({ averageLoanAmount, repaymentRate, overdueLoanCount, monthlyStats }) => {
+  // Generate months from current month backward
+  const getMonthLabels = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonth = new Date().getMonth();
+    const labels = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const monthIndex = (currentMonth - i + 12) % 12;
+      labels.push(months[monthIndex]);
+    }
+    
+    return labels.reverse();
+  };
   
-  const repaymentData = {
+  const months = getMonthLabels();
+  
+  // Create data based on monthly statistics
+  const generateMonthlyData = () => {
+    // Initialize with zeros
+    const expectedRepayments = [0, 0, 0, 0, 0, 0];
+    const actualRepayments = [0, 0, 0, 0, 0, 0];
+    const rates = [0, 0, 0, 0, 0, 0];
+    
+    // If we have monthly statistics, use them
+    if (monthlyStats && monthlyStats.length > 0) {
+      for (let i = 0; i < Math.min(monthlyStats.length, 6); i++) {
+        // Use the data in reverse (most recent first)
+        const idx = 5 - i;
+        if (idx >= 0) {
+          const monthStat = monthlyStats[i];
+          expectedRepayments[idx] = parseFloat(monthStat.disbursed_amount) || 0;
+          
+          // Calculate actual repayments based on repayment rate
+          const rate = parseFloat(repaymentRate) || 0;
+          actualRepayments[idx] = expectedRepayments[idx] * (rate / 100);
+          
+          // Use the actual repayment rate
+          rates[idx] = rate;
+        }
+      }
+    }
+    
+    return {
+      expected: expectedRepayments,
+      actual: actualRepayments,
+      rates: rates
+    };
+  };
+  
+  const repaymentData = generateMonthlyData();
+  
+  const repaymentChartData = {
     labels: months,
     datasets: [
       {
         type: 'bar',
         label: 'Expected Repayments',
-        data: [400000, 420000, 450000, 470000, 490000, 510000],
+        data: repaymentData.expected,
         backgroundColor: 'rgba(99, 102, 241, 0.7)',
         borderColor: 'rgba(99, 102, 241, 1)',
         borderWidth: 1,
@@ -334,7 +406,7 @@ const LoanRepaymentAnalyticsCard = ({ averageLoanAmount, repaymentRate, overdueL
       {
         type: 'bar',
         label: 'Actual Repayments',
-        data: [380000, 400000, 440000, 420000, 460000, 490000],
+        data: repaymentData.actual,
         backgroundColor: 'rgba(16, 185, 129, 0.7)',
         borderColor: 'rgba(16, 185, 129, 1)',
         borderWidth: 1,
@@ -343,7 +415,7 @@ const LoanRepaymentAnalyticsCard = ({ averageLoanAmount, repaymentRate, overdueL
       {
         type: 'line',
         label: 'Repayment Rate',
-        data: [95, 95.2, 97.8, 89.4, 93.9, 96.1],
+        data: repaymentData.rates,
         borderColor: 'rgba(245, 158, 11, 1)',
         backgroundColor: 'rgba(245, 158, 11, 0.2)',
         borderWidth: 2,
@@ -377,7 +449,7 @@ const LoanRepaymentAnalyticsCard = ({ averageLoanAmount, repaymentRate, overdueL
       </div>
       <div className="h-72">
         <Bar
-          data={repaymentData}
+          data={repaymentChartData}
           options={{
             responsive: true,
             maintainAspectRatio: false,
@@ -491,14 +563,21 @@ const LoanRepaymentAnalyticsCard = ({ averageLoanAmount, repaymentRate, overdueL
   );
 };
 
-// Loan Performance Radar Chart
-const LoanPerformanceCard = ({ monthlyStats }) => {
+// Loan Performance Radar Chart - Fixed to use performanceMetrics
+const LoanPerformanceCard = ({ monthlyStats, performanceMetrics }) => {
+  // Use actual data from performanceMetrics with fallbacks to 0
   const performanceData = {
     labels: ['Applications', 'Approvals', 'Disbursements', 'Processing Speed', 'Customer Satisfaction'],
     datasets: [
       {
         label: 'Current Period',
-        data: [85, 94, 78, 88, 90],
+        data: [
+          (performanceMetrics?.applicationRate || 0) * 50, // Scale for radar chart
+          parseFloat(performanceMetrics?.approvalRate) || 0,
+          parseFloat(performanceMetrics?.disbursementRate) || 0,
+          performanceMetrics?.processingSpeed || 0,
+          performanceMetrics?.satisfaction || 0
+        ],
         backgroundColor: 'rgba(99, 102, 241, 0.2)',
         borderColor: 'rgba(99, 102, 241, 1)',
         borderWidth: 2,
@@ -510,7 +589,7 @@ const LoanPerformanceCard = ({ monthlyStats }) => {
       },
       {
         label: 'Previous Period',
-        data: [80, 90, 75, 82, 85],
+        data: [0, 0, 0, 0, 0], // Default to 0 for previous period
         backgroundColor: 'rgba(209, 213, 219, 0.2)',
         borderColor: 'rgba(156, 163, 175, 1)',
         borderWidth: 2,
@@ -523,13 +602,10 @@ const LoanPerformanceCard = ({ monthlyStats }) => {
     ],
   };
 
-  // Calculate approval rate from monthly stats if available
-  const approvalRate = monthlyStats && monthlyStats.length > 0 ? 
-    ((parseInt(monthlyStats[0].approved) / monthlyStats[0].total_applications) * 100).toFixed(1) : 0;
-
-  // Calculate disbursement rate from monthly stats if available
-  const disbursementRate = monthlyStats && monthlyStats.length > 0 ? 
-    ((parseInt(monthlyStats[0].disbursed) / parseInt(monthlyStats[0].approved)) * 100).toFixed(1) : 0;
+  // Use real data from performanceMetrics
+  const approvalRate = performanceMetrics?.approvalRate ? parseFloat(performanceMetrics.approvalRate).toFixed(1) : 0;
+  const disbursementRate = performanceMetrics?.disbursementRate ? parseFloat(performanceMetrics.disbursementRate).toFixed(1) : 0;
+  const avgProcessingDays = performanceMetrics?.avgProcessingDays || 0;
 
   return (
     <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
@@ -560,10 +636,10 @@ const LoanPerformanceCard = ({ monthlyStats }) => {
                   },
                   color: '#4B5563',
                 },
-                suggestedMin: 50,
+                suggestedMin: 0,
                 suggestedMax: 100,
                 ticks: {
-                  stepSize: 10,
+                  stepSize: 20,
                   backdropColor: 'transparent',
                   font: {
                     size: 10,
@@ -614,16 +690,19 @@ const LoanPerformanceCard = ({ monthlyStats }) => {
         </div>
         <div className="flex flex-col items-center justify-center p-3 border border-gray-100 rounded-lg">
           <span className="text-xs font-medium text-gray-500">Avg. Processing</span>
-          <span className="text-lg font-bold text-indigo-600">2.5 days</span>
+          <span className="text-lg font-bold text-indigo-600">{avgProcessingDays} days</span>
         </div>
       </div>
     </div>
   );
 };
 
-// Enhanced StatsCard Component - Fixed color prop usage
-const StatsCard = ({ icon, label, value, growth, color }) => {
-  const isPositive = growth.startsWith('+');
+// Enhanced StatsCard Component with dynamic growth calculation
+const StatsCard = ({ icon, label, value, color }) => {
+  // Calculate the growth dynamically based on value
+  // Setting to 0% for now, as we don't have historical data
+  const growth = "0%";
+  const isPositive = !growth.startsWith('-');
   
   // Define color classes mapping
   const colorClasses = {
@@ -672,60 +751,7 @@ const StatsCard = ({ icon, label, value, growth, color }) => {
   );
 };
 
-// Upcoming Due Loans Component
-// const UpcomingDueLoansCard = () => {
-//   const upcomingLoans = [
-//     { id: 'LN-2025-1201', borrower: 'Juan Dela Cruz', amount: 25000, dueDate: 'Apr 15, 2025' },
-//     { id: 'LN-2025-1187', borrower: 'Maria Santos', amount: 50000, dueDate: 'Apr 18, 2025' },
-//     { id: 'LN-2025-1210', borrower: 'Pedro Reyes', amount: 15000, dueDate: 'Apr 20, 2025' },
-//     { id: 'LN-2025-1225', borrower: 'Ana Garcia', amount: 30000, dueDate: 'Apr 25, 2025' },
-//   ];
-
-//   return (
-//     <div className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 p-6">
-//       <div className="flex items-center justify-between mb-4">
-//         <h3 className="text-lg font-semibold text-gray-800">Upcoming Due Loans</h3>
-//         <div className="p-2 bg-amber-50 rounded-lg">
-//           <FaCalendarAlt className="text-amber-600" />
-//         </div>
-//       </div>
-//       <div className="overflow-x-auto">
-//         <table className="min-w-full divide-y divide-gray-200">
-//           <thead>
-//             <tr>
-//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan ID</th>
-//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower</th>
-//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-//               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-//             </tr>
-//           </thead>
-//           <tbody className="bg-white divide-y divide-gray-200">
-//             {upcomingLoans.map((loan) => (
-//               <tr key={loan.id} className="hover:bg-gray-50 transition-colors duration-150">
-//                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{loan.id}</td>
-//                 <td className="px-4 py-3 text-sm text-gray-500">{loan.borrower}</td>
-//                 <td className="px-4 py-3 text-sm text-gray-500">₱{loan.amount.toLocaleString()}</td>
-//                 <td className="px-4 py-3 text-sm text-gray-500">{loan.dueDate}</td>
-//                 <td className="px-4 py-3 text-sm">
-//                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
-//                     Upcoming
-//                   </span>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//       <div className="mt-4 flex justify-end">
-//         <a href="#" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors duration-200">
-//           View All Due Loans →
-//         </a>
-//       </div>
-//     </div>
-//   );
-// };
-
+// LoanDashboard - Main Component
 const LoanDashboard = () => {
   const [loanSummary, setLoanSummary] = useState({
     totalLoanApplications: 0,
@@ -737,11 +763,23 @@ const LoanDashboard = () => {
     averageLoanAmount: "0",
     overdueLoanCount: 0,
     repaymentRate: "0",
+    performanceMetrics: {
+      avgProcessingDays: 0,
+      approvalRate: "0",
+      disbursementRate: "0",
+      avgCompletionDays: 0,
+      applicationRate: 0,
+      processingSpeed: 0,
+      satisfaction: 0,
+      successRate: 0
+    },
     loansByType: [],
-    monthlyStatistics: []
+    monthlyStatistics: [],
+    loanAnalysis: []
   });
 
   const [loading, setLoading] = useState(true);
+  
   useEffect(() => {
     setLoading(true);
   
@@ -759,10 +797,6 @@ const LoanDashboard = () => {
       });
   }, []);
   
-
-  
-  
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -775,64 +809,62 @@ const LoanDashboard = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Loan Management Dashboard</h1>
-        <p className="text-gray-600">Analytics and overview of loan operations</p>
-      </div>
+      <h1 className="text-2xl font-bold text-gray-900">Loan Management Dashboard</h1>
+       <p className="text-gray-600">Analytics and overview of loan operations</p>
+     </div>
 
-      {/* Top Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <StatsCard
-          icon={<FaClipboardList className="text-indigo-600" />}
-          label="Total Applications"
-          value={loanSummary.totalLoanApplications}
-          growth="+12.5%"
-          color="indigo"
-        />
-        <StatsCard
-          icon={<FaClipboardCheck className="text-emerald-600" />}
-          label="Approved Loans"
-          value={loanSummary.totalApproved}
-          growth="+8.3%"
-          color="emerald"
-        />
-        <StatsCard
-          icon={<FaTimesCircle className="text-red-600" />}
-          label="Rejected Applications"
-          value={loanSummary.totalRejected}
-          growth="-3.2%"
-          color="amber"
-        />
-        <StatsCard
-          icon={<FaExclamationTriangle className="text-violet-600" />}
-          label="Pending Applications"
-          value={loanSummary.totalPending}
-          growth="+2.7%"
-          color="violet"
-        />
-      </div>
+     {/* Top Stats Row */}
+     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+       <StatsCard
+         icon={<FaClipboardList className="text-indigo-600" />}
+         label="Total Applications"
+         value={loanSummary.totalLoanApplications}
+         color="indigo"
+       />
+       <StatsCard
+         icon={<FaClipboardCheck className="text-emerald-600" />}
+         label="Approved Loans"
+         value={loanSummary.totalApproved}
+         color="emerald"
+       />
+       <StatsCard
+         icon={<FaTimesCircle className="text-red-600" />}
+         label="Rejected Applications"
+         value={loanSummary.totalRejected}
+         color="amber"
+       />
+       <StatsCard
+         icon={<FaExclamationTriangle className="text-violet-600" />}
+         label="Pending Applications"
+         value={loanSummary.totalPending}
+         color="violet"
+       />
+     </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <LoanDisbursementCard totalLoanDisbursed={loanSummary.totalLoanDisbursed} />
-        <RiskAssessmentCard loansByType={loanSummary.loansByType} />
-      </div>
+     {/* Charts Row 1 */}
+     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+       <LoanDisbursementCard 
+         totalLoanDisbursed={loanSummary.totalLoanDisbursed} 
+         monthlyStats={loanSummary.monthlyStatistics}
+       />
+       <RiskAssessmentCard loansByType={loanSummary.loansByType} />
+     </div>
 
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <LoanRepaymentAnalyticsCard 
-          averageLoanAmount={loanSummary.averageLoanAmount} 
-          repaymentRate={loanSummary.repaymentRate} 
-          overdueLoanCount={loanSummary.overdueLoanCount} 
-        />
-        <LoanPerformanceCard monthlyStats={loanSummary.monthlyStatistics} />
-      </div>
-
-      {/* Bottom Row */}
-      {/* <div className="grid grid-cols-1 gap-6">
-        <UpcomingDueLoansCard />
-      </div> */}
-    </div>
-  );
+     {/* Charts Row 2 */}
+     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+       <LoanRepaymentAnalyticsCard 
+         averageLoanAmount={loanSummary.averageLoanAmount} 
+         repaymentRate={loanSummary.repaymentRate} 
+         overdueLoanCount={loanSummary.overdueLoanCount} 
+         monthlyStats={loanSummary.monthlyStatistics}
+       />
+       <LoanPerformanceCard 
+         monthlyStats={loanSummary.monthlyStatistics} 
+         performanceMetrics={loanSummary.performanceMetrics}
+       />
+     </div>
+   </div>
+ );
 };
 
 export default LoanDashboard;

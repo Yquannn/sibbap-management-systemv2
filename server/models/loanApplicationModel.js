@@ -935,16 +935,19 @@ async function updateIsBorrower(memberId) {
 
 
 
-
 async function updateLoanStatus(id, newStatus) {
   let conn;
   try {
     conn = await db.getConnection();
     console.log("Updating loan:", { id, newStatus });
+
     const [result] = await conn.query(
-      `UPDATE loan_applications SET status = ? WHERE loan_application_id = ?`,
+      `UPDATE loan_applications 
+       SET status = ?, approval_date = NOW() 
+       WHERE loan_application_id = ?`,
       [newStatus, id]
     );
+
     console.log("Update result:", result);
     return result.affectedRows > 0;
   } catch (error) {
