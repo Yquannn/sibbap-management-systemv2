@@ -7,7 +7,8 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaFilter,
-  FaUser
+  FaUser,
+  FaExchangeAlt
 } from "react-icons/fa";
 
 const ShareCapitalInfo = () => {
@@ -16,6 +17,7 @@ const ShareCapitalInfo = () => {
 
   const [memberData, setMemberData] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [totalShareCapital, setTotalShareCapital] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -30,36 +32,57 @@ const ShareCapitalInfo = () => {
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
 
-  // Always call useEffect unconditionally, then handle memberId check within the callback
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!memberId) {
-        setError("No memberId provided in the route.");
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        const memberResponse = await axios.get(
-          `http://localhost:3001/api/member/share-capital/${memberId}`
+  const fetchData = async () => {
+    if (!memberId) {
+      setError("No memberId provided in the route.");
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      // Get share capital data
+      const shareCapitalResponse = await axios.get(
+        `http://localhost:3001/api/member/share-capital/${memberId}`
+      );
+      console.log(shareCapitalResponse.data);
+      if (shareCapitalResponse.data && shareCapitalResponse.data.success) {
+        setTotalShareCapital(parseFloat(shareCapitalResponse.data.total_share_capital) || 0);
+        setTransactions(shareCapitalResponse.data.transactions || []);
+        
+        // Get member details
+        const memberDetailsResponse = await axios.get(
+          `http://localhost:3001/api/member-info/${memberId}`
         );
-        const member = memberResponse.data.data;
-        setMemberData(member);
-        if (member.email) {
-          const txResponse = await axios.get(
-            `http://localhost:3001/api/member/share-capital-transactions/${member.email}`
-          );
-          if (txResponse.data && txResponse.data.transactions) {
-            setTransactions(txResponse.data.transactions);
-          }
+        
+        if (memberDetailsResponse.data) {
+          const memberDetails = memberDetailsResponse.data;
+          
+          // Calculate share value (you might need to set a default or get this from elsewhere)
+          const shareValue = 100; // Default share value if not available
+          
+          setMemberData({
+            ...memberDetails,
+            amount: shareCapitalResponse.data.total_share_capital,
+            share_capital: shareCapitalResponse.data.total_share_capital, // Adding share_capital field for transaction form
+            share_count: parseFloat(shareCapitalResponse.data.total_share_capital) / shareValue,
+            share_value: shareValue,
+            account_status: memberDetails.accountStatus || memberDetails.status, // Use appropriate status field
+          });
+        } else {
+          setError("Failed to fetch member details.");
         }
-      } catch (err) {
-        setError("Failed to fetch data.");
-      } finally {
-        setLoading(false);
+      } else {
+        setError("Failed to fetch share capital data.");
       }
-    };
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to fetch data. " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [memberId]);
 
@@ -68,7 +91,6 @@ const ShareCapitalInfo = () => {
     setCurrentPage(1);
   }, [transactionNumberFilter, transactionTypeFilter, startDateFilter, endDateFilter, transactions]);
 
-  // Early returns for loading and error states occur after all hooks have been called
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -108,23 +130,26 @@ const ShareCapitalInfo = () => {
     first_name,
     last_name,
     email,
-    amount,
-    account_number,
+    memberCode,
     member_type,
     account_status,
+    status,
     share_count,
     share_value,
   } = memberData;
 
-  const totalShareCapital = amount || 0;
+  const totalShareCapitalValue = parseFloat(memberData.amount || 0);
   const sharesOwned = share_count || 0;
   const shareValuePerUnit = share_value || 0;
   const imageUrl = (filename) =>
     filename ? `http://localhost:3001/uploads/${filename}` : "";
 
+  // Use the appropriate status field
+  const memberStatus = account_status || status || "Unknown";
+
   // Apply filters to transactions
   const filteredTransactions = [...transactions]
-    .sort((a, b) => new Date(b.transaction_date_time) - new Date(a.transaction_date_time))
+    .sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date))
     .filter((tx) => {
       if (
         transactionNumberFilter.trim() &&
@@ -132,13 +157,15 @@ const ShareCapitalInfo = () => {
       ) {
         return false;
       }
+      
       if (
         transactionTypeFilter !== "all" &&
-        tx.transaction_type?.toLowerCase() !== transactionTypeFilter
+        tx.transaction_type?.toLowerCase() !== transactionTypeFilter.toLowerCase()
       ) {
         return false;
       }
-      const txDate = new Date(tx.transaction_date_time);
+      
+      const txDate = new Date(tx.transaction_date);
       if (startDateFilter && txDate < new Date(startDateFilter)) return false;
       if (endDateFilter && txDate > new Date(endDateFilter)) return false;
       return true;
@@ -151,13 +178,13 @@ const ShareCapitalInfo = () => {
   const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
 
   // Compute summary totals
-  const totalSubscribed = filteredTransactions.reduce(
-    (acc, tx) => tx.transaction_type?.toLowerCase() === "subscription" ? acc + (parseFloat(tx.amount) || 0) : acc,
+  const totalDeposited = filteredTransactions.reduce(
+    (acc, tx) => tx.transaction_type?.toLowerCase() === "deposit" ? acc + (parseFloat(tx.amount) || 0) : acc,
     0
   );
 
   const totalWithdrawn = filteredTransactions.reduce(
-    (acc, tx) => tx.transaction_type?.toLowerCase() === "withdrawal" ? acc + (parseFloat(tx.amount) || 0) : acc,
+    (acc, tx) => tx.transaction_type?.toLowerCase() === "withdraw" ? acc + (parseFloat(tx.amount) || 0) : acc,
     0
   );
 
@@ -170,20 +197,20 @@ const ShareCapitalInfo = () => {
   function groupTransactionsByMonth(data) {
     const map = {};
     data.forEach((tx) => {
-      const date = new Date(tx.transaction_date_time);
+      const date = new Date(tx.transaction_date);
       const key = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
 
       if (!map[key]) {
-        map[key] = { subscription: 0, withdrawal: 0, dividend: 0, timestamp: key };
+        map[key] = { deposit: 0, withdraw: 0, dividend: 0, timestamp: key };
       }
 
       const amt = parseFloat(tx.amount) || 0;
       const type = tx.transaction_type?.toLowerCase();
 
-      if (type === "subscription") {
-        map[key].subscription += amt;
-      } else if (type === "withdrawal") {
-        map[key].withdrawal += amt;
+      if (type === "deposit") {
+        map[key].deposit += amt;
+      } else if (type === "withdraw") {
+        map[key].withdraw += amt;
       } else if (type === "dividend") {
         map[key].dividend += amt;
       }
@@ -205,8 +232,8 @@ const ShareCapitalInfo = () => {
     return ((curr - prev) / prev) * 100;
   };
 
-  const subscriptionChange = computeMonthlyChange("subscription");
-  const withdrawalChange = computeMonthlyChange("withdrawal");
+  const depositChange = computeMonthlyChange("deposit");
+  const withdrawalChange = computeMonthlyChange("withdraw");
   const dividendChange = computeMonthlyChange("dividend");
 
   // Calculate net balance change
@@ -214,8 +241,8 @@ const ShareCapitalInfo = () => {
     const prevMonth = monthlyGrouped[monthlyKeys[monthlyKeys.length - 2]];
     const currMonth = monthlyGrouped[monthlyKeys[monthlyKeys.length - 1]];
 
-    const prevNet = prevMonth.subscription - prevMonth.withdrawal + prevMonth.dividend;
-    const currNet = currMonth.subscription - currMonth.withdrawal + currMonth.dividend;
+    const prevNet = prevMonth.deposit - prevMonth.withdraw + prevMonth.dividend;
+    const currNet = currMonth.deposit - currMonth.withdraw + currMonth.dividend;
 
     if (prevNet === 0) return null;
     return ((currNet - prevNet) / prevNet) * 100;
@@ -270,7 +297,7 @@ const ShareCapitalInfo = () => {
               )}
               <div 
                 className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
-                  account_status?.toLowerCase() === "active" ? "bg-green-500" : "bg-gray-400"
+                  memberStatus?.toLowerCase() === "active" ? "bg-green-500" : "bg-gray-400"
                 }`}
               ></div>
             </div>
@@ -280,9 +307,9 @@ const ShareCapitalInfo = () => {
               </h2>
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
                 <span>{email || "No Email"}</span>
-                <span>Acc #: {account_number || "N/A"}</span>
+                <span>Member Code: {memberCode || "N/A"}</span>
                 <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">
-                  {member_type || "Unknown Status"}
+                  {member_type || "Unknown Type"}
                 </span>
               </div>
             </div>
@@ -305,9 +332,9 @@ const ShareCapitalInfo = () => {
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
                 <p className="uppercase tracking-wide text-sm font-medium opacity-80">Share Capital</p>
-                <p className="mt-1 text-3xl font-bold">{formatCurrency(totalShareCapital)}</p>
+                <p className="mt-1 text-3xl font-bold">{formatCurrency(totalShareCapitalValue)}</p>
                 <p className="text-sm opacity-90 mt-1">
-                  {sharesOwned} {sharesOwned === 1 ? 'share' : 'shares'} @ {formatCurrency(shareValuePerUnit)}/share
+                  {sharesOwned.toFixed(2)} {sharesOwned === 1 ? 'share' : 'shares'} @ {formatCurrency(shareValuePerUnit)}/share
                 </p>
                 {currentBalanceChange !== null && (
                   <div className="flex items-center mt-2 text-xs font-medium">
@@ -325,17 +352,17 @@ const ShareCapitalInfo = () => {
               <div className="p-6">
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Total Subscribed</p>
-                    <p className="font-semibold text-green-600">{formatCurrency(totalSubscribed)}</p>
-                    {subscriptionChange !== null && (
+                    <p className="text-xs text-gray-500 mb-1">Total Deposited</p>
+                    <p className="font-semibold text-green-600">{formatCurrency(totalDeposited)}</p>
+                    {depositChange !== null && (
                       <div className="flex items-center justify-center text-xs mt-1">
-                        {subscriptionChange >= 0 ? (
+                        {depositChange >= 0 ? (
                           <FaArrowUp className="text-green-500 mr-0.5" size={10} />
                         ) : (
                           <FaArrowDown className="text-red-500 mr-0.5" size={10} />
                         )}
-                        <span className={subscriptionChange >= 0 ? "text-green-500" : "text-red-500"}>
-                          {Math.abs(subscriptionChange).toFixed(1)}%
+                        <span className={depositChange >= 0 ? "text-green-500" : "text-red-500"}>
+                          {Math.abs(depositChange).toFixed(1)}%
                         </span>
                       </div>
                     )}
@@ -374,27 +401,50 @@ const ShareCapitalInfo = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {/* Deposit button */}
                   <button
                     className="w-1/2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2.5 rounded-lg transition flex items-center justify-center"
-                    onClick={() =>
-                      navigate(`/share-capital-subscription/${memberId}`, {
-                        state: { modalType: "subscription", member: memberData }
-                      })
-                    }
+                    onClick={() => navigate('/transaction-form', {
+                      state: {
+                        modalType: 'deposit',
+                        member: memberData,
+                        isShareCapital: true
+                      }
+                    })}
                   >
                     <FaMoneyBillWave className="mr-2" size={16} />
-                    Subscribe
+                    Deposit
                   </button>
+
+                  {/* Withdraw button */}
                   <button
                     className="w-1/2 bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2.5 rounded-lg transition flex items-center justify-center"
-                    onClick={() =>
-                      navigate(`/share-capital-withdrawal/${memberId}`, {
-                        state: { modalType: "withdrawal", member: memberData }
-                      })
-                    }
+                    onClick={() => navigate('/transaction-form', {
+                      state: {
+                        modalType: 'withdrawal',
+                        member: memberData,
+                        isShareCapital: true
+                      }
+                    })}
                   >
                     <FaHandHoldingUsd className="mr-2" size={16} />
                     Withdraw
+                  </button>
+                </div>
+                {/* Transfer button */}
+                <div className="mt-2">
+                  <button
+                    className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium py-2.5 rounded-lg transition flex items-center justify-center"
+                    onClick={() => navigate('/transaction-form', {
+                      state: {
+                        modalType: 'transfer',
+                        member: memberData,
+                        isShareCapital: true
+                      }
+                    })}
+                  >
+                    <FaExchangeAlt className="mr-2" size={16} />
+                    Transfer
                   </button>
                 </div>
               </div>
@@ -406,7 +456,7 @@ const ShareCapitalInfo = () => {
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">Ownership Level</span>
-                    <span className="font-medium">{sharesOwned} shares</span>
+                    <span className="font-medium">{sharesOwned.toFixed(2)} shares</span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
@@ -417,10 +467,10 @@ const ShareCapitalInfo = () => {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Subscription/Withdrawal Ratio</span>
+                    <span className="text-gray-600">Deposit/Withdrawal Ratio</span>
                     <span className="font-medium">
                       {totalWithdrawn > 0 
-                        ? (totalSubscribed / totalWithdrawn).toFixed(1) 
+                        ? (totalDeposited / totalWithdrawn).toFixed(1) 
                         : '∞'}
                     </span>
                   </div>
@@ -428,7 +478,7 @@ const ShareCapitalInfo = () => {
                     <div 
                       className="h-full bg-green-500 rounded-full"
                       style={{ 
-                        width: `${Math.min(100, totalSubscribed / (totalSubscribed + totalWithdrawn) * 100)}%` 
+                        width: `${Math.min(100, totalDeposited / (totalDeposited + totalWithdrawn) * 100)}%` 
                       }}
                     ></div>
                   </div>
@@ -437,8 +487,8 @@ const ShareCapitalInfo = () => {
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">Dividend Yield</span>
                     <span className="font-medium">
-                      {totalSubscribed > 0 
-                        ? `${((totalDividends / totalSubscribed) * 100).toFixed(2)}%` 
+                      {totalDeposited > 0 
+                        ? `${((totalDividends / totalDeposited) * 100).toFixed(2)}%` 
                         : '0%'}
                     </span>
                   </div>
@@ -446,7 +496,7 @@ const ShareCapitalInfo = () => {
                     <div 
                       className="h-full bg-blue-500 rounded-full"
                       style={{ 
-                        width: `${Math.min(100, (totalDividends / (totalSubscribed || 1)) * 1000)}%` 
+                        width: `${Math.min(100, (totalDividends / (totalDeposited || 1)) * 1000)}%` 
                       }}
                     ></div>
                   </div>
@@ -480,7 +530,7 @@ const ShareCapitalInfo = () => {
                         id="txNumberFilter"
                         type="text"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g., TXN12345"
+                        placeholder="e.g., TXN-1745246778765"
                         value={transactionNumberFilter}
                         onChange={(e) => setTransactionNumberFilter(e.target.value)}
                       />
@@ -496,8 +546,9 @@ const ShareCapitalInfo = () => {
                         onChange={(e) => setTransactionTypeFilter(e.target.value)}
                       >
                         <option value="all">All Types</option>
-                        <option value="subscription">Subscription</option>
-                        <option value="withdrawal">Withdrawal</option>
+                        <option value="deposit">Deposit</option>
+                        <option value="withdraw">Withdrawal</option>
+                        <option value="transfer">Transfer</option>
                         <option value="dividend">Dividend</option>
                       </select>
                     </div>
@@ -537,6 +588,8 @@ const ShareCapitalInfo = () => {
                       <th className="px-6 py-3 text-left">Date & Time</th>
                       <th className="px-6 py-3 text-left">Type</th>
                       <th className="px-6 py-3 text-right">Amount</th>
+                      <th className="px-6 py-3 text-right">Authorized by</th>
+
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -548,21 +601,21 @@ const ShareCapitalInfo = () => {
                               {tx.transaction_number || "N/A"}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {tx.authorized || "Cooperative System"}
+                              {tx.description || "No description"}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {formatDate(tx.transaction_date_time)}
+                              {formatDate(tx.transaction_date)}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {tx.transaction_type?.toLowerCase() === "subscription" ? (
+                            {tx.transaction_type?.toLowerCase() === "deposit" ? (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 <FaMoneyBillWave className="mr-1" size={12} />
-                                Subscription
+                                Deposit
                               </span>
-                            ) : tx.transaction_type?.toLowerCase() === "withdrawal" ? (
+                            ) : tx.transaction_type?.toLowerCase() === "withdraw" ? (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                 <FaHandHoldingUsd className="mr-1" size={12} />
                                 Withdrawal
@@ -572,6 +625,11 @@ const ShareCapitalInfo = () => {
                                 <FaMoneyBillWave className="mr-1" size={12} />
                                 Dividend
                               </span>
+                            ) : tx.transaction_type?.toLowerCase() === "transfer" ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                <FaExchangeAlt className="mr-1" size={12} />
+                                Transfer
+                              </span>
                             ) : (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                 {tx.transaction_type || "N/A"}
@@ -580,13 +638,20 @@ const ShareCapitalInfo = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <span className={`text-sm font-medium ${
-                              tx.transaction_type?.toLowerCase() === "withdrawal" 
+                              tx.transaction_type?.toLowerCase() === "withdraw" || 
+                              (tx.transaction_type?.toLowerCase() === "transfer" && 
+                               tx.transferToMemberCode)
                                 ? "text-red-600" 
                                 : "text-green-600"
                             }`}>
                               {formatCurrency(tx.amount)}
                             </span>
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {tx.authorized_by || "N/A"}
+                            </div>
+                            </td>
                         </tr>
                       ))
                     ) : (
@@ -600,8 +665,7 @@ const ShareCapitalInfo = () => {
                             <p className="text-sm mt-1">Try adjusting your filters or check back later</p>
                           </div>
                         </td>
-                      </tr>
-                    )}
+                      </tr>)}
                   </tbody>
                 </table>
               </div>

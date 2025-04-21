@@ -114,6 +114,78 @@ const getShareCapitalTrends = async () => {
   // return rows;
 };
 
+const getShareCapitalAnalytics = async () => {
+  const queries = {
+    // Monthly trend analysis
+    monthlyTrends: `
+      SELECT 
+        DATE_FORMAT(date_added, '%Y-%m') as month,
+        SUM(share_capital) as total_share_capital,
+        COUNT(*) as member_count,
+        AVG(share_capital) as average_share_capital
+      FROM members
+      WHERE date_added >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+      GROUP BY DATE_FORMAT(date_added, '%Y-%m')
+      ORDER BY month ASC
+    `,
+
+    // Share capital distribution ranges
+    distribution: `
+      SELECT 
+        CASE 
+          WHEN share_capital <= 1000 THEN '0-1000'
+          WHEN share_capital <= 5000 THEN '1001-5000'
+          WHEN share_capital <= 10000 THEN '5001-10000'
+          WHEN share_capital <= 50000 THEN '10001-50000'
+          ELSE '50000+'
+        END as range,
+        COUNT(*) as member_count,
+        SUM(share_capital) as total_amount
+      FROM members
+      GROUP BY range
+      ORDER BY FIELD(range, '0-1000', '1001-5000', '5001-10000', '10001-50000', '50000+')
+    `,
+
+    // Year-over-year comparison
+    yearlyComparison: `
+      SELECT 
+        YEAR(date_added) as year,
+        SUM(share_capital) as total_share_capital,
+        COUNT(*) as new_members,
+        AVG(share_capital) as avg_share_capital
+      FROM members
+      WHERE date_added >= DATE_SUB(NOW(), INTERVAL 2 YEAR)
+      GROUP BY YEAR(date_added)
+      ORDER BY year DESC
+    `,
+
+    // Member type share capital analysis
+    memberTypeAnalysis: `
+      SELECT 
+        member_type,
+        COUNT(*) as member_count,
+        SUM(share_capital) as total_share_capital,
+        AVG(share_capital) as avg_share_capital,
+        MIN(share_capital) as min_share_capital,
+        MAX(share_capital) as max_share_capital
+      FROM members
+      GROUP BY member_type
+    `
+  };
+
+  try {
+    const results = {};
+    for (const [key, query] of Object.entries(queries)) {
+      const [rows] = await db.execute(query);
+      results[key] = rows;
+    }
+    return results;
+  } catch (error) {
+    console.error('Error in getShareCapitalAnalytics:', error);
+    throw error;
+  }
+};
+
 const getTimeDepositMaturityTimeline = async () => {
   const query = `
     SELECT 
@@ -202,5 +274,6 @@ module.exports = {
   getTimeDepositMaturityTimeline,
   getSavingsTransactionHistory,
   getMemberAgeDistribution,
-  getPreviousPeriodComparisons
+  getPreviousPeriodComparisons,
+  getShareCapitalAnalytics
 };

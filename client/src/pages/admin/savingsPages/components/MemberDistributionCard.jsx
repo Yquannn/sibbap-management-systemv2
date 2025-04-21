@@ -1,14 +1,16 @@
-// components/MemberDistributionCard.js
 import React from 'react';
 import { Doughnut } from 'react-chartjs-2';
 
 const MemberDistributionCard = ({ data }) => {
-  const { partialMembersCount, regularMembersCount, totalMembersCount } = data;
+  // Safely access member counts with defaults
+  const partialMembers = data?.membershipStats?.partial || 0;
+  const regularMembers = data?.membershipStats?.regular || 0;
+  const totalMembers = data?.membershipStats?.total || 0;
 
   const chartData = {
     labels: ['Partial Members', 'Regular Members'],
     datasets: [{
-      data: [partialMembersCount, regularMembersCount],
+      data: [partialMembers, regularMembers],
       backgroundColor: [
         'rgba(79, 70, 229, 0.8)',
         'rgba(245, 158, 11, 0.8)',
@@ -41,7 +43,8 @@ const MemberDistributionCard = ({ data }) => {
         padding: 10,
         callbacks: {
           label: function(context) {
-            const percentage = ((context.raw / totalMembersCount) * 100).toFixed(1);
+            const percentage = totalMembers > 0 ? 
+              ((context.raw / totalMembers) * 100).toFixed(1) : 0;
             return `${context.label}: ${context.raw} (${percentage}%)`;
           }
         }
@@ -50,22 +53,28 @@ const MemberDistributionCard = ({ data }) => {
     cutout: '70%'
   };
 
-  const membersTrend = data.previousPeriodComparisons.previous_month_members > 0
-    ? ((data.previousPeriodComparisons.current_month_members - 
-        data.previousPeriodComparisons.previous_month_members) / 
-       data.previousPeriodComparisons.previous_month_members * 100).toFixed(1)
-    : 0;
+  // Safe calculation of member trend
+  const currentMonthMembers = data?.trends?.previousPeriod?.current_month_members || 0;
+  const previousMonthMembers = data?.trends?.previousPeriod?.previous_month_members || 0;
+  const membersTrend = previousMonthMembers > 0 ?
+    ((currentMonthMembers - previousMonthMembers) / previousMonthMembers * 100).toFixed(1) : 0;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h3 className="text-xl font-bold text-gray-800 mb-4">Member Distribution</h3>
       <div className="h-64">
-        <Doughnut data={chartData} options={options} />
+        {totalMembers > 0 ? (
+          <Doughnut data={chartData} options={options} />
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            No member data available
+          </div>
+        )}
       </div>
       <div className="mt-6">
         <div className="flex justify-between items-center text-sm text-gray-500">
           <span>Total Members</span>
-          <span>{totalMembersCount.toLocaleString()} members</span>
+          <span>{totalMembers.toLocaleString()} members</span>
         </div>
         <div className="mt-2 flex justify-between items-center text-sm">
           <span className="text-gray-500">Growth Rate</span>
@@ -79,6 +88,3 @@ const MemberDistributionCard = ({ data }) => {
 };
 
 export default MemberDistributionCard;
-
-
-// components/TimeDepositMaturityCard.js

@@ -85,6 +85,8 @@ function App() {
     <Route path="member-application/*" element={<MembershipApplication />} />
 
 
+    <Route path="/transaction-form" element={<TransactionForm />} />
+
     <Route path="member-registration/:memberId" element={<MemberRegistration />} />
     <Route path="member-registration/:mode/:memberId" element={<MemberRegistration />} />
 

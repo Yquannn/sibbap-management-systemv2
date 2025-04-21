@@ -1,60 +1,78 @@
 import React from 'react';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import CountUp from 'react-countup';
 
 const ShareCapitalAnalyticsCard = ({ data }) => {
-  // Process transaction history for share capital data
+  // Safely access data with null checks
   const processShareCapitalData = () => {
-    if (!data?.transactionHistory) return [];
+    const transactions = data?.analytics?.transactionHistory || [];
     
-    const monthlyData = data.transactionHistory.reduce((acc, transaction) => {
-      const month = transaction.month;
-      if (!acc[month]) {
-        acc[month] = {
-          amount: 0,
-          contributor_count: 0
-        };
-      }
-      acc[month].amount += parseFloat(transaction.total_amount);
-      acc[month].contributor_count += parseInt(transaction.transaction_count);
-      return acc;
-    }, {});
-
-    return Object.entries(monthlyData).map(([month, data]) => ({
-      month,
-      ...data
-    })).sort((a, b) => a.month.localeCompare(b.month));
+    return transactions
+      .filter(tx => tx?.transaction_type === 'Initial Savings Deposit')
+      .map(tx => ({
+        month: tx.month || '',
+        amount: parseFloat(tx.total_amount || 0),
+        count: parseInt(tx.transaction_count || 0)
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
   };
 
   const shareCapitalTrends = processShareCapitalData();
 
-  const chartData = {
+  // Calculate growth metrics with safe defaults
+  const calculateGrowthMetrics = () => {
+    const currentMonthSavings = parseFloat(data?.trends?.previousPeriod?.current_month_savings || 0);
+    const previousMonthSavings = parseFloat(data?.trends?.previousPeriod?.previous_month_savings || 0);
+    const growthRate = previousMonthSavings === 0 ? 0 : 
+      ((currentMonthSavings - previousMonthSavings) / previousMonthSavings) * 100;
+
+    return {
+      growthRate: isNaN(growthRate) ? 0 : growthRate,
+      averagePerMember: (data?.totalShareCapital || 0) / (data?.membershipStats?.total || 1),
+      totalShareCapital: data?.totalShareCapital || 0
+    };
+  };
+
+  const metrics = calculateGrowthMetrics();
+
+  // Chart data with null checks
+  const trendChartData = {
     labels: shareCapitalTrends.map(item => {
-      const [year, month] = item.month.split('-');
-      return new Date(year, month - 1).toLocaleString('default', { month: 'short' });
+      const [year, month] = (item.month || '').split('-');
+      return new Date(year, month - 1).toLocaleString('default', { month: 'short', year: '2-digit' });
     }),
     datasets: [
       {
-        label: 'Share Capital',
-        data: shareCapitalTrends.map(item => item.amount),
+        label: 'Share Capital Contributions',
+        data: shareCapitalTrends.map(item => item.amount || 0),
         borderColor: 'rgba(16, 185, 129, 1)',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderWidth: 2,
         tension: 0.4,
         fill: true,
+      },
+      {
+        label: 'Number of Contributors',
+        data: shareCapitalTrends.map(item => item.count || 0),
+        borderColor: 'rgba(59, 130, 246, 1)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        yAxisID: 'contributors',
+        fill: true,
       }
     ]
   };
 
-  const options = {
+  const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false
+        position: 'top',
       },
       tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         titleColor: '#1f2937',
         bodyColor: '#4b5563',
         borderColor: '#e5e7eb',
@@ -62,93 +80,133 @@ const ShareCapitalAnalyticsCard = ({ data }) => {
         padding: 10,
         callbacks: {
           label: function(context) {
-            return `₱${context.parsed.y.toLocaleString()}`;
+            if (context.dataset.yAxisID === 'contributors') {
+              return `Contributors: ${context.parsed.y}`;
+            }
+            return `Amount: ₱${context.parsed.y.toLocaleString()}`;
           }
         }
       }
     },
     scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: '#9ca3af' }
-      },
       y: {
         grid: { color: '#f3f4f6' },
         ticks: {
-          color: '#9ca3af',
-          callback: function(value) {
-            return '₱' + (value / 1000) + 'k';
-          }
+          callback: value => `₱${(value/1000).toFixed(0)}k`,
+          color: '#6b7280'
         },
         beginAtZero: true
+      },
+      contributors: {
+        position: 'right',
+        grid: { display: false },
+        ticks: {
+          color: '#6b7280'
+        },
+        beginAtZero: true
+      },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#6b7280' }
       }
     }
   };
 
-  const latestTrend = shareCapitalTrends.length >= 2
-    ? ((shareCapitalTrends[shareCapitalTrends.length - 1].amount - 
-        shareCapitalTrends[shareCapitalTrends.length - 2].amount) / 
-       shareCapitalTrends[shareCapitalTrends.length - 2].amount * 100)
-    : 0;
+  // Member distribution data with safe defaults
+  const memberDistribution = {
+    labels: ['Regular Members', 'Partial Members'],
+    datasets: [{
+      data: [
+        parseFloat(data?.membershipStats?.distribution?.regularPercentage || 0),
+        parseFloat(data?.membershipStats?.distribution?.partialPercentage || 0)
+      ],
+      backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(59, 130, 246, 0.8)'],
+    }]
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Share Capital Growth</h3>
-          <p className="text-sm text-gray-500 mt-1">Monthly contribution trends</p>
+          <h3 className="text-xl font-bold text-gray-800">Share Capital Analysis</h3>
+          <p className="text-sm text-gray-500">
+            Updated {new Date(data?.metadata?.lastUpdated || Date.now()).toLocaleDateString()}
+          </p>
         </div>
       </div>
 
-      <div className="h-64">
-        {shareCapitalTrends.length > 0 ? (
-          <Line data={chartData} options={options} />
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            No share capital data available
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 mt-6">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-green-50 rounded-lg p-4">
           <p className="text-sm text-gray-500">Total Share Capital</p>
           <p className="text-xl font-bold text-gray-800">
             ₱<CountUp 
               start={0} 
-              end={parseFloat(data?.totalShareCapital || 0)} 
+              end={metrics.totalShareCapital} 
               duration={2} 
               separator="," 
               decimals={2} 
             />
           </p>
-          <p className="text-xs text-green-500 mt-1">
-            {latestTrend >= 0 ? '+' : ''}{latestTrend.toFixed(1)}% vs. previous month
+          <p className={`text-xs ${metrics.growthRate >= 0 ? 'text-green-500' : 'text-red-500'} mt-1`}>
+            {metrics.growthRate >= 0 ? '↑' : '↓'} {Math.abs(metrics.growthRate).toFixed(1)}% vs. last month
           </p>
         </div>
-        <div className="bg-green-50 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Monthly Average</p>
+        <div className="bg-blue-50 rounded-lg p-4">
+          <p className="text-sm text-gray-500">Average per Member</p>
           <p className="text-xl font-bold text-gray-800">
             ₱<CountUp 
               start={0} 
-              end={parseFloat(data?.totalShareCapital || 0) / (data?.totalMembersCount || 1)} 
+              end={metrics.averagePerMember} 
               duration={2} 
               separator="," 
               decimals={2} 
             />
           </p>
-          <p className="text-xs text-gray-500 mt-1">Per member</p>
-        </div>
-        <div className="bg-green-50 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Contributors</p>
-          <p className="text-xl font-bold text-gray-800">
-            <CountUp 
-              start={0} 
-              end={data?.totalMembersCount || 0} 
-              duration={2} 
-            />
+          <p className="text-xs text-gray-500 mt-1">
+            Across {data?.membershipStats?.total || 0} members
           </p>
-          <p className="text-xs text-gray-500 mt-1">Active this month</p>
+        </div>
+        <div className="bg-purple-50 rounded-lg p-4">
+          <p className="text-sm text-gray-500">Member Distribution</p>
+          <p className="text-xl font-bold text-gray-800">
+            {data?.membershipStats?.distribution?.regularPercentage || '0'}%
+          </p>
+          <p className="text-xs text-gray-500 mt-1">Regular members</p>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="h-64">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Monthly Trends</h4>
+          {shareCapitalTrends.length > 0 ? (
+            <Line data={trendChartData} options={chartOptions} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              No trend data available
+            </div>
+          )}
+        </div>
+        <div className="h-64">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Member Type Distribution</h4>
+          <Bar 
+            data={memberDistribution}
+            options={{
+              indexAxis: 'y',
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  max: 100,
+                  ticks: { callback: value => `${value}%` }
+                }
+              }
+            }}
+          />
         </div>
       </div>
     </div>

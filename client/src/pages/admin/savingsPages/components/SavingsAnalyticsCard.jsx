@@ -1,28 +1,33 @@
-
-
-// components/SavingsAnalyticsCard.js
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import CountUp from 'react-countup';
 
 const SavingsAnalyticsCard = ({ data }) => {
-  // Group transactions by type and month
+  // Group transactions by type and month with null checks
   const processTransactions = () => {
-    const months = [...new Set(data.transactionHistory.map(t => t.month))];
+    if (!data?.analytics?.transactionHistory || !Array.isArray(data?.analytics?.transactionHistory)) {
+      return {
+        months: [],
+        deposits: [],
+        withdrawals: []
+      };
+    }
+
+    const months = [...new Set(data.analytics.transactionHistory.map(t => t.month))];
     const depositTypes = ['Deposit', 'Initial Savings Deposit'];
     
     const deposits = months.map(month => {
-      const monthTransactions = data.transactionHistory.filter(t => 
+      const monthTransactions = data.analytics.transactionHistory.filter(t => 
         t.month === month && depositTypes.includes(t.transaction_type)
       );
-      return monthTransactions.reduce((sum, t) => sum + parseFloat(t.total_amount), 0);
+      return monthTransactions.reduce((sum, t) => sum + parseFloat(t.total_amount || 0), 0);
     });
 
     const withdrawals = months.map(month => {
-      const monthTransactions = data.transactionHistory.filter(t => 
+      const monthTransactions = data.analytics.transactionHistory.filter(t => 
         t.month === month && t.transaction_type === 'Withdrawal'
       );
-      return monthTransactions.reduce((sum, t) => sum + parseFloat(t.total_amount), 0);
+      return monthTransactions.reduce((sum, t) => sum + parseFloat(t.total_amount || 0), 0);
     });
 
     return {
@@ -104,12 +109,18 @@ const SavingsAnalyticsCard = ({ data }) => {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-bold text-gray-800">Savings Performance</h3>
         <div className="text-sm text-gray-500">
-          Last {months.length} months
+          {months.length > 0 ? `Last ${months.length} months` : 'No data available'}
         </div>
       </div>
       
       <div className="h-64">
-        <Bar data={chartData} options={options} />
+        {months.length > 0 ? (
+          <Bar data={chartData} options={options} />
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            No transaction history available
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-6">
@@ -118,7 +129,7 @@ const SavingsAnalyticsCard = ({ data }) => {
           <p className="text-xl font-bold text-gray-800">
             ₱<CountUp 
               start={0} 
-              end={parseFloat(data.totalDeposits)} 
+              end={parseFloat(data?.totalDeposits || 0)} 
               duration={2} 
               separator="," 
               decimals={2} 
@@ -130,7 +141,7 @@ const SavingsAnalyticsCard = ({ data }) => {
           <p className="text-xl font-bold text-gray-800">
             ₱<CountUp 
               start={0} 
-              end={parseFloat(data.totalWithdrawals)} 
+              end={parseFloat(data?.totalWithdrawals || 0)} 
               duration={2} 
               separator="," 
               decimals={2} 

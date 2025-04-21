@@ -897,14 +897,85 @@ exports.getMemberByEmail = async (req, res) => {
 
 exports.updateFinancials = async (req, res) => {
   try {
-    const memberId = req.params.memberId; // Expecting memberId in the route parameters
-    const result = await updateMemberFinancials(memberId, req.body);
-    res.status(200).json(result);
+    const memberId = req.params.memberId;
+    const financialData = req.body;
+
+    // Validate memberId
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        message: "Member ID is required"
+      });
+    }
+
+    // Validate required financial data fields
+    const requiredFields = ['share_capital', 'identification_card_fee', 'membership_fee', 'kalinga_fund_fee', 'initial_savings'];
+    const missingFields = requiredFields.filter(field => financialData[field] === undefined);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Validate numeric fields
+    const numericFields = [...requiredFields];
+    const invalidFields = numericFields.filter(field => 
+      financialData[field] !== null && 
+      (isNaN(financialData[field]) || financialData[field] < 0)
+    );
+
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid numeric values for fields: ${invalidFields.join(', ')}`
+      });
+    }
+
+    // Call the model function
+    const result = await memberModel.updateMemberFinancials(memberId, financialData);
+
+    return res.status(200).json(result);
+
   } catch (error) {
     console.error("Error updating member financials:", error);
-    res.status(500).json({ message: error.message });
+
+    // Handle specific error types
+    if (error.message.includes("No rows updated")) {
+      return res.status(404).json({
+        success: false,
+        message: "Member not found",
+        error: error.message
+      });
+    }
+
+    if (error.message.includes("Member code not found")) {
+      return res.status(404).json({
+        success: false,
+        message: "Member code not found",
+        error: error.message
+      });
+    }
+
+    // Handle database connection errors
+    if (error.code === 'ECONNREFUSED' || error.code === 'PROTOCOL_CONNECTION_LOST') {
+      return res.status(503).json({
+        success: false,
+        message: "Database connection error",
+        error: error.message
+      });
+    }
+
+    // Generic error response
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update member financials",
+      error: error.message
+    });
   }
 };
+
 
 exports.addPurchaseHistory = async (req, res) => {
   try {
@@ -923,3 +994,52 @@ exports.addPurchaseHistory = async (req, res) => {
   }
 };
 
+
+// Controller function to get member by memberCode
+exports.getMemberByCode = async (req, res) => {
+  try {
+    const { memberCode } = req.params;
+    
+    if (!memberCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Member code is required"
+      });
+    }
+    
+    const connection = await db.getConnection();
+    
+    try {
+      const [rows] = await connection.execute(
+        `SELECT * FROM members WHERE memberCode = ?`,
+        [memberCode]
+      );
+      
+      connection.release();
+      
+      if (rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Member not found"
+        });
+      }
+      
+      // Return the member data
+      res.status(200).json({
+        success: true,
+        member: rows[0]
+      });
+      
+    } catch (error) {
+      connection.release();
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error retrieving member by code:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve member information",
+      error: error.message
+    });
+  }
+};

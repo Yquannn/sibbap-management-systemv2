@@ -115,8 +115,8 @@ const Membership = () => {
       );
       
       setSuccessMessage(response.data.message || "Member Registration successful!");
-      navigate("/members-registration");
       setShowSuccessModal(true);
+      navigate("/members-registration");
     } catch (error) {
       console.error("Error during registration:", error);
       const errorMessage =

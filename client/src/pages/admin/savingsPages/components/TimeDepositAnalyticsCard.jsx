@@ -1,15 +1,21 @@
-// components/TimeDepositAnalyticsCard.js
 import React from 'react';
 import { Pie } from 'react-chartjs-2';
 import CountUp from 'react-countup';
 
 const TimeDepositAnalyticsCard = ({ data }) => {
-  const { timeDepositAnalytics } = data;
+  const timeDepositAnalytics = data?.analytics?.timeDeposit || [];
+
+  // Safe calculations with null checks
+  const totalAmount = timeDepositAnalytics.reduce((sum, item) => 
+    sum + (parseFloat(item?.total_amount) || 0), 0);
+  const totalAccounts = timeDepositAnalytics.reduce((sum, item) => 
+    sum + (parseInt(item?.count) || 0), 0);
+  const averageAmount = totalAccounts > 0 ? totalAmount / totalAccounts : 0;
 
   const chartData = {
-    labels: timeDepositAnalytics.map(item => `${item.fixedTerm} Months`),
+    labels: timeDepositAnalytics.map(item => `${item?.fixedTerm || 0} Months`),
     datasets: [{
-      data: timeDepositAnalytics.map(item => item.total_amount),
+      data: timeDepositAnalytics.map(item => parseFloat(item?.total_amount) || 0),
       backgroundColor: [
         'rgba(59, 130, 246, 0.8)',
         'rgba(16, 185, 129, 0.8)',
@@ -47,17 +53,13 @@ const TimeDepositAnalyticsCard = ({ data }) => {
         callbacks: {
           label: function(context) {
             const total = context.dataset.data.reduce((a, b) => a + b, 0);
-            const percentage = ((context.raw / total) * 100).toFixed(1);
+            const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
             return `₱${context.raw.toLocaleString()} (${percentage}%)`;
           }
         }
       }
     }
   };
-
-  const totalAmount = timeDepositAnalytics.reduce((sum, item) => sum + item.total_amount, 0);
-  const totalAccounts = timeDepositAnalytics.reduce((sum, item) => sum + item.count, 0);
-  const averageAmount = totalAccounts > 0 ? totalAmount / totalAccounts : 0;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -71,7 +73,13 @@ const TimeDepositAnalyticsCard = ({ data }) => {
       </div>
 
       <div className="h-64">
-        <Pie data={chartData} options={options} />
+        {timeDepositAnalytics.length > 0 ? (
+          <Pie data={chartData} options={options} />
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            No time deposit data available
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-6">

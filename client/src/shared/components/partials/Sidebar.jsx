@@ -24,6 +24,8 @@ import { MdDashboardCustomize } from "react-icons/md";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../partials/logosibbap.png";
 import { FaEnvelopeOpenText } from "react-icons/fa";
+import { MdOutlineWorkHistory } from "react-icons/md"
+import { RiExchangeFundsFill } from "react-icons/ri";
 
 const SideBar = ({ mode }) => {
   const [loanDropdown, setLoanDropdown] = useState(false);
@@ -70,10 +72,12 @@ const SideBar = ({ mode }) => {
       } else if (location.pathname.includes("/savings") || 
                 location.pathname.includes("/share-capital") || 
                 location.pathname.includes("/regular-savings") || 
-                location.pathname.includes("/time-deposit")) {
+                location.pathname.includes("/time-deposit") ||
+                location.pathname.includes("/kalinga-fund")) {
         setSavingsDropdown(true);
         setActiveDropdown("savings");
-      } else if (location.pathname.includes("/loan") || location.pathname.includes("/borrower")) {
+      } else if (location.pathname.includes("/loan") || location.pathname.includes("/borrower") ||
+                location.pathname.includes("/loan-history")) {
         setLoanDropdown(true);
         setActiveDropdown("loan");
       } else if (location.pathname.includes("/system-maintenance")) {
@@ -125,6 +129,7 @@ const SideBar = ({ mode }) => {
     "loan-application": isSystemAdmin || isGeneralManager,
     "loan-applicant": isSystemAdmin || isGeneralManager || isLoanOfficer,
     "loan-approval": isSystemAdmin || isGeneralManager || isTreasurer,
+    "loan-history": isSystemAdmin || isGeneralManager || isLoanOfficer, // New permission
   };
 
   const savingsSubAllowed = {
@@ -132,6 +137,7 @@ const SideBar = ({ mode }) => {
     "share-capital": isSystemAdmin || isGeneralManager || isAccountOfficer,
     "regular-savings": isSystemAdmin || isGeneralManager || isAccountOfficer,
     "time-deposit": isSystemAdmin || isGeneralManager || isAccountOfficer,
+    "kalinga-fund": isSystemAdmin || isGeneralManager || isAccountOfficer, // New permission
   };
 
   // Handle dropdown toggle with active state management
@@ -315,6 +321,14 @@ const SideBar = ({ mode }) => {
                     "Time Deposit"
                   )}
                 </li>
+                <li>
+                  {renderItem(
+                    savingsSubAllowed["kalinga-fund"],
+                    "/kalinga-fund",
+                    <RiExchangeFundsFill  />,
+                    "Kalinga Fund"
+                  )}
+                </li>
               </ul>
             )}
           </li>
@@ -363,6 +377,14 @@ const SideBar = ({ mode }) => {
                     "Borrowers"
                   )}
                 </li>
+                <li>
+                  {renderItem(
+                    loanSubAllowed["loan-history"],
+                    "/loan-history",
+                    <MdOutlineWorkHistory  />,
+                    "Loan History"
+                  )}
+                </li>
               </ul>
             )}
           </li>
@@ -388,6 +410,14 @@ const SideBar = ({ mode }) => {
                     "/system-maintenance/loan",
                     <HiBriefcase />,
                     "Loan Module"
+                  )}
+                </li>
+                <li>
+                  {renderItem(
+                    allowed.maintenance,
+                    "/system-maintenance/loan/rejected-applications",
+                    <HiOutlineDocumentText />,
+                    "Rejected Applications"
                   )}
                 </li>
                 <li>

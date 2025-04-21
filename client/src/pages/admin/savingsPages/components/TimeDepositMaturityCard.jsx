@@ -3,16 +3,22 @@ import { Bar } from 'react-chartjs-2';
 import CountUp from 'react-countup';
 
 const TimeDepositMaturityCard = ({ data }) => {
-  const { maturityTimeline } = data;
+  // Safely access maturity timeline with null check
+  const maturityTimeline = data?.analytics?.maturityTimeline || [];
 
+  // Process chart data with safe checks
   const chartData = {
     labels: maturityTimeline.map(item => {
-      const [year, month] = item.month.split('-');
-      return new Date(year, month - 1).toLocaleString('default', { month: 'short' });
+      try {
+        const [year, month] = (item?.month || '').split('-');
+        return new Date(year, month - 1).toLocaleString('default', { month: 'short' });
+      } catch (error) {
+        return '';
+      }
     }),
     datasets: [{
       label: 'Maturing Amount',
-      data: maturityTimeline.map(item => item.total_amount),
+      data: maturityTimeline.map(item => parseFloat(item?.total_amount) || 0),
       backgroundColor: 'rgba(79, 70, 229, 0.8)',
       borderRadius: 6,
       barThickness: 16,
@@ -33,7 +39,7 @@ const TimeDepositMaturityCard = ({ data }) => {
         padding: 10,
         callbacks: {
           label: function(context) {
-            return `₱${context.parsed.y.toLocaleString()}`;
+            return `₱${(context.parsed.y || 0).toLocaleString()}`;
           }
         }
       }
@@ -48,7 +54,7 @@ const TimeDepositMaturityCard = ({ data }) => {
         ticks: {
           color: '#9ca3af',
           callback: function(value) {
-            return '₱' + (value / 1000) + 'k';
+            return '₱' + ((value || 0) / 1000) + 'k';
           }
         },
         beginAtZero: true
@@ -56,8 +62,11 @@ const TimeDepositMaturityCard = ({ data }) => {
     }
   };
 
-  const totalMaturingAmount = maturityTimeline.reduce((sum, item) => sum + item.total_amount, 0);
-  const totalMaturingAccounts = maturityTimeline.reduce((sum, item) => sum + item.count, 0);
+  // Safe calculations with null checks
+  const totalMaturingAmount = maturityTimeline.reduce((sum, item) => 
+    sum + (parseFloat(item?.total_amount) || 0), 0);
+  const totalMaturingAccounts = maturityTimeline.reduce((sum, item) => 
+    sum + (parseInt(item?.count) || 0), 0);
   const nearestMaturity = maturityTimeline[0] || { total_amount: 0, count: 0 };
 
   return (
@@ -70,28 +79,50 @@ const TimeDepositMaturityCard = ({ data }) => {
       </div>
 
       <div className="h-64">
-        <Bar data={chartData} options={options} />
+        {maturityTimeline.length > 0 ? (
+          <Bar data={chartData} options={options} />
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            No maturity data available
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4 mt-6">
         <div className="bg-indigo-50 rounded-lg p-4">
           <p className="text-sm text-gray-500">Next Month Maturity</p>
           <p className="text-xl font-bold text-gray-800">
-            ₱<CountUp end={nearestMaturity.total_amount} separator="," decimals={2} />
+            ₱<CountUp 
+              end={parseFloat(nearestMaturity.total_amount) || 0} 
+              separator="," 
+              decimals={2} 
+              duration={2}
+            />
           </p>
-          <p className="text-xs text-indigo-600 mt-1">{nearestMaturity.count} accounts</p>
+          <p className="text-xs text-indigo-600 mt-1">
+            {nearestMaturity.count || 0} accounts
+          </p>
         </div>
         <div className="bg-indigo-50 rounded-lg p-4">
           <p className="text-sm text-gray-500">Total Maturing</p>
           <p className="text-xl font-bold text-gray-800">
-            ₱<CountUp end={totalMaturingAmount} separator="," decimals={2} />
+            ₱<CountUp 
+              end={totalMaturingAmount} 
+              separator="," 
+              decimals={2} 
+              duration={2}
+            />
           </p>
           <p className="text-xs text-indigo-600 mt-1">Next 9 months</p>
         </div>
         <div className="bg-indigo-50 rounded-lg p-4">
           <p className="text-sm text-gray-500">Maturing Accounts</p>
           <p className="text-xl font-bold text-gray-800">
-            <CountUp end={totalMaturingAccounts} separator="," />
+            <CountUp 
+              end={totalMaturingAccounts} 
+              separator="," 
+              duration={2}
+            />
           </p>
           <p className="text-xs text-indigo-600 mt-1">Total accounts</p>
         </div>

@@ -34,7 +34,8 @@ router.get('/members/savings', memberController.getMemberSavings);
 router.get('/member/email/:email', memberController.getMemberByEmail);
 router.get('/member/:id', memberController.getMemberById);
 router.get('/member-info/:id', memberController.fetchedMemberById);
-
+// In your routes file (e.g., member.routes.js)
+router.get('/member-by-code/:memberCode', memberController.getMemberByCode);
 
 router.patch('/members/:memberId/financials', memberController.updateFinancials);
 router.get('/members/applicant', memberController.getAllMemberApplicants);

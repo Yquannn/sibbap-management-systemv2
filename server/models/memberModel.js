@@ -90,8 +90,6 @@ const generateUniqueAccountNumber = async () => {
 };
 
 
-
-
 exports.updateMemberFinancials = async (memberId, financialData) => {
   const connection = await db.getConnection();
   const {
@@ -152,6 +150,60 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
       }
     }
 
+    // Insert into share_capital_transactions and share_capital tables if share capital is provided
+    if (share_capital !== null && share_capital > 0) {
+      // First, get the memberCode for the given memberId
+      const [memberResult] = await connection.execute(
+        'SELECT memberCode FROM members WHERE memberId = ?',
+        [memberId]
+      );
+      
+      if (!memberResult.length || !memberResult[0].memberCode) {
+        throw new Error("Member code not found for the given member ID");
+      }
+      
+      const memberCodeFromDb = memberResult[0].memberCode;
+      
+      // Generate transaction number
+      const referenceNumber = await generateTransactionNumber()
+      
+      // Insert into share_capital_transactions
+      const transactionSql = `
+        INSERT INTO share_capital_transactions (
+          memberCode,
+          transaction_number,
+          transaction_type,
+          amount,
+          description
+        ) VALUES (?, ?, ?, ?, ?)
+      `;
+      
+      await connection.execute(transactionSql, [
+        memberCodeFromDb,
+        referenceNumber,
+        'deposit',
+        share_capital,
+        'Initial share capital subscription'
+      ]);
+      
+      // Insert or update share_capital table
+      const shareCapitalSql = `
+        INSERT INTO share_capital (
+          memberId,
+          memberCode,
+          total_amount
+        ) VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          total_amount = total_amount + VALUES(total_amount)
+      `;
+      
+      await connection.execute(shareCapitalSql, [
+        memberId,
+        memberCodeFromDb,
+        share_capital
+      ]);
+    }
+
     if (memberCode) {
       const defaultEmail = email || memberCode;
       const defaultPassword = password || memberCode;
@@ -176,7 +228,6 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
 
     await connection.commit();
 
-    // **Return the generated memberCode (and type)**
     return {
       success: true,
       message: "Membership Successfully Updated.",
@@ -184,16 +235,27 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
       memberType
     };
   } catch (err) {
-    await connection.rollback();
+    try {
+      // Check if connection is still valid before rolling back
+      if (connection && connection.connection && !connection.connection._closing) {
+        await connection.rollback();
+      }
+    } catch (rollbackErr) {
+      console.error("Rollback error:", rollbackErr.message);
+    }
     console.error("Transaction error:", err.message);
     throw err;
   } finally {
-    connection.release();
+    try {
+      // Check if connection is still valid before releasing
+      if (connection && connection.connection && !connection.connection._closing) {
+        connection.release();
+      }
+    } catch (releaseErr) {
+      console.error("Connection release error:", releaseErr.message);
+    }
   }
 };
-
-
-
 
 // In memberModel.js
 exports.addPurchaseHistory = async (memberId, service, amount) => {
@@ -204,3 +266,5 @@ exports.addPurchaseHistory = async (memberId, service, amount) => {
   const [result] = await db.execute(sql, [memberId, service, amount]);
   return result;
 };
+
+
