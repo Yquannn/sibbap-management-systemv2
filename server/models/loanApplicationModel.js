@@ -17,6 +17,7 @@ async function createLoanApplication(data) {
     memberId, // Must be valid and exist in the members table
     loan_type,
     application,
+    loanable_amount,
     loan_amount,
     interest,
     terms,
@@ -52,9 +53,9 @@ async function createLoanApplication(data) {
     // Insert into loan_applications.
     const [result] = await conn.query(
       `INSERT INTO loan_applications 
-       (client_voucher_number, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [voucherNumber, memberId, loan_type, application, loan_amount, interest, terms, balance, service_fee]
+       (client_voucher_number, memberId, loan_type, application, loan_amount, loanable_amount, interest, terms, balance, service_fee)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [voucherNumber, memberId, loan_type, application, loan_amount, loanable_amount, interest, terms, balance, service_fee]
     );
     
     const loanApplicationId = result.insertId;

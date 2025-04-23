@@ -169,14 +169,34 @@ const updateSavingsAmount = async (memberId, authorized, user_type, amount, tran
 // setInterval(applyInterest, 5000);
 
 
-
-
 async function applyInterest() {
   let connection;
-
+  
   try {
     connection = await db.getConnection();
-
+    
+    // First, fetch the current interest rate from interest_rate_module
+    const rateQuery = `
+      SELECT interest_rate 
+      FROM interest_rate_modules 
+      WHERE module_type = 'standard' 
+      AND is_archived = 0 
+      LIMIT 1;
+    `;
+    
+    const [rateResult] = await connection.query(rateQuery);
+    
+    if (!rateResult.length) {
+      console.log("⚠️ Could not find valid interest rate in module.");
+      return;
+    }
+    
+    // Convert annual interest rate to daily rate
+    const annualRate = parseFloat(rateResult[0].interest_rate) / 100; // Convert from percentage
+    const interestRate = annualRate / 365; // Daily interest rate
+    
+    console.log(`📊 Using daily interest rate: ${interestRate.toFixed(6)} (Annual: ${annualRate})`);
+    
     // Fetch eligible accounts
     const fetchQuery = `
       SELECT savingsId, amount, COALESCE(earnings, 0) AS earnings 
@@ -184,33 +204,31 @@ async function applyInterest() {
       WHERE amount >= 1000;
     `;
     const [accounts] = await connection.query(fetchQuery);
-
+    
     if (accounts.length === 0) {
       console.log("⚠️ No eligible accounts for interest.");
       return;
     }
-
+    
     console.log(`🔍 Found ${accounts.length} eligible accounts.`);
-
+    
     // Start transaction
     await connection.beginTransaction();
-
-    const interestRate = 0.005 / 365; // Daily interest rate
-
+    
     // Loop over eligible accounts
     for (const account of accounts) {
       // Generate a new transaction number for each account
-      const transactionNumber = generateTransactionNumber(); // Generate a new transaction number per iteration
+      const transactionNumber = generateTransactionNumber();
       console.log(`Generated transaction number: ${transactionNumber}`);
-
+      
       // Convert earnings and amount to numbers explicitly
       const currentAmount = parseFloat(account.amount);
       const currentEarnings = parseFloat(account.earnings);
-
+      
       const interestAmount = parseFloat((currentAmount * interestRate).toFixed(2)); // Round to 2 decimal places
       const updatedEarnings = parseFloat((currentEarnings + interestAmount).toFixed(2));
       const newAmount = parseFloat((currentAmount + interestAmount).toFixed(2));
-
+      
       // Update savings account
       const updateQuery = `
         UPDATE regular_savings 
@@ -218,28 +236,28 @@ async function applyInterest() {
         WHERE savingsId = ?;
       `;
       const [updateResult] = await connection.query(updateQuery, [updatedEarnings, newAmount, account.savingsId]);
-
+      
       if (updateResult.affectedRows === 0) {
         throw new Error(`❌ Update failed for savingsId ${account.savingsId}`);
       }
-
+      
       console.log(`✅ Updated savingsId ${account.savingsId}`);
-
+      
       // Insert into transaction history
       const insertQuery = `
         INSERT INTO regular_savings_transaction 
-          (regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time) 
+          (regular_savings_id, transaction_number, transaction_type, amount, transaction_date_time)
         VALUES (?, ?, 'Savings Interest', ?, NOW());
       `;
       const [insertResult] = await connection.query(insertQuery, [account.savingsId, transactionNumber, interestAmount]);
-
+      
       if (insertResult.affectedRows === 0) {
         throw new Error(`❌ Insert failed for savingsId ${account.savingsId}`);
       }
-
+      
       console.log(`📌 Transaction recorded for savingsId ${account.savingsId}`);
     }
-
+    
     // Commit transaction
     await connection.commit();
     console.log(`✅ Interest applied to ${accounts.length} accounts.`);
@@ -250,8 +268,6 @@ async function applyInterest() {
     if (connection) connection.release();
   }
 }
-
-
 
 
 

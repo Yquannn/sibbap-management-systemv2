@@ -636,7 +636,7 @@ export default function AdminLoanMonitorUI() {
                         <td className="px-4 py-3 text-sm text-gray-900 text-right space-x-2">
                           <button
                             className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 inline-flex items-center"
-                            onClick={() => navigate(`/loan-repayment/${app.loan_application_id}?action=view`)}
+                            onClick={() => navigate(`/loan-application-view/${app.loan_application_id}?action=view`)}
                           >
                             <Eye size={14} className="mr-1" /> View
                           </button>

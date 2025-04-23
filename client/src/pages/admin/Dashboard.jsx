@@ -850,8 +850,7 @@ const Dashboard = () => {
           </div>
           
           {/* Bottom Section with Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Quick Actions Card */}
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
               <div className="space-y-3">
@@ -874,7 +873,6 @@ const Dashboard = () => {
               </div>
             </div>
             
-            {/* Upcoming Due Dates */}
             <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Upcoming Due Dates</h2>
               <div className="space-y-3">
@@ -907,7 +905,6 @@ const Dashboard = () => {
               </div>
             </div>
             
-            {/* Performance Goals */}
             <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Performance Goals</h2>
               <div className="space-y-5">
@@ -937,8 +934,8 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
+            </div> */}
+          {/* </div> */}
         </main>
       </div>
     </div>

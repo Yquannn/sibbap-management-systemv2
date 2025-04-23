@@ -22,6 +22,9 @@ const memberMaintenanceRoutes = require('./routes/memberMaintenanceRoute'); // F
 const savingsMaintenanceRoutes = require('./routes/savingsMaintenanceRoutes'); // FIXED THIS LINE
 const shareCapitalRoutes = require('./routes/shareCapitalRoutes'); // FIXED THIS LINE
 const dashboardRoutes = require('./routes/dashboardRoutes'); // FIXED THIS LINE
+const loanHistoryRoutes = require('./routes/loanHistoryRoutes'); // FIXED THIS LINE
+const loanFactorRoutes = require('./routes/loanFactorRoutes'); // FIXED THIS LINE
+const loanTypeRoutes = require('./routes/loanTypeRoutes'); // FIXED THIS LINE 
 
 const app = express();
 const PORT = process.env.PORT || 3001; // FIXED THIS LINE
@@ -54,6 +57,10 @@ app.use('/api', memberMaintenanceRoutes); // FIXED THIS LINE
 app.use('/api', savingsMaintenanceRoutes); // FIXED THIS LINE
 app.use('/api', shareCapitalRoutes); // FIXED THIS LINE
 app.use('/api', dashboardRoutes); // FIXED THIS LINE
+app.use('/api', loanHistoryRoutes);
+app.use('/api', loanFactorRoutes); // FIXED THIS LINE
+app.use('/api', loanTypeRoutes); // FIXED THIS LINE
+
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

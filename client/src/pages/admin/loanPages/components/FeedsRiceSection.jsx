@@ -45,12 +45,12 @@ const FeedsRiceSection = ({
               You can loan up to <strong>{maxSacks}</strong> sacks based on your Share Capital.
             </p>
           </div>
-          <div>
+          {/* <div>
             <label className="block font-medium text-gray-700 mb-1">
               Terms:
             </label>
             <p className="p-2 border rounded-lg bg-gray-100">30 Days</p>
-          </div>
+          </div> */}
         </div>
 
         {/* If Statement of Purpose is business, show file input in a full-width row */}

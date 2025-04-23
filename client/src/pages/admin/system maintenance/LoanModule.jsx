@@ -1,291 +1,379 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Plus,
-  Archive,
-  Edit2,
-  Trash2,
-  RefreshCw,
-  Info,
-  Filter,
-  AlertCircle,
-  Clock,
+import React, { useState, useEffect } from "react";
+import { 
+  Plus, 
+  Edit, 
+  X, 
+  Check, 
+  Search, 
+  ChevronDown, 
+  Trash2, 
+  Archive, 
+  RefreshCw, 
+  Info, 
+  Percent,
   DollarSign,
-  Percent
+  Package,
+  Filter
 } from "lucide-react";
+import axios from "axios";
 
-// --- DUMMY DATA -----------------------------------------------------
-const dummyLoans = [
-  { id: 1, loanType: "Personal Loan", interestRate: "2%", loanableAmount: "₱10,000", serviceFee: "3%", penaltyFee: "2%", membershipFee: "₱200", maintenanceCycle: "Monthly", maintenanceFee: "₱50" },
-  { id: 2, loanType: "Housing Loan", interestRate: "1.75%", loanableAmount: "₱200,000", serviceFee: "1.2%", penaltyFee: "2%", membershipFee: "₱500", maintenanceCycle: "Quarterly", maintenanceFee: "₱100" },
-  { id: 3, loanType: "Car Loan", interestRate: "1.75%", loanableAmount: "₱50,000", serviceFee: "1.2%", penaltyFee: "2%", membershipFee: "₱300", maintenanceCycle: "Monthly", maintenanceFee: "₱75" },
-  { id: 4, loanType: "Salary Loan", interestRate: "2%", loanableAmount: "₱5,000", serviceFee: "3%", penaltyFee: "2%", membershipFee: "₱150", maintenanceCycle: "Monthly", maintenanceFee: "₱25" },
-  { id: 5, loanType: "Mortgage Loan", interestRate: "1.75%", loanableAmount: "₱1,000,000", serviceFee: "1.2%", penaltyFee: "2%", membershipFee: "₱700", maintenanceCycle: "Quarterly", maintenanceFee: "₱200" },
-  { id: 6, loanType: "OFW Assistance Loan", interestRate: "2%", loanableAmount: "₱200,000", serviceFee: "5%", penaltyFee: "2%", membershipFee: "₱400", maintenanceCycle: "Semi-Annual", maintenanceFee: "₱150" },
-  { id: 7, loanType: "Agriculture Loan", interestRate: "3.5%", loanableAmount: "₱100,000", serviceFee: "3%", penaltyFee: "2%", membershipFee: "₱250", maintenanceCycle: "Quarterly", maintenanceFee: "₱100" },
-  { id: 8, loanType: "Educational Loan", interestRate: "1.75%", loanableAmount: "₱50,000", serviceFee: "5%", penaltyFee: "2%", membershipFee: "₱180", maintenanceCycle: "Semi-Annual", maintenanceFee: "₱75" },
-];
+const API_URL = "http://localhost:3001/api/loan-types";
 
-const dummyArchivedLoans = [
-  { id: 9, loanType: "Emergency Loan", interestRate: "4%", loanableAmount: "₱15,000", serviceFee: "2.5%", penaltyFee: "2%", archivedDate: "2025-03-15", membershipFee: "₱250", maintenanceCycle: "Monthly", maintenanceFee: "₱50" },
-  { id: 10, loanType: "Business Loan", interestRate: "3%", loanableAmount: "₱500,000", serviceFee: "2%", penaltyFee: "2%", archivedDate: "2025-02-28", membershipFee: "₱600", maintenanceCycle: "Quarterly", maintenanceFee: "₱150" },
-  { id: 11, loanType: "Medical Loan", interestRate: "1.5%", loanableAmount: "₱75,000", serviceFee: "1%", penaltyFee: "2%", archivedDate: "2025-03-01", membershipFee: "₱400", maintenanceCycle: "Monthly", maintenanceFee: "₱60" },
-  { id: 12, loanType: "Calamity Loan", interestRate: "1%", loanableAmount: "₱25,000", serviceFee: "0.5%", penaltyFee: "2%", archivedDate: "2025-01-20", membershipFee: "₱100", maintenanceCycle: "Monthly", maintenanceFee: "₱35" },
-];
-
-// Maintenance cycle options
-const maintenanceCycleOptions = ["None", "Monthly", "Quarterly", "Semi-Annual", "Annual"];
-
-const filterPlaceholders = {
-  all: "Search all fields...",
-  loanType: "Search by loan type...",
-  interestRate: "Search by interest rate...",
-  loanableAmount: "Search by loanable amount...",
-  serviceFee: "Search by service fee...",
-  maintenanceFee: "Search by maintenance fee...",
-};
-
-const LoanModule = () => {
-  // LOANS + ARCHIVE states
-  const [loans, setLoans] = useState(dummyLoans);
-  const [archivedLoans, setArchivedLoans] = useState(dummyArchivedLoans);
-
-  // Add/Edit Loan Modal
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingLoan, setEditingLoan] = useState(null);
-  const [newLoan, setNewLoan] = useState({
-    loanType: "",
-    interestRate: "",
-    loanableAmount: "",
-    serviceFee: "",
-    penaltyFee: "",
-    membershipFee: "",
-    maintenanceCycle: "None",
-    maintenanceFee: "₱0",
+const LoanTypeManagement = () => {
+  // State variables
+  const [loans, setLoans] = useState([]);
+  const [archivedLoans, setArchivedLoans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
+  
+  // Modal states
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentLoan, setCurrentLoan] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  
+  // Form states
+  const [newLoanType, setNewLoanType] = useState('');
+  const [newInterestRate, setNewInterestRate] = useState('');
+  const [newServiceFee, setNewServiceFee] = useState('');
+  const [newPenaltyFee, setNewPenaltyFee] = useState('');
+  const [newAdditionalSavings, setNewAdditionalSavings] = useState('0');
+  
+  // Commodity fields
+  const [isCommodityLoan, setIsCommodityLoan] = useState(false);
+  const [commodityType, setCommodityType] = useState('feeds');
+  const [pricePerUnit, setPricePerUnit] = useState('');
+  const [maxUnits, setMaxUnits] = useState('');
+  const [loanPercentage, setLoanPercentage] = useState('70');
+  
+  // Success message state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Calculation preview state
+  const [showCalculation, setShowCalculation] = useState(false);
+  const [calculationAmount, setCalculationAmount] = useState(0);
+  const [calculationUnits, setCalculationUnits] = useState(1);
+  
+  // Column visibility state
+  const [showColumn, setShowColumn] = useState({
+    loan_type: true,
+    interest_rate: true,
+    service_fee: true,
+    penalty_fee: true,
+    additional_savings: true,
+    commodity_details: true,
+    updated_at: false
   });
 
-  // Info Modal
+  // Function to show success message
+  const showSuccess = (message) => {
+    setSuccessMessage(message);
+    setShowSuccessModal(true);
+    
+    setTimeout(() => {
+      setShowSuccessModal(false);
+    }, 3000);
+  };
+  
+  // Calculate loanable amount
+  const calculateLoanableAmount = (price, units, percentage) => {
+    if (!price || !units || !percentage) return 0;
+    const totalValue = parseFloat(price) * parseInt(units);
+    return (totalValue * parseFloat(percentage)) / 100;
+  };
+  
+  // Preview calculation handler
+  const handleShowCalculation = (loan) => {
+    if (!loan.price_per_unit || !loan.max_units || !loan.loan_percentage) return;
+    
+    setCalculationUnits(1);
+    setCalculationAmount(calculateLoanableAmount(
+      loan.price_per_unit, 
+      1, 
+      loan.loan_percentage
+    ));
+    setShowCalculation(true);
+  };
+  
+  // Update calculation on unit change
+  const handleUnitChange = (e, loan) => {
+    const units = parseInt(e.target.value) || 0;
+    setCalculationUnits(units);
+    setCalculationAmount(calculateLoanableAmount(
+      loan.price_per_unit, 
+      units, 
+      loan.loan_percentage
+    ));
+  };
+
+  // Fetch loan types from API
+  const fetchLoanTypes = async () => {
+    try {
+      setLoading(true);
+      const activeResponse = await axios.get(API_URL);
+      setLoans(activeResponse.data.data || []);
+      
+      const archivedResponse = await axios.get(`${API_URL}?includeArchived=true`);
+      const allLoans = archivedResponse.data.data || [];
+      setArchivedLoans(allLoans.filter(loan => loan.is_archived === 1));
+      
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch loan types. Please try again later.');
+      console.error('Error fetching loan types:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLoanTypes();
+  }, []);
+
+  // Filter and sort functions
+  const getLoansByArchiveStatus = () => showArchived ? archivedLoans : loans;
+  
+  const filteredLoans = getLoansByArchiveStatus().filter(loan =>
+    loan.loan_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (loan.commodity_type && loan.commodity_type.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const sortedLoans = [...filteredLoans].sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
+    if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'ascending' ? 1 : -1;
+    return 0;
+  });
+
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Format currency for display
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+
+  // Handlers
+  const handleEditLoan = (loan) => {
+    setCurrentLoan(loan);
+    setNewLoanType(loan.loan_type);
+    setNewInterestRate(loan.interest_rate.toString());
+    setNewServiceFee(loan.service_fee.toString());
+    setNewPenaltyFee(loan.penalty_fee.toString());
+    setNewAdditionalSavings((loan.additional_savings_deposit || 0).toString());
+    
+    // Set commodity fields if they exist
+    if (loan.commodity_type) {
+      setIsCommodityLoan(true);
+      setCommodityType(loan.commodity_type);
+      setPricePerUnit(loan.price_per_unit?.toString() || '');
+      setMaxUnits(loan.max_units?.toString() || '');
+      setLoanPercentage(loan.loan_percentage?.toString() || '70');
+    } else {
+      setIsCommodityLoan(false);
+      setCommodityType('feeds');
+      setPricePerUnit('');
+      setMaxUnits('');
+      setLoanPercentage('70');
+    }
+    
+    setIsEditing(true);
+  };
+
+  const handleOpenAddModal = () => {
+    resetForm();
+    setIsAdding(true);
+  };
+  
+  const handleCloseAddModal = () => {
+    setIsAdding(false);
+    resetForm();
+  };
+  
+  const resetForm = () => {
+    setNewLoanType('');
+    setNewInterestRate('');
+    setNewServiceFee('');
+    setNewPenaltyFee('');
+    setNewAdditionalSavings('0');
+    setIsCommodityLoan(false);
+    setCommodityType('feeds');
+    setPricePerUnit('');
+    setMaxUnits('');
+    setLoanPercentage('70');
+  };
+
+  const saveLoanChanges = async () => {
+    const interestRate = parseFloat(newInterestRate);
+    const serviceFee = parseFloat(newServiceFee);
+    const penaltyFee = parseFloat(newPenaltyFee);
+    const additionalSavings = parseFloat(newAdditionalSavings || '0');
+        
+    if (!newLoanType.trim() || isNaN(interestRate) || isNaN(serviceFee) || isNaN(penaltyFee) || isNaN(additionalSavings)) {
+      alert('Please enter valid information for all required fields');
+      return;
+    }
+    
+    // Create request data
+    const requestData = {
+      loan_type: newLoanType,
+      interest_rate: interestRate,
+      service_fee: serviceFee,
+      penalty_fee: penaltyFee,
+      additional_savings_deposit: additionalSavings
+    };
+        
+    // Add commodity details if it's a commodity loan
+    if (isCommodityLoan) {
+      const price = parseFloat(pricePerUnit);
+      const units = parseInt(maxUnits);
+      const percent = parseFloat(loanPercentage);
+            
+      if (isNaN(price) || isNaN(units) || isNaN(percent)) {
+        alert('Please enter valid information for all commodity fields');
+        return;
+      }
+            
+      requestData.commodity_type = commodityType;
+      requestData.price_per_unit = price;
+      requestData.max_units = units;
+      requestData.loan_percentage = percent;
+    }
+    
+    try {
+      await axios.put(`${API_URL}/${currentLoan.id}`, requestData);
+            
+      fetchLoanTypes();
+      setIsEditing(false);
+      setCurrentLoan(null);
+      resetForm();
+            
+      showSuccess('Loan type updated successfully!');
+    } catch (err) {
+      alert('Failed to update loan type. Please try again.');
+      console.error('Error updating loan type:', err);
+    }
+   };
+   
+
+
+  
+  const handleSaveAddLoan = async () => {
+    const interestRate = parseFloat(newInterestRate);
+    const serviceFee = parseFloat(newServiceFee);
+    const penaltyFee = parseFloat(newPenaltyFee);
+    const additionalSavings = parseFloat(newAdditionalSavings || '0');
+    
+    if (!newLoanType.trim() || isNaN(interestRate) || isNaN(serviceFee) || isNaN(penaltyFee) || isNaN(additionalSavings)) {
+      alert('Please enter valid information for all required fields');
+      return;
+    }
+
+    // Create request data
+    const requestData = {
+      loan_type: newLoanType,
+      interest_rate: interestRate,
+      service_fee: serviceFee,
+      penalty_fee: penaltyFee,
+      additional_savings_deposit: additionalSavings
+    };
+    
+    // Add commodity details if it's a commodity loan
+    if (isCommodityLoan) {
+      const price = parseFloat(pricePerUnit);
+      const units = parseInt(maxUnits);
+      const percent = parseFloat(loanPercentage);
+      
+      if (isNaN(price) || isNaN(units) || isNaN(percent)) {
+        alert('Please enter valid information for all commodity fields');
+        return;
+      }
+      
+      requestData.commodity_type = commodityType;
+      requestData.price_per_unit = price;
+      requestData.max_units = units;
+      requestData.loan_percentage = percent;
+    }
+
+    try {
+      await axios.post(API_URL, requestData);
+      
+      fetchLoanTypes();
+      handleCloseAddModal();
+      
+      showSuccess('New loan type added successfully!');
+    } catch (err) {
+      alert('Failed to add loan type. Please try again.');
+      console.error('Error adding loan type:', err);
+    }
+  };
+
+  // Other handlers
+  const toggleColumnVisibility = (column) => {
+    setShowColumn(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
+
+  const handleConfirmArchive = (id) => {
+    setDeleteId(id);
+    setIsDeleting(true);
+  };
+
+  const handleArchiveLoan = async () => {
+    try {
+      await axios.patch(`${API_URL}/${deleteId}/archive`);
+      fetchLoanTypes();
+      setIsDeleting(false);
+      setDeleteId(null);
+      showSuccess('Loan type archived successfully!');
+    } catch (err) {
+      alert('Failed to archive loan type. Please try again.');
+      console.error('Error archiving loan type:', err);
+    }
+  };
+
+  const handleRestoreLoan = async (id) => {
+    try {
+      await axios.patch(`${API_URL}/${id}/unarchive`);
+      fetchLoanTypes();
+      showSuccess('Loan type restored successfully!');
+    } catch (err) {
+      alert('Failed to restore loan type. Please try again.');
+      console.error('Error restoring loan type:', err);
+    }
+  };
+
+  const toggleShowArchived = () => {
+    setShowArchived(prev => !prev);
+  };
+  
+  // Info modal state
   const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
   const [infoType, setInfoType] = useState("");
-
-  // Delete Confirmation Modal
-  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [loanToDelete, setLoanToDelete] = useState(null);
-
-  // Tab / Filter states
-  const [activeTab, setActiveTab] = useState("active");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterOption, setFilterOption] = useState("all");
-
-  const navigate = useNavigate();
-
-  // ---------------------------------------------------------
-  // LOAN TYPE TAB: Handlers
-  // ---------------------------------------------------------
-  const handleAddNewLoan = () => {
-    setEditingLoan(null);
-    setNewLoan({
-      loanType: "",
-      interestRate: "",
-      loanableAmount: "",
-      serviceFee: "",
-      penaltyFee: "",
-      membershipFee: "",
-      maintenanceCycle: "None",
-      maintenanceFee: "₱0",
-    });
-    setIsModalVisible(true);
-  };
-
-  const handleEditLoan = (loan) => {
-    setEditingLoan(loan);
-    setNewLoan({
-      loanType: loan.loanType,
-      interestRate: loan.interestRate,
-      loanableAmount: loan.loanableAmount,
-      serviceFee: loan.serviceFee,
-      penaltyFee: loan.penaltyFee || "",
-      membershipFee: loan.membershipFee || "",
-      maintenanceCycle: loan.maintenanceCycle || "None",
-      maintenanceFee: loan.maintenanceFee || "₱0",
-    });
-    setIsModalVisible(true);
-  };
 
   const handleShowInfo = (type) => {
     setInfoType(type);
     setIsInfoModalVisible(true);
   };
-
-  const handleModalOk = () => {
-    // Format all currency and percentage fields
-    const formattedMembershipFee = newLoan.membershipFee.startsWith("₱") 
-        ? newLoan.membershipFee
-        : `₱${newLoan.membershipFee}`;
-
-    const formattedMaintenanceFee = newLoan.maintenanceFee.startsWith("₱")
-        ? newLoan.maintenanceFee
-        : `₱${newLoan.maintenanceFee}`;
-        
-    const formattedInterestRate = newLoan.interestRate.trim().toUpperCase() === "N/A" 
-        ? "N/A" 
-        : newLoan.interestRate.includes("%") 
-            ? newLoan.interestRate 
-            : `${newLoan.interestRate}%`;
-
-    const formattedServiceFee = newLoan.serviceFee.trim().toUpperCase() === "N/A" 
-        ? "N/A" 
-        : newLoan.serviceFee.includes("%") 
-            ? newLoan.serviceFee 
-            : `${newLoan.serviceFee}%`;
-
-    const formattedPenaltyFee = newLoan.penaltyFee.includes("%")
-        ? newLoan.penaltyFee
-        : `${newLoan.penaltyFee}%`;
-
-    const formattedLoanableAmount = newLoan.loanableAmount.includes("₱")
-        ? newLoan.loanableAmount
-        : `₱${newLoan.loanableAmount}`;
-
-    const formattedLoan = {
-      ...newLoan,
-      interestRate: formattedInterestRate,
-      serviceFee: formattedServiceFee,
-      penaltyFee: formattedPenaltyFee,
-      loanableAmount: formattedLoanableAmount,
-      membershipFee: formattedMembershipFee,
-      maintenanceFee: formattedMaintenanceFee,
-    };
-
-    // Update existing loan or create a new one
-    if (editingLoan) {
-      const updatedLoans = loans.map((l) =>
-        l.id === editingLoan.id ? { ...l, ...formattedLoan } : l
-      );
-      setLoans(updatedLoans);
-    } else {
-      const newLoanId = loans.length > 0 ? Math.max(...loans.map((l) => l.id)) + 1 : 1;
-      setLoans([...loans, { id: newLoanId, ...formattedLoan }]);
-    }
-
-    // Reset form state and close modal
-    setNewLoan({
-      loanType: "",
-      interestRate: "",
-      loanableAmount: "",
-      serviceFee: "",
-      penaltyFee: "",
-      membershipFee: "",
-      maintenanceCycle: "None",
-      maintenanceFee: "₱0",
-    });
-    setEditingLoan(null);
-    setIsModalVisible(false);
-  };
-
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    setEditingLoan(null);
-  };
-
-  // ---------------------------------------------------------
-  // ARCHIVE TAB: Handlers
-  // ---------------------------------------------------------
-  const handleArchiveLoan = (loan) => {
-    const updatedLoans = loans.filter((item) => item.id !== loan.id);
-    setLoans(updatedLoans);
-
-    const today = new Date().toISOString().split("T")[0];
-    const archivedLoan = { ...loan, archivedDate: today };
-    setArchivedLoans([...archivedLoans, archivedLoan]);
-    setActiveTab("archived");
-  };
-
-  const handleRestoreLoan = (loan) => {
-    const updatedArchived = archivedLoans.filter((item) => item.id !== loan.id);
-    setArchivedLoans(updatedArchived);
-    const { archivedDate, ...restoredLoan } = loan;
-    setLoans([...loans, restoredLoan]);
-    setActiveTab("active");
-  };
-
-  const showDeleteConfirmModal = (loan) => {
-    setLoanToDelete(loan);
-    setIsDeleteModalVisible(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (loanToDelete) {
-      const updatedArchived = archivedLoans.filter((item) => item.id !== loanToDelete.id);
-      setArchivedLoans(updatedArchived);
-      setLoanToDelete(null);
-    }
-    setIsDeleteModalVisible(false);
-  };
-
-  const handleCancelDelete = () => {
-    setLoanToDelete(null);
-    setIsDeleteModalVisible(false);
-  };
-
-  // ---------------------------------------------------------
-  // FILTER: Logic + Functions
-  // ---------------------------------------------------------
-  const handleFilterChange = (option) => {
-    setFilterOption(option);
-    setSearchTerm("");
-  };
-
-  const getFilteredLoans = (loanList) => {
-    return loanList.filter((loan) => {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      if (filterOption === "loanType") {
-        return loan.loanType.toLowerCase().includes(lowerSearchTerm);
-      } else if (filterOption === "interestRate") {
-        return loan.interestRate.toLowerCase().includes(lowerSearchTerm);
-      } else if (filterOption === "loanableAmount") {
-        return loan.loanableAmount.toLowerCase().includes(lowerSearchTerm);
-      } else if (filterOption === "serviceFee") {
-        return loan.serviceFee.toLowerCase().includes(lowerSearchTerm);
-      } else if (filterOption === "maintenanceFee") {
-        return (loan.maintenanceFee || "").toLowerCase().includes(lowerSearchTerm);
-      }
-      // All fields search (default)
-      return (
-        loan.loanType.toLowerCase().includes(lowerSearchTerm) ||
-        loan.interestRate.toLowerCase().includes(lowerSearchTerm) ||
-        loan.loanableAmount.toLowerCase().includes(lowerSearchTerm) ||
-        loan.serviceFee.toLowerCase().includes(lowerSearchTerm) ||
-        (loan.penaltyFee || "").toLowerCase().includes(lowerSearchTerm) ||
-        (loan.membershipFee || "").toLowerCase().includes(lowerSearchTerm) ||
-        (loan.maintenanceCycle || "").toLowerCase().includes(lowerSearchTerm) ||
-        (loan.maintenanceFee || "").toLowerCase().includes(lowerSearchTerm)
-      );
-    });
-  };
-
-  const filteredLoans = getFilteredLoans(loans);
-  const filteredArchivedLoans = getFilteredLoans(archivedLoans);
-
-  // Get information text based on info type
+  
+  // Get information text
   const getInfoText = () => {
     switch (infoType) {
-      case "maintenance":
-        return (
-          <div className="space-y-2">
-            <p>Loan maintenance includes regular fees that are charged to borrowers to cover the administrative costs of managing their loans.</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Maintenance Cycle:</strong> How often the maintenance fee is charged (Monthly, Quarterly, etc.)</li>
-              <li><strong>Maintenance Fee:</strong> The amount charged per cycle for loan account administration</li>
-            </ul>
-            <p>These fees help cover costs related to account management, statement generation, and other administrative tasks.</p>
-          </div>
-        );
       case "interest":
         return (
           <div className="space-y-2">
             <p>Interest rate is the percentage charged on the principal loan amount for borrowing funds.</p>
-            <p>It's typically expressed as an annual percentage rate (APR) and may be fixed or variable depending on the loan type.</p>
+            <p>It's typically expressed as an annual percentage rate (APR).</p>
           </div>
         );
       case "fees":
@@ -295,8 +383,34 @@ const LoanModule = () => {
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>Service Fee:</strong> One-time fee charged when processing the loan</li>
               <li><strong>Penalty Fee:</strong> Additional charge if payments are late or missed</li>
-              <li><strong>Membership Fee:</strong> Fee required to become eligible for the loan program</li>
             </ul>
+          </div>
+        );
+      case "commodity":
+        return (
+          <div className="space-y-2">
+            <p>For rice and feeds loans, you can specify:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Commodity Type:</strong> Rice or Feeds</li>
+              <li><strong>Price Per Sack:</strong> Current market price for one sack</li>
+              <li><strong>Maximum Units:</strong> Maximum number of sacks that can be borrowed</li>
+              <li><strong>Loan Percentage:</strong> Percentage of the total value that can be loaned</li>
+            </ul>
+            <p className="mt-2">The loanable amount is calculated as:</p>
+            <p className="font-medium">Loanable Amount = (Price per Sack × Number of Sacks) × Loan Percentage</p>
+          </div>
+        );
+      case "savings":
+        return (
+          <div className="space-y-2">
+            <p>Additional Savings Deposit is an automatic deduction from the loan amount that goes into the member's savings account.</p>
+            <p>For example, with a 5% additional savings deposit on a ₱10,000 loan:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>₱500 would be deposited to savings</li>
+              <li>Member receives ₱9,500 in cash</li>
+              <li>Full ₱10,000 is still the loan amount due</li>
+            </ul>
+            <p className="mt-2">This helps members build savings while taking loans.</p>
           </div>
         );
       default:
@@ -304,504 +418,970 @@ const LoanModule = () => {
     }
   };
 
-  // ---------------------------------------------------------
-  // RENDER
-  // ---------------------------------------------------------
+  // Loading and error states
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 bg-gray-50 ">
-      <div className="mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Loan Configuration Management</h1>
-          <p className="text-gray-600">Configure and manage all loan types and their associated fees</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex mb-6 bg-white rounded-lg shadow-sm p-1">
+    <div className="p-4 space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-medium">
+          {showArchived ? 'Archived Loan Types' : 'Active Loan Types'}
+        </h2>
+        <div className="flex space-x-2">
+          <div className="relative">
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search loan types"
+              className="pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 w-64"
+            />
+          </div>
+          
+          {/* Archive toggle button */}
           <button
-            onClick={() => setActiveTab("active")}
-            className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-              activeTab === "active"
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
+            onClick={toggleShowArchived}
+            className={`px-4 py-2 border rounded-md flex items-center ${showArchived ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-700'}`}
           >
-            Active Loans
-          </button>
-          <button
-            onClick={() => setActiveTab("archived")}
-            className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-              activeTab === "archived"
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            Archived Loans
-          </button>
-        </div>
-
-        {/* Content Area */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          {/* Action Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-            {activeTab === "active" && (
-              <button
-                onClick={handleAddNewLoan}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                <Plus size={18} />
-                <span>Add Loan Configuration</span>
-              </button>
+            {showArchived ? (
+              <>
+                <RefreshCw size={16} className="mr-2" />
+                Show Active
+              </>
+            ) : (
+              <>
+                <Archive size={16} className="mr-2" />
+                Show Archived
+              </>
             )}
-            
-            {/* Filter Controls */}
-            <div className="flex flex-col sm:flex-row w-full md:w-auto gap-2">
-              <div className="relative rounded-md shadow-sm">
-                <input
-                  type="text"
-                  placeholder={filterPlaceholders[filterOption]}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                  <Filter size={16} />
-                </div>
-              </div>
-              
-              <div className="dropdown relative">
-                <select
-                  value={filterOption}
-                  onChange={(e) => handleFilterChange(e.target.value)}
-                  className="block w-full pl-4 pr-10 py-2 border border-gray-300 rounded-md appearance-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="all">All Fields</option>
-                  <option value="loanType">Loan Type</option>
-                  <option value="interestRate">Interest Rate</option>
-                  <option value="loanableAmount">Loanable Amount</option>
-                  <option value="serviceFee">Service Fee</option>
-                  <option value="maintenanceFee">Maintenance Fee</option>
-                </select>
+          </button>
+          
+          {/* Column visibility dropdown */}
+          <div className="relative group">
+            <button className="px-4 py-2 border rounded-md bg-white flex items-center">
+              <span className="mr-1">Columns</span>
+              <ChevronDown size={16} />
+            </button>
+            <div className="absolute right-0 mt-2 w-56 bg-white border rounded-md shadow-lg z-10 hidden group-hover:block">
+              <div className="p-2">
+                <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showColumn.loan_type}
+                    onChange={() => toggleColumnVisibility('loan_type')}
+                    className="mr-2"
+                  />
+                  Loan Type
+                </label>
+                <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showColumn.interest_rate}
+                    onChange={() => toggleColumnVisibility('interest_rate')}
+                    className="mr-2"
+                  />
+                  Interest Rate
+                </label>
+                <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showColumn.service_fee}
+                    onChange={() => toggleColumnVisibility('service_fee')}
+                    className="mr-2"
+                  />
+                  Service Fee
+                </label>
+                <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showColumn.penalty_fee}
+                    onChange={() => toggleColumnVisibility('penalty_fee')}
+                    className="mr-2"
+                  />
+                  Penalty Fee
+                </label>
+                <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showColumn.additional_savings}
+                    onChange={() => toggleColumnVisibility('additional_savings')}
+                    className="mr-2"
+                  />
+                  Additional Savings
+                </label>
+                <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showColumn.commodity_details}
+                    onChange={() => toggleColumnVisibility('commodity_details')}
+                    className="mr-2"
+                  />
+                  Commodity Details
+                </label>
+                <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={showColumn.updated_at}
+                    onChange={() => toggleColumnVisibility('updated_at')}
+                    className="mr-2"
+                  />
+                  Last Updated
+                </label>
               </div>
             </div>
           </div>
-
-          {/* Tables */}
-          <div className="overflow-x-auto">
-            {activeTab === "active" && (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Type</th>
-                    <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center justify-center">
-                        Interest Rate
-                        <button onClick={() => handleShowInfo("interest")} className="ml-1 text-gray-400 hover:text-blue-500">
-                          <Info size={14} />
-                        </button>
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loanable Amount</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center">
-                        Fees
-                        <button onClick={() => handleShowInfo("fees")} className="ml-1 text-gray-400 hover:text-blue-500">
-                          <Info size={14} />
-                        </button>
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center">
-                        Maintenance
-                        <button onClick={() => handleShowInfo("maintenance")} className="ml-1 text-gray-400 hover:text-blue-500">
-                          <Info size={14} />
-                        </button>
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredLoans.length > 0 ? (
-                    filteredLoans.map((loan) => (
-                      <tr key={loan.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900">{loan.loanType}</div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-center">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                            <Percent size={14} className="mr-1" />
-                            {loan.interestRate}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <DollarSign size={16} className="text-gray-500 mr-1" />
-                            <span className="text-gray-900">{loan.loanableAmount}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-900">
-                            <div><span className="font-medium">Service:</span> {loan.serviceFee}</div>
-                            <div><span className="font-medium">Penalty:</span> {loan.penaltyFee}</div>
-                            <div><span className="font-medium">Membership:</span> {loan.membershipFee}</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-900">
-                            <div><span className="font-medium">Cycle:</span> {loan.maintenanceCycle || "None"}</div>
-                            <div><span className="font-medium">Fee:</span> {loan.maintenanceFee || "₱0"}</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
-                            <button
-                              onClick={() => handleEditLoan(loan)}
-                              className="p-1.5 bg-blue-50 rounded-md text-blue-600 hover:bg-blue-100 transition-colors"
-                              title="Edit"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleArchiveLoan(loan)}
-                              className="p-1.5 bg-amber-50 rounded-md text-amber-600 hover:bg-amber-100 transition-colors"
-                              title="Archive"
-                            >
-                              <Archive size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
-                        <div className="flex flex-col items-center">
-                          <AlertCircle size={36} className="text-gray-400 mb-2" />
-                          <p>No loan configurations found matching your search criteria.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === "archived" && (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Type</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest Rate</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fees</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Maintenance</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center">
-                        <Clock size={14} className="mr-1" />
-                        Archived Date
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredArchivedLoans.length > 0 ? (
-                    filteredArchivedLoans.map((loan) => (
-                      <tr key={loan.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900">{loan.loanType}</div>
-                          <div className="text-sm text-gray-500">{loan.loanableAmount}</div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span className="text-gray-900">{loan.interestRate}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-900">
-                            <div><span className="font-medium">Service:</span> {loan.serviceFee}</div>
-                            <div><span className="font-medium">Penalty:</span> {loan.penaltyFee}</div>
-                            <div><span className="font-medium">Membership:</span> {loan.membershipFee}</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-900">
-                            <div><span className="font-medium">Cycle:</span> {loan.maintenanceCycle || "None"}</div>
-                            <div><span className="font-medium">Fee:</span> {loan.maintenanceFee || "₱0"}</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {loan.archivedDate}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
-                            <button
-                              onClick={() => handleRestoreLoan(loan)}
-                              className="p-1.5 bg-green-50 rounded-md text-green-600 hover:bg-green-100 transition-colors"
-                              title="Restore"
-                            >
-                              <RefreshCw size={16} />
-                            </button>
-                            <button
-                              onClick={() => showDeleteConfirmModal(loan)}
-                              className="p-1.5 bg-red-50 rounded-md text-red-600 hover:bg-red-100 transition-colors"
-                              title="Delete Permanently"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
-                        <div className="flex flex-col items-center">
-                          <Archive size={36} className="text-gray-400 mb-2" />
-                          <p>No archived loan configurations found.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
+          
+          {/* Add button */}
+          {!showArchived && (
+            <button
+              onClick={handleOpenAddModal}
+              className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              <Plus size={18} className="mr-1" />
+              Add Loan Type
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Add/Edit Loan Configuration Modal */}
-      {isModalVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {editingLoan ? "Edit Loan Configuration" : "Add New Loan Configuration"}
-              </h3>
+      {/* Table */}
+      <div className="bg-white border rounded-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  onClick={() => requestSort('id')}
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                >
+                  <div className="flex items-center">
+                    ID
+                    {sortConfig.key === 'id' && (
+                      <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
+                {showColumn.loan_type && (
+                  <th
+                    onClick={() => requestSort('loan_type')}
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center">
+                      Loan Type
+                      {sortConfig.key === 'loan_type' && (
+                        <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {showColumn.interest_rate && (
+                  <th
+                    onClick={() => requestSort('interest_rate')}
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center">
+                      Interest Rate
+                      <button onClick={() => handleShowInfo("interest")} className="ml-1 text-gray-400 hover:text-blue-500">
+                        <Info size={14} />
+                      </button>
+                    </div>
+                  </th>
+                )}
+                {showColumn.service_fee && (
+                  <th
+                    onClick={() => requestSort('service_fee')}
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center">
+                      Service Fee
+                    </div>
+                  </th>
+                )}
+                {showColumn.penalty_fee && (
+                  <th
+                    onClick={() => requestSort('penalty_fee')}
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center">
+                      Penalty Fee
+                      <button onClick={() => handleShowInfo("fees")} className="ml-1 text-gray-400 hover:text-blue-500">
+                        <Info size={14} />
+                      </button>
+                    </div>
+                  </th>
+                )}
+                {showColumn.additional_savings && (
+                  <th
+                    onClick={() => requestSort('additional_savings_deposit')}
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center">
+                      Additional Savings
+                      <button onClick={() => handleShowInfo("savings")} className="ml-1 text-gray-400 hover:text-blue-500">
+                        <Info size={14} />
+                      </button>
+                    </div>
+                  </th>
+                )}
+                {showColumn.commodity_details && (
+                  <th
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    <div className="flex items-center">
+                      Commodity Details
+                      <button onClick={() => handleShowInfo("commodity")} className="ml-1 text-gray-400 hover:text-blue-500">
+                        <Info size={14} />
+                      </button>
+                    </div>
+                  </th>
+                )}
+                {showColumn.updated_at && (
+                  <th
+                    onClick={() => requestSort('updated_at')}
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center">
+                      Last Updated
+                    </div>
+                  </th>
+                )}
+                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sortedLoans.map((loan) => (
+                <tr key={loan.id} className={`hover:bg-gray-50 ${showArchived ? 'bg-gray-50' : ''}`}>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{loan.id}</td>
+                  
+                  {showColumn.loan_type && (
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{loan.loan_type}</td>
+                  )}
+                  
+                  {showColumn.interest_rate && (
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className="inline-flex items-center px-2 py-1 rounded bg-blue-50 text-blue-700 text-sm">
+                        <Percent size={14} className="mr-1" />
+                        {loan.interest_rate}%
+                      </span>
+                    </td>
+                  )}
+                  {showColumn.service_fee && (
+                   <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                     {loan.service_fee}%
+                   </td>
+                 )}
+                 
+                 {showColumn.penalty_fee && (
+                   <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                     {loan.penalty_fee}%
+                   </td>
+                 )}
+                 
+                 {showColumn.additional_savings && (
+                   <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                     <span className={`inline-flex items-center px-2 py-1 rounded ${parseFloat(loan.additional_savings_deposit || 0) > 0 ? 'bg-green-50 text-green-700' : 'text-gray-500'}`}>
+                       {loan.additional_savings_deposit ? `${loan.additional_savings_deposit}%` : '0%'}
+                     </span>
+                   </td>
+                 )}
+                 
+                 {showColumn.commodity_details && (
+                   <td className="px-3 py-4 text-sm text-gray-500">
+                     {loan.commodity_type ? (
+                       <div>
+                         <span className={`inline-flex items-center px-2 py-1 rounded ${
+                           loan.commodity_type === 'feeds' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
+                         }`}>
+                           <Package size={14} className="mr-1" />
+                           {loan.commodity_type === 'feeds' ? 'Feeds' : 'Rice'}
+                         </span>
+                         
+                         <div className="mt-1">
+                           <span className="text-gray-700 font-medium">Price:</span> {formatCurrency(loan.price_per_unit)}
+                         </div>
+                         
+                         <div>
+                           <span className="text-gray-700 font-medium">Max Units:</span> {loan.max_units} sacks
+                         </div>
+                         
+                         <div>
+                           <span className="text-gray-700 font-medium">Max Loanable:</span> {formatCurrency(
+                             calculateLoanableAmount(
+                               loan.price_per_unit, 
+                               loan.max_units, 
+                               loan.loan_percentage
+                             )
+                           )} ({loan.loan_percentage}%)
+                         </div>
+                         
+                         <button
+                           onClick={() => handleShowCalculation(loan)}
+                           className="text-blue-600 text-xs mt-1 hover:underline"
+                         >
+                           Calculate for specific quantity
+                         </button>
+                       </div>
+                     ) : (
+                       <span className="text-gray-400">N/A</span>
+                     )}
+                   </td>
+                 )}
+                 
+                 {showColumn.updated_at && (
+                   <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                     {loan.updated_at ? new Date(loan.updated_at).toLocaleDateString() : 'N/A'}
+                   </td>
+                 )}
+                 
+                 <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
+                   <div className="flex justify-end space-x-2">
+                     {showArchived ? (
+                       <button
+                         onClick={() => handleRestoreLoan(loan.id)}
+                         className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded flex items-center"
+                       >
+                         <RefreshCw size={16} className="mr-1" />
+                        Restore
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEditLoan(loan)}
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded flex items-center"
+                        >
+                          <Edit size={16} className="mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleConfirmArchive(loan.id)}
+                          className="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded flex items-center"
+                        >
+                          <Archive size={16} className="mr-1" />
+                          Archive
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {sortedLoans.length === 0 && !loading && (
+      <div className="text-center py-4 bg-gray-50 rounded-md border">
+        <p className="text-gray-500">
+          {showArchived 
+            ? 'No archived loan types found matching your search.'
+            : 'No active loan types found matching your search.'}
+        </p>
+      </div>
+    )}
+
+    {/* Success Modal */}
+    {showSuccessModal && (
+      <div className="fixed bottom-4 right-4 bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 flex items-center z-50 animate-fade-in-up">
+        <div className="bg-green-100 rounded-full p-1 mr-3">
+          <Check className="w-5 h-5 text-green-600" />
+        </div>
+        <div>
+          <p className="text-green-800 font-medium">{successMessage}</p>
+        </div>
+        <button 
+          onClick={() => setShowSuccessModal(false)}
+          className="ml-4 text-gray-400 hover:text-gray-600"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    )}
+
+    {/* Edit Loan Modal */}
+    {isEditing && currentLoan && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto">
+          <h3 className="text-lg font-medium mb-4">Edit Loan Type</h3>
+          <div className="mb-4">
+            <div className="mb-3">
+              <span className="text-sm font-medium text-gray-600">ID:</span>
+              <span className="ml-2 text-gray-900">{currentLoan.id}</span>
             </div>
             
-            <div className="p-6 space-y-4">
-              {/* Loan Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Loan Type</label>
-                <input
-                  type="text"
-                  placeholder="Enter loan type"
-                  value={newLoan.loanType}
-                  onChange={(e) => setNewLoan({ ...newLoan, loanType: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              {/* Interest Rate */}
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <div className="flex items-center">
-                    Interest Rate
-                    <button
-                      type="button"
-                      onClick={() => handleShowInfo("interest")}
-                      className="ml-1 text-gray-400 hover:text-blue-500"
-                    >
-                      <Info size={14} />
-                    </button>
-                  </div>
+                  Loan Type
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter interest rate (e.g., 2% or N/A)"
-                  value={newLoan.interestRate}
-                  onChange={(e) => setNewLoan({ ...newLoan, interestRate: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  value={newLoanType}
+                  onChange={(e) => setNewLoanType(e.target.value)}
+                  className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <p className="mt-1 text-xs text-gray-500">Example: 1.75%, 2%, 3.5% or N/A</p>
               </div>
               
-              {/* Loanable Amount */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Loanable Amount</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Interest Rate (%)
+                </label>
                 <input
-                  type="text"
-                  placeholder="Enter maximum loanable amount (e.g., ₱10,000)"
-                  value={newLoan.loanableAmount}
-                  onChange={(e) => setNewLoan({ ...newLoan, loanableAmount: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  type="number"
+                  value={newInterestRate}
+                  onChange={(e) => setNewInterestRate(e.target.value)}
+                  className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  step="0.01"
                 />
-                <p className="mt-1 text-xs text-gray-500">This defines the maximum amount the member can borrow.</p>
               </div>
               
-              {/* Service Fee */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Service Fee</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Service Fee (%)
+                </label>
                 <input
-                  type="text"
-                  placeholder="Enter service fee (e.g., 3% or N/A)"
-                  value={newLoan.serviceFee}
-                  onChange={(e) => setNewLoan({ ...newLoan, serviceFee: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  type="number"
+                  value={newServiceFee}
+                  onChange={(e) => setNewServiceFee(e.target.value)}
+                  className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  step="0.01"
                 />
-                <p className="mt-1 text-xs text-gray-500">Example: 1.2%, 3%, 5% or N/A</p>
               </div>
               
-              {/* Penalty Fee */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Penalty Fee</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Penalty Fee (%)
+                </label>
                 <input
-                  type="text"
-                  placeholder="Enter penalty fee (e.g., 2%)"
-                  value={newLoan.penaltyFee}
-                  onChange={(e) => setNewLoan({ ...newLoan, penaltyFee: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  type="number"
+                  value={newPenaltyFee}
+                  onChange={(e) => setNewPenaltyFee(e.target.value)}
+                  className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  step="0.01"
                 />
-                <p className="mt-1 text-xs text-gray-500">Example: 2% per month penalty for late payments</p>
               </div>
               
-              {/* Membership Fee */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Membership Fee</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Additional Savings Deposit (%)
+                </label>
                 <input
-                  type="text"
-                  placeholder="Enter membership fee (e.g., 200)"
-                  value={newLoan.membershipFee}
-                  onChange={(e) => setNewLoan({ ...newLoan, membershipFee: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  type="number"
+                  value={newAdditionalSavings}
+                  onChange={(e) => setNewAdditionalSavings(e.target.value)}
+                  className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  step="0.01"
+                  placeholder="Enter additional savings percentage"
                 />
-                <p className="mt-1 text-xs text-gray-500">Example: ₱200 for new members</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Percentage of loan amount automatically deposited to savings (0 for none)
+                </p>
               </div>
               
-              {/* Maintenance Section */}
-              <div className="pt-2 border-t border-gray-200">
+              {/* Commodity toggle */}
+              <div>
                 <div className="flex items-center mb-2">
-                  <h4 className="text-sm font-medium text-gray-700">Loan Maintenance</h4>
-                  <button
-                    type="button"
-                    onClick={() => handleShowInfo("maintenance")}
-                    className="ml-1 text-gray-400 hover:text-blue-500"
-                  >
-                    <Info size={14} />
-                  </button>
+                  <input
+                    type="checkbox"
+                    id="isCommodityLoan"
+                    checked={isCommodityLoan}
+                    onChange={(e) => setIsCommodityLoan(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="isCommodityLoan" className="text-sm font-medium text-gray-700">
+                    Products Loan
+                  </label>
                 </div>
+                <p className="text-xs text-gray-500">Enable this for products types that involve specific amounts.</p>
+              </div>
+              
+              {/* Commodity specific fields */}
+              {isCommodityLoan && (
+                <div className="bg-gray-50 p-3 rounded-md border border-gray-200 space-y-3">
+                  <h4 className="font-medium text-gray-700">Commodity Details</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Commodity Type
+                    </label>
+                    <select
+                      value={commodityType}
+                      onChange={(e) => setCommodityType(e.target.value)}
+                      className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="feeds">Feeds</option>
+                      <option value="rice">Rice</option>
+                      <option value="other">Other</option>
+
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price Per Sack (₱)
+                    </label>
+                    <input
+                      type="number"
+                      value={pricePerUnit}
+                      onChange={(e) => setPricePerUnit(e.target.value)}
+                      className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      step="0.01"
+                      placeholder="Enter price per sack"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Maximum Units
+                    </label>
+                    <input
+                      type="number"
+                      value={maxUnits}
+                      onChange={(e) => setMaxUnits(e.target.value)}
+                      className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      min="1"
+                      placeholder="Maximum number of sacks"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Loan Percentage (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={loanPercentage}
+                      onChange={(e) => setLoanPercentage(e.target.value)}
+                      className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      min="1"
+                      max="100"
+                      placeholder="Percentage of total value"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Percentage of the total commodity value that can be borrowed
+                    </p>
+                  </div>
+                  
+                  {/* Preview calculation */}
+                  {pricePerUnit && maxUnits && loanPercentage && (
+                    <div className="bg-blue-50 p-2 rounded border border-blue-100 text-blue-800">
+                      <p className="font-medium">Maximum Loanable Amount:</p>
+                      <p className="text-lg">
+                        {formatCurrency(calculateLoanableAmount(pricePerUnit, maxUnits, loanPercentage))}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Based on {maxUnits} sacks at {formatCurrency(pricePerUnit)} per sack with {loanPercentage}% loan ratio
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {currentLoan.updated_at && (
+              <p className="mt-4 text-xs text-gray-500">Last updated on: {new Date(currentLoan.updated_at).toLocaleDateString()}</p>
+            )}
+          </div>
+          <div className="flex justify-end space-x-2 mt-4">
+            <button
+              onClick={() => { setIsEditing(false); setCurrentLoan(null); }}
+              className="px-4 py-2 border rounded-md hover:bg-gray-50 text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveLoanChanges}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Add Loan Modal */}
+    {isAdding && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto">
+          <h3 className="text-lg font-medium mb-4">Add New Loan Type</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Loan Type
+              </label>
+              <input
+                type="text"
+                value={newLoanType}
+                onChange={(e) => setNewLoanType(e.target.value)}
+                className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter loan type name"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Interest Rate (%)
+              </label>
+              <input
+                type="number"
+                value={newInterestRate}
+                onChange={(e) => setNewInterestRate(e.target.value)}
+                className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                step="0.01"
+                placeholder="Enter interest rate percentage"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Service Fee (%)
+              </label>
+              <input
+                type="number"
+                value={newServiceFee}
+                onChange={(e) => setNewServiceFee(e.target.value)}
+                className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                step="0.01"
+                placeholder="Enter service fee percentage"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Penalty Fee (%)
+              </label>
+              <input
+                type="number"
+                value={newPenaltyFee}
+                onChange={(e) => setNewPenaltyFee(e.target.value)}
+                className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                step="0.01"
+                placeholder="Enter penalty fee percentage"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Additional Savings Deposit (%)
+              </label>
+              <input
+                type="number"
+                value={newAdditionalSavings}
+                onChange={(e) => setNewAdditionalSavings(e.target.value)}
+                className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                step="0.01"
+                placeholder="Enter additional savings percentage"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Percentage of loan amount automatically deposited to savings (0 for none)
+              </p>
+            </div>
+            
+            {/* Commodity toggle */}
+            <div>
+              <div className="flex items-center mb-2">
+                <input
+                  type="checkbox"
+                  id="isCommodityLoanNew"
+                  checked={isCommodityLoan}
+                  onChange={(e) => setIsCommodityLoan(e.target.checked)}
+                  className="mr-2"
+                />
+                <label htmlFor="isCommodityLoanNew" className="text-sm font-medium text-gray-700">
+                  This is a rice/feeds loan type
+                </label>
+              </div>
+              <p className="text-xs text-gray-500">Enable this for loan types that involve specific amounts of rice or feeds.</p>
+            </div>
+            
+            {/* Commodity specific fields */}
+            {isCommodityLoan && (
+              <div className="bg-gray-50 p-3 rounded-md border border-gray-200 space-y-3">
+                <h4 className="font-medium text-gray-700">Commodity Details</h4>
                 
-                {/* Maintenance Cycle */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Maintenance Cycle</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Commodity Type
+                  </label>
                   <select
-                    value={newLoan.maintenanceCycle}
-                    onChange={(e) => setNewLoan({ ...newLoan, maintenanceCycle: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    value={commodityType}
+                    onChange={(e) => setCommodityType(e.target.value)}
+                    className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    {maintenanceCycleOptions.map((cycle) => (
-                      <option key={cycle} value={cycle}>
-                        {cycle}
-                      </option>
-                    ))}
+                    <option value="feeds">Feeds</option>
+                    <option value="rice">Rice</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
                 
-                {/* Maintenance Fee */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Maintenance Fee</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Price Per Sack (₱)
+                  </label>
                   <input
-                    type="text"
-                    placeholder="Enter maintenance fee (e.g., ₱50)"
-                    value={newLoan.maintenanceFee}
-                    onChange={(e) => setNewLoan({ ...newLoan, maintenanceFee: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    disabled={newLoan.maintenanceCycle === "None"}
+                    type="number"
+                    value={pricePerUnit}
+                    onChange={(e) => setPricePerUnit(e.target.value)}
+                    className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    step="0.01"
+                    placeholder="Enter price per sack"
                   />
-                  <p className="mt-1 text-xs text-gray-500">Regular fee charged to maintain the loan account</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Maximum Units
+                  </label>
+                  <input
+                    type="number"
+                    value={maxUnits}
+                    onChange={(e) => setMaxUnits(e.target.value)}
+                    className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="1"
+                    placeholder="Maximum number of sacks"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Loan Percentage (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={loanPercentage}
+                    onChange={(e) => setLoanPercentage(e.target.value)}
+                    className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="1"
+                    max="100"
+                    placeholder="Percentage of total value"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Percentage of the total commodity value that can be borrowed
+                  </p>
+                </div>
+                
+                {/* Preview calculation */}
+                {pricePerUnit && maxUnits && loanPercentage && (
+                  <div className="bg-blue-50 p-2 rounded border border-blue-100 text-blue-800">
+                    <p className="font-medium">Maximum Loanable Amount:</p>
+                    <p className="text-lg">
+                      {formatCurrency(calculateLoanableAmount(pricePerUnit, maxUnits, loanPercentage))}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Based on {maxUnits} sacks at {formatCurrency(pricePerUnit)} per sack with {loanPercentage}% loan ratio
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <button
+              onClick={handleCloseAddModal}
+              className="px-4 py-2 border rounded-md hover:bg-gray-50 text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveAddLoan}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              Save Loan Type
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Calculation Modal */}
+    {showCalculation && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
+          <h3 className="text-lg font-medium mb-4">Calculate Loanable Amount</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Number of Sacks
+              </label>
+              <input
+                type="number"
+                value={calculationUnits}
+                onChange={(e) => handleUnitChange(e, currentLoan)}
+                className="px-3 py-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                min="1"
+                max={currentLoan?.max_units || 100}
+              />
+              {currentLoan?.max_units && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Maximum allowed: {currentLoan.max_units} sacks
+                </p>
+              )}
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded border border-blue-100">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm text-gray-600">Price per sack:</div>
+                  <div className="text-gray-800 font-medium">
+                    {formatCurrency(currentLoan?.price_per_unit || 0)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Total value:</div>
+                  <div className="text-gray-800 font-medium">
+                    {formatCurrency((currentLoan?.price_per_unit || 0) * calculationUnits)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Loan percentage:</div>
+                  <div className="text-gray-800 font-medium">
+                    {currentLoan?.loan_percentage || 70}%
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <div className="text-sm text-blue-600">Loanable amount:</div>
+                <div className="text-2xl font-bold text-blue-700">
+                  {formatCurrency(calculationAmount)}
                 </div>
               </div>
             </div>
-            
-            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={handleModalCancel}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleModalOk}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Save
-              </button>
-            </div>
+          </div>
+          
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={() => setShowCalculation(false)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              Close
+            </button>
           </div>
         </div>
-      )}
-      
-      {/* Information Modal */}
-      {isInfoModalVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {infoType === "maintenance" && "Loan Maintenance Information"}
-                {infoType === "interest" && "Interest Rate Information"}
-                {infoType === "fees" && "Loan Fees Information"}
-              </h3>
-              <button
-                onClick={() => setIsInfoModalVisible(false)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6">{getInfoText()}</div>
-            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsInfoModalVisible(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Close
-              </button>
-            </div>
+      </div>
+    )}
+
+    {/* Archive Confirmation Modal */}
+    {isDeleting && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
+          <h3 className="text-lg font-medium mb-4">Confirm Archiving</h3>
+          <p className="text-gray-700 mb-4">
+            Are you sure you want to archive this loan type? This action can be reversed later.
+          </p>
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={() => { setIsDeleting(false); setDeleteId(null); }}
+              className="px-4 py-2 border rounded-md hover:bg-gray-50 text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleArchiveLoan}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+            >
+              Archive
+            </button>
           </div>
         </div>
-      )}
-      
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="p-6">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-                <AlertCircle size={24} className="text-red-600" />
-              </div>
-              <h3 className="text-lg font-medium text-center text-gray-900 mb-2">Delete Loan Configuration</h3>
-              <p className="text-center text-gray-500">
-                Are you sure you want to permanently delete the "{loanToDelete?.loanType}" loan configuration?
-              </p>
-              <p className="mt-2 text-center text-red-500 text-sm">This action cannot be undone.</p>
-            </div>
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={handleCancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
+      </div>
+    )}
+
+    {/* Information Modal */}
+    {isInfoModalVisible && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">
+              {infoType === "interest" ? "Interest Rate Information" : 
+               infoType === "fees" ? "Loan Fees Information" : 
+               infoType === "savings" ? "Additional Savings Information" :
+               "Commodity Loan Information"}
+            </h3>
+            <button
+              onClick={() => setIsInfoModalVisible(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="mb-4">{getInfoText()}</div>
+          <div className="flex justify-end">
+            <button
+              onClick={() => setIsInfoModalVisible(false)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              Close
+            </button>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+
+    {/* Add CSS for animations */}
+    <style jsx>{`
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .animate-fade-in-up {
+        animation: fadeInUp 0.3s ease-out;
+      }
+    `}</style>
+  </div>
+);
 };
 
-export default LoanModule;
+/* ================================
+ MAIN MODULE COMPONENT
+==================================== */
+const LoanTypeModule = () => {
+return (
+  <div className="bg-gray-100">
+    <div className="max-w-full mx-auto p-4">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="border-b">
+          <h1 className="text-xl font-bold p-4">System Maintenance</h1>
+          <div className="flex border-b">
+            <button
+              className="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600"
+            >
+              Loan Types
+            </button>
+          </div>
+        </div>
+        
+        <LoanTypeManagement />
+      </div>
+    </div>
+  </div>
+);
+};
+
+export default LoanTypeModule;

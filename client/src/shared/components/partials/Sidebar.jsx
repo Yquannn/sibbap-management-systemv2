@@ -73,7 +73,7 @@ const SideBar = ({ mode }) => {
                 location.pathname.includes("/share-capital") || 
                 location.pathname.includes("/regular-savings") || 
                 location.pathname.includes("/time-deposit") ||
-                location.pathname.includes("/kalinga-fund")) {
+                location.pathname.includes("/kalinga-fund-members")) {
         setSavingsDropdown(true);
         setActiveDropdown("savings");
       } else if (location.pathname.includes("/loan") || location.pathname.includes("/borrower") ||
@@ -324,7 +324,7 @@ const SideBar = ({ mode }) => {
                 <li>
                   {renderItem(
                     savingsSubAllowed["kalinga-fund"],
-                    "/kalinga-fund",
+                    "/kalinga-fund-members",
                     <RiExchangeFundsFill  />,
                     "Kalinga Fund"
                   )}

@@ -100,32 +100,33 @@ const getTimeDepositAnalytics = async () => {
 };
 
 const getShareCapitalTrends = async () => {
-  // const query = `
-  //   SELECT 
-  //     DATE_FORMAT(date_added, '%Y-%m') as month,
-  //     SUM(share_capital) as amount,
-  //     COUNT(*) as contributor_count
-  //   FROM members
-  //   WHERE date_added >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-  //   GROUP BY DATE_FORMAT(date_added, '%Y-%m')
-  //   ORDER BY month ASC
-  // `;
-  // const [rows] = await db.execute(query);
-  // return rows;
+  const query = `
+    SELECT 
+      DATE_FORMAT(created_at, '%Y-%m') as month,
+      SUM(total_amount) as amount,
+      COUNT(*) as contributor_count
+    FROM share_capital
+    WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+    GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+    ORDER BY month ASC
+  `;
+  const [rows] = await db.execute(query);
+  return rows;
 };
+
 
 const getShareCapitalAnalytics = async () => {
   const queries = {
     // Monthly trend analysis
     monthlyTrends: `
       SELECT 
-        DATE_FORMAT(date_added, '%Y-%m') as month,
+        DATE_FORMAT(registration_date, '%Y-%m') as month,
         SUM(share_capital) as total_share_capital,
         COUNT(*) as member_count,
         AVG(share_capital) as average_share_capital
       FROM members
-      WHERE date_added >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-      GROUP BY DATE_FORMAT(date_added, '%Y-%m')
+      WHERE registration_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+      GROUP BY DATE_FORMAT(registration_date, '%Y-%m')
       ORDER BY month ASC
     `,
 
@@ -138,24 +139,24 @@ const getShareCapitalAnalytics = async () => {
           WHEN share_capital <= 10000 THEN '5001-10000'
           WHEN share_capital <= 50000 THEN '10001-50000'
           ELSE '50000+'
-        END as range,
+        END as \`range\`,
         COUNT(*) as member_count,
         SUM(share_capital) as total_amount
       FROM members
-      GROUP BY range
-      ORDER BY FIELD(range, '0-1000', '1001-5000', '5001-10000', '10001-50000', '50000+')
+      GROUP BY \`range\`
+      ORDER BY FIELD(\`range\`, '0-1000', '1001-5000', '5001-10000', '10001-50000', '50000+')
     `,
 
     // Year-over-year comparison
     yearlyComparison: `
       SELECT 
-        YEAR(date_added) as year,
+        YEAR(registration_date) as year,
         SUM(share_capital) as total_share_capital,
         COUNT(*) as new_members,
         AVG(share_capital) as avg_share_capital
       FROM members
-      WHERE date_added >= DATE_SUB(NOW(), INTERVAL 2 YEAR)
-      GROUP BY YEAR(date_added)
+      WHERE registration_date >= DATE_SUB(NOW(), INTERVAL 2 YEAR)
+      GROUP BY YEAR(registration_date)
       ORDER BY year DESC
     `,
 
