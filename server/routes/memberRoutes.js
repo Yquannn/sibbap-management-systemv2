@@ -28,7 +28,7 @@ const multiUpload = upload.fields([
 ]);
 
 // Example routes
-router.get('/total', dashboardController.getTotalMembers);
+// router.get('/total', dashboardController.getTotalMembers);
 router.get('/members', memberController.getMembers); 
 router.get('/members/savings', memberController.getMemberSavings);
 router.get('/member/email/:email', memberController.getMemberByEmail);

@@ -265,16 +265,17 @@ const TransactionForm = () => {
     const currentAuthorized = sessionStorage.getItem("username") || "";
     const currentUserType = sessionStorage.getItem("usertype");
     const amountValue = parseFloat(amount);
-
+  
     try {
       setLoading(true);
       setError(null);
-
-      let endpoint, payload;
-
+  
+      let endpoint, payload, method;
+  
       // Different handling based on transaction type and whether it's share capital
       if (isShareCapital) {
-        // Share capital transactions
+        // Share capital transactions - keep using POST
+        method = "post";
         switch (modalType) {
           case "withdrawal":
             endpoint = `${BASE_URL}/member/share-capital/withdraw`;
@@ -306,19 +307,21 @@ const TransactionForm = () => {
             };
         }
       } else {
-        // Regular savings transactions
+        // Regular savings transactions - use PUT and match backend function parameters exactly
+        method = "put";
         endpoint = `${BASE_URL}/${modalType === "withdrawal" ? "withdraw" : "deposit"}`;
         payload = {
           memberId: member.memberId,
-          authorized_by: authorizedBy || currentAuthorized,
+          authorized: authorizedBy || currentAuthorized,
           user_type: currentUserType,
-          transaction_type: modalType === "withdrawal" ? "Withdrawal" : "Deposit",
-          amount: modalType === "withdrawal" ? Math.abs(amountValue) : amountValue,
+          amount: amountValue,
+          transaction_type: modalType === "withdrawal" ? "Withdrawal" : "Deposit"
         };
       }
-
-      const response = await axios.post(endpoint, payload);
-
+  
+      // Use the appropriate HTTP method
+      const response = await axios[method](endpoint, payload);
+  
       if (response.data && response.data.success) {
         // Update balance differently based on transaction type
         let updatedBalance;

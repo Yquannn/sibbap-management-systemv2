@@ -29,7 +29,7 @@ const InstallmentRepayment = () => {
     const fetchAmountToPay = async () => {
       try {
         const { data } = await axios.get(
-          `http://192.168.254.100:3001/api/installment/${id}`
+          ` http://192.168.254.114:3001/api/installment/${id}`
         );
         
         updateState({
@@ -53,7 +53,7 @@ const InstallmentRepayment = () => {
     const currentAuthorized = sessionStorage.getItem("username");
     
     try {
-      await axios.post(`http://192.168.254.100:3001/api/installment/${id}/repay`, {
+      await axios.post(` http://192.168.254.114:3001/api/installment/${id}/repay`, {
         amount_paid: parseFloat(paymentState.amountToPay),
         method: paymentState.method,
         authorized: currentAuthorized,

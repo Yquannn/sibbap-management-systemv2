@@ -412,14 +412,14 @@ const SideBar = ({ mode }) => {
                     "Loan Module"
                   )}
                 </li>
-                <li>
+                {/* <li>
                   {renderItem(
                     allowed.maintenance,
                     "/system-maintenance/loan/rejected-applications",
                     <HiOutlineDocumentText />,
                     "Rejected Applications"
                   )}
-                </li>
+                </li> */}
                 <li>
                   {renderItem(
                     allowed.maintenance,

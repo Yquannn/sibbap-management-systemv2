@@ -211,9 +211,9 @@ const Members = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Member Directory</h1>
         <p className="text-gray-600">View and manage all registered members</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* Total Members */}
-        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+        {/* <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="p-5 flex items-center">
             <div className="rounded-full bg-blue-100 p-3 mr-4">
               <MdPeople className="text-2xl text-blue-600" />
@@ -226,7 +226,7 @@ const Members = () => {
           <div className="bg-blue-50 px-5 py-2">
             <p className="text-xs text-blue-600">All registered members</p>
           </div>
-        </div>
+        </div> */}
         {/* Active */}
         <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="p-5 flex items-center">

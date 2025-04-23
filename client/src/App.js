@@ -62,6 +62,8 @@ import ShareCapitalInfo from "./pages/admin/savingsPages/shareCapital/Sharecapit
 
 import TimedepositRollover from "./pages/admin/savingsPages/timedeposit/TimedepositRollover"
 import TimedepositEarlyWithdrawal from "./pages/admin/savingsPages/timedeposit/TimedepositEarlyWithdrawal";
+import LoanHistory from "./pages/admin/loanPages/LoanHistory";
+
 
 function App() {
   return (
@@ -120,6 +122,7 @@ function App() {
     <Route path="member/share-capital/:memberId" element={<ShareCapitalInfo />} />
     <Route path="timedeposit-early-withdrawal/:timeDepositId" element={<TimedepositEarlyWithdrawal />} />
     <Route path="timedeposit-rollover/:timeDepositId" element={<TimedepositRollover />} />
+    <Route path="loan-history" element={<LoanHistory />} />
 
 
 

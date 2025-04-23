@@ -64,7 +64,7 @@ const LogIn = () => {
 
     try {
       // API base URL
-      const API_BASE_URL = 'http://192.168.254.100:3001/api';
+      const API_BASE_URL = ' http://192.168.254.114:3001/api';
       
       // Authenticate the user - matches your backend exactly
       const authResponse = await axios.post(

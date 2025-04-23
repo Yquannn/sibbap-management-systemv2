@@ -136,7 +136,7 @@ const SavingsAnalytics = () => {
 
         // Make API call which returns transactions and (optionally) currentBalance
         const response = await axios.get(
-          `http://192.168.254.100:3001/api/member/email/${email}`
+          ` http://192.168.254.114:3001/api/member/email/${email}`
         );
 
         console.log("API Response:", response.data);

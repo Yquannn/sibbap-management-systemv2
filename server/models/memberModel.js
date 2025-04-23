@@ -90,6 +90,9 @@ const generateUniqueAccountNumber = async () => {
 };
 
 
+
+
+
 exports.updateMemberFinancials = async (memberId, financialData) => {
   const connection = await db.getConnection();
   const {
@@ -102,19 +105,20 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
     password
   } = financialData;
 
-  const initial_shared_capital = share_capital;
-
   try {
     await connection.beginTransaction();
 
+    // 1) Maybe generate a brand-new memberCode if share_capital was provided
     let memberCode = null;
     let memberType = null;
     if (share_capital !== null) {
       const memberInfo = await generateUniqueMemberCode(share_capital);
       memberCode = memberInfo.memberCode;
       memberType = memberInfo.memberType;
+      // update the members table with that new code below…
     }
 
+    // 2) Update the members table fields
     const updateFields = [];
     const updateValues = [];
     const addFieldIfNotNull = (field, value) => {
@@ -123,15 +127,14 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
         updateValues.push(value);
       }
     };
-
     addFieldIfNotNull('share_capital', share_capital);
-    addFieldIfNotNull('initial_shared_capital', initial_shared_capital);
+    addFieldIfNotNull('initial_shared_capital', share_capital);
     addFieldIfNotNull('identification_card_fee', identification_card_fee);
     addFieldIfNotNull('membership_fee', membership_fee);
     addFieldIfNotNull('kalinga_fund_fee', kalinga_fund_fee);
     addFieldIfNotNull('initial_savings', initial_savings);
 
-    if (memberCode !== null) {
+    if (memberCode) {
       addFieldIfNotNull('memberCode', memberCode);
       addFieldIfNotNull('member_type', memberType);
       addFieldIfNotNull('status', 'Active');
@@ -144,73 +147,51 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
         WHERE memberId = ?
       `;
       updateValues.push(memberId);
-      const [result] = await connection.execute(sql, updateValues);
-      if (result.affectedRows === 0) {
-        throw new Error("No rows updated. Check that the memberId exists.");
+      const [res] = await connection.execute(sql, updateValues);
+      if (res.affectedRows === 0) {
+        throw new Error("No member found with that ID");
       }
     }
 
-    // Insert into share_capital_transactions and share_capital tables if share capital is provided
-    if (share_capital !== null && share_capital > 0) {
-      // First, get the memberCode for the given memberId
-      const [memberResult] = await connection.execute(
+    // 3) Now figure out the FINAL memberCode in use:
+    //    — if we just generated one, use that
+    //    — otherwise pull the existing one from the DB
+    let dbMemberCode = memberCode;
+    if (!dbMemberCode) {
+      const [rows] = await connection.execute(
         'SELECT memberCode FROM members WHERE memberId = ?',
         [memberId]
       );
-      
-      if (!memberResult.length || !memberResult[0].memberCode) {
-        throw new Error("Member code not found for the given member ID");
+      if (!rows.length || !rows[0].memberCode) {
+        throw new Error("Unable to fetch memberCode for memberId " + memberId);
       }
-      
-      const memberCodeFromDb = memberResult[0].memberCode;
-      
-      // Generate transaction number
-      const referenceNumber = await generateTransactionNumber()
-      
-      // Insert into share_capital_transactions
-      const transactionSql = `
-        INSERT INTO share_capital_transactions (
-          memberCode,
-          transaction_number,
-          transaction_type,
-          amount,
-          description
-        ) VALUES (?, ?, ?, ?, ?)
-      `;
-      
-      await connection.execute(transactionSql, [
-        memberCodeFromDb,
-        referenceNumber,
-        'deposit',
-        share_capital,
-        'Initial share capital subscription'
-      ]);
-      
-      // Insert or update share_capital table
-      const shareCapitalSql = `
-        INSERT INTO share_capital (
-          memberId,
-          memberCode,
-          total_amount
-        ) VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          total_amount = total_amount + VALUES(total_amount)
-      `;
-      
-      await connection.execute(shareCapitalSql, [
-        memberId,
-        memberCodeFromDb,
-        share_capital
-      ]);
+      dbMemberCode = rows[0].memberCode;
     }
 
-    if (memberCode) {
-      const defaultEmail = email || memberCode;
-      const defaultPassword = password || memberCode;
-      const accountStatus = "NOT ACTIVATED";
+    // 4) Share-capital transactions (unchanged)
+    if (share_capital !== null && share_capital > 0) {
+      const ref = await generateTransactionNumber();
+      await connection.execute(
+        `INSERT INTO share_capital_transactions
+          (memberCode, transaction_number, transaction_type, amount, description)
+         VALUES (?, ?, ?, ?, ?)`,
+        [dbMemberCode, ref, 'deposit', share_capital, 'Initial share capital']
+      );
+      await connection.execute(
+        `INSERT INTO share_capital
+          (memberId, memberCode, total_amount)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           total_amount = total_amount + VALUES(total_amount)`,
+        [memberId, dbMemberCode, share_capital]
+      );
+    }
 
+    // 5) Member account creation/upsert (unchanged)
+    if (memberCode) {
       const accountSql = `
-        INSERT INTO member_account (memberId, email, password, accountStatus)
+        INSERT INTO member_account
+          (memberId, email, password, accountStatus)
         VALUES (?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           email = VALUES(email),
@@ -218,44 +199,88 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
           accountStatus = VALUES(accountStatus)
       `;
       await connection.execute(accountSql, [
-        memberId, defaultEmail, defaultPassword, accountStatus
+        memberId,
+        email || dbMemberCode,
+        password || dbMemberCode,
+        'NOT ACTIVATED'
       ]);
     }
 
     if (initial_savings !== null && initial_savings > 0) {
-      // ... your existing savings logic ...
+      // 1) Generate a unique savings-account number
+      const accountNumber = await generateUniqueAccountNumber();
+    
+      // 2) Upsert into regular_savings (so we either create a new row or bump the total_amount)
+      const [upsertResult] = await connection.execute(
+        `INSERT INTO regular_savings
+           (memberId, account_number, amount)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           amount = amount + VALUES(amount)`,
+        [memberId, accountNumber, initial_savings]
+      );
+    
+      // 3) Figure out the savingsId of the row we just touched
+      let savingsId;
+      if (upsertResult.insertId && upsertResult.insertId > 0) {
+        // we just inserted a brand-new row
+        savingsId = upsertResult.insertId;
+      } else {
+        // we updated an existing row—lookup its PK
+        const [rows] = await connection.execute(
+          `SELECT savingsId
+             FROM regular_savings
+            WHERE memberId = ?
+            ORDER BY updated_at DESC
+            LIMIT 1`,
+          [memberId]
+        );
+        if (!rows.length) throw new Error("Could not retrieve savingsId for member");
+        savingsId = rows[0].savingsId;
+      }
+    
+      // 4) Insert the transaction history
+      const transactionNumber   = await generateTransactionNumber();
+      const authorizedUserType  = "System";
+      const transactionType     = "Initial Savings Deposit";
+      const transactionAmount   = initial_savings;
+      const transactionDateTime = new Date();
+    
+      await connection.execute(
+        `INSERT INTO regular_savings_transaction
+           (transaction_number, authorized, transaction_type, amount, transaction_date_time, regular_savings_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          transactionNumber,
+          authorizedUserType,
+          transactionType,
+          transactionAmount,
+          transactionDateTime,
+          savingsId
+        ]
+      );
     }
-
+    
     await connection.commit();
-
     return {
       success: true,
-      message: "Membership Successfully Updated.",
-      memberCode,
+      message: "Membership successfully updated",
+      memberCode: dbMemberCode,
       memberType
     };
+
   } catch (err) {
-    try {
-      // Check if connection is still valid before rolling back
-      if (connection && connection.connection && !connection.connection._closing) {
-        await connection.rollback();
-      }
-    } catch (rollbackErr) {
-      console.error("Rollback error:", rollbackErr.message);
+    if (connection && !connection.connection._closing) {
+      await connection.rollback();
     }
-    console.error("Transaction error:", err.message);
     throw err;
   } finally {
-    try {
-      // Check if connection is still valid before releasing
-      if (connection && connection.connection && !connection.connection._closing) {
-        connection.release();
-      }
-    } catch (releaseErr) {
-      console.error("Connection release error:", releaseErr.message);
+    if (connection && !connection.connection._closing) {
+      connection.release();
     }
   }
 };
+
 
 // In memberModel.js
 exports.addPurchaseHistory = async (memberId, service, amount) => {

@@ -23,7 +23,7 @@ const MemberProfile = () => {
           throw new Error("User email not found. Please log in again.");
         }
         const response = await axios.get(
-          `http://192.168.254.100:3001/api/member/email/${email}`
+          ` http://192.168.254.114:3001/api/member/email/${email}`
         );
         setUser(response.data);
         setEditableData(response.data);
@@ -50,7 +50,7 @@ const MemberProfile = () => {
   const handleUpdate = async () => {
     try {
       setIsUpdating(true);
-      await axios.put(`http://192.168.254.100:3001/api/member/update`, {
+      await axios.put(` http://192.168.254.114:3001/api/member/update`, {
         email: user.email,
         FirstName: editableData.FirstName,
         LastName: editableData.LastName,
@@ -99,7 +99,7 @@ const MemberProfile = () => {
 
     try {
       const response = await axios.post(
-        "http://192.168.254.100:3001/api/member/uploadPicture",
+        " http://192.168.254.114:3001/api/member/uploadPicture",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -166,7 +166,7 @@ const MemberProfile = () => {
                     <img
                       src={
                         imagePreview ||
-                        `http://192.168.254.100:3001/uploads/${user.id_picture}`
+                        ` http://192.168.254.114:3001/uploads/${user.id_picture}`
                       }
                       alt="Profile"
                       className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-md"

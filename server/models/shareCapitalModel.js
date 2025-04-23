@@ -85,68 +85,69 @@ exports.createShareCapitalTransaction = async (transactionData) => {
 };
 
 exports.getShareCapitalByMemberId = async (memberId) => {
-    try {
-      // 1) Fetch all the member fields (including share_capital) in one query
-      const [memberRows] = await db.execute(
-        `SELECT 
-           memberCode,
-           first_name,
-           last_name,
-           member_type,
-        
-           id_picture,
-           share_capital 
-         FROM members 
-         WHERE memberId = ?`,
-        [memberId]
-      );
-  
-      if (!memberRows.length) {
-        throw new Error("Member not found");
-      }
-  
-      const member = memberRows[0];
-      const memberCode = member.memberCode;
-      const totalShareCapital = parseFloat(member.share_capital) || 0;
-  
-      // 2) Fetch that member’s share‑capital transactions
-      const [transactions] = await db.execute(
-        `SELECT 
-           id,
-           memberCode,
-           transaction_number,
-           transaction_type,
-           amount,
-           transferToMemberCode,
-           authorized_by,
-           transaction_date,
-           description
-         FROM share_capital_transactions
-         WHERE memberCode = ? OR transferToMemberCode = ?
-         ORDER BY transaction_date DESC`,
-        [memberCode, memberCode]
-      );
-  
-      // 3) Return everything in one payload
-      return {
-        success: true,
-        total_share_capital: totalShareCapital,
-        transactions: transactions,
-        member: {
-          memberCode,
-          first_name: member.first_name,
-          last_name:  member.last_name,
-          email:     member.email,
-          authorized_by: member.authorized_by,
-          member_type:      member.member_type,
-          id_picture:       member.id_picture
-        }
-      };
-    } catch (err) {
-      console.error("Error fetching share capital:", err.message);
-      throw err;
+  try {
+    // 1) Fetch all the member fields (including share_capital) and join with regular_savings
+    const [memberRows] = await db.execute(
+      `SELECT 
+         m.memberCode,
+         m.first_name,
+         m.last_name,
+         m.member_type,
+         m.id_picture,
+         sc.total_amount
+       FROM members m
+       LEFT JOIN share_capital sc ON m.memberId = sc.memberId
+       WHERE m.memberId = ?`,
+      [memberId]
+    );
+
+    if (!memberRows.length) {
+      throw new Error("Member not found");
     }
-  };
+
+    const member = memberRows[0];
+    const memberCode = member.memberCode;
+    const totalShareCapital = parseFloat(member.total_amount) || 0;
+
+    // 2) Fetch that member's share‑capital transactions
+    const [transactions] = await db.execute(
+      `SELECT 
+         id,
+         memberCode,
+         transaction_number,
+         transaction_type,
+         amount,
+         transferToMemberCode,
+         authorized_by,
+         transaction_date,
+         description
+       FROM share_capital_transactions
+       WHERE memberCode = ? OR transferToMemberCode = ?
+       ORDER BY transaction_date DESC`,
+      [memberCode, memberCode]
+    );
+
+    // 3) Return everything in one payload
+    return {
+      success: true,
+      total_share_capital: totalShareCapital,
+      transactions: transactions,
+      member: {
+        memberCode,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        email: member.email,
+        amount: member.amount,
+        authorized_by: member.authorized_by,
+        member_type: member.member_type,
+        id_picture: member.id_picture
+      }
+    };
+  } catch (err) {
+    console.error("Error fetching share capital:", err.message);
+    throw err;
+  }
+};
   
 
   exports.getAllShareCapitalTransactions = async () => {
