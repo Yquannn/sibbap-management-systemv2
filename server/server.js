@@ -25,7 +25,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes'); // FIXED THIS LINE
 const loanHistoryRoutes = require('./routes/loanHistoryRoutes'); // FIXED THIS LINE
 const loanFactorRoutes = require('./routes/loanFactorRoutes'); // FIXED THIS LINE
 const loanTypeRoutes = require('./routes/loanTypeRoutes'); // FIXED THIS LINE 
-
+const reportRoutes = require('./routes/reportRoutes'); // FIXED THIS LINE
 
 const settingsRoutes = require('./routes/kalingaFundSettings.routes');
 const contributionsRoutes = require('./routes/kalingaContribution.routes');
@@ -35,6 +35,7 @@ const claimsRoutes = require('./routes/kalingaClaims.routes');
 // Add to your main app.js or index.js
 const pushNotificationRoutes = require('./routes/pushNotificationRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const { report } = require('process');
 
 const app = express();
 const PORT = process.env.PORT || 3001; // FIXED THIS LINE
@@ -72,7 +73,7 @@ app.use('/api', loanFactorRoutes); // FIXED THIS LINE
 app.use('/api', settingsRoutes);
 app.use('/api', contributionsRoutes);
 app.use('/api', claimsRoutes);
-
+app.use('/api', reportRoutes); // FIXED THIS LINE
 app.use('/api', loanTypeRoutes); // FIXED THIS LINE
 
 

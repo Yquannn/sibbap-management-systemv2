@@ -1,238 +1,174 @@
+// src/pages/admin/Report.jsx
 import React, { useState } from 'react';
-import { Calendar, Download, FileText, Filter, Printer } from 'lucide-react';
+import dayjs from 'dayjs';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
-export default function LoanReportGenerator() {
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [reportType, setReportType] = useState('summary');
-  const [loanStatus, setLoanStatus] = useState('all');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [reportGenerated, setReportGenerated] = useState(false);
+// Report Table Component
+const ReportTable = ({ data }) => {
+  if (!data || data.length === 0) return null;
   
-  const handleGenerateReport = () => {
-    setIsGenerating(true);
-    
-    // Simulate report generation
-    setTimeout(() => {
-      setIsGenerating(false);
-      setReportGenerated(true);
-    }, 1500);
-  };
-  
-  const mockReportData = {
-    summary: {
-      totalLoans: 245,
-      activeLoans: 180,
-      completedLoans: 42,
-      defaultedLoans: 23,
-      totalAmount: '$2,450,000',
-      averageLoanAmount: '$10,000',
-      averageInterestRate: '8.5%',
-    },
-    loansByStatus: [
-      { status: 'Active', count: 180, amount: '$1,800,000' },
-      { status: 'Completed', count: 42, amount: '$420,000' },
-      { status: 'Defaulted', count: 23, amount: '$230,000' },
-    ],
-    recentLoans: [
-      { id: 'L-2025-042', client: 'John Smith', amount: '$15,000', date: '2025-04-01', status: 'Active' },
-      { id: 'L-2025-041', client: 'Maria Garcia', amount: '$8,500', date: '2025-03-28', status: 'Active' },
-      { id: 'L-2025-040', client: 'Robert Johnson', amount: '$12,000', date: '2025-03-25', status: 'Active' },
-      { id: 'L-2025-039', client: 'Sarah Williams', amount: '$5,000', date: '2025-03-20', status: 'Completed' },
-      { id: 'L-2025-038', client: 'David Brown', amount: '$20,000', date: '2025-03-15', status: 'Defaulted' },
-    ]
-  };
+  // Get column headers from the first item
+  const columns = Object.keys(data[0]);
   
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Loan Report Generator</h1>
-        <p className="text-gray-600">Generate customized reports for loan data analysis</p>
+    <div className="mt-6 overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+      <div className="overflow-x-auto max-h-[440px]">
+        <table className="min-w-full divide-y divide-gray-300">
+          <thead className="bg-gray-50 sticky top-0">
+            <tr>
+              {columns.map((column) => (
+                <th key={column} className="py-3.5 px-4 text-left text-sm font-semibold text-gray-900">
+                  {column.replace(/_/g, ' ').toUpperCase()}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white">
+            {data.map((row, index) => (
+              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                {columns.map((column) => (
+                  <td key={`${index}-${column}`} className="whitespace-nowrap py-3 px-4 text-sm text-gray-500">
+                    {row[column]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+    </div>
+  );
+};
+
+const Report = () => {
+  const [module, setModule] = useState('report-members');
+  const [reportType, setReportType] = useState('summary');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [reportData, setReportData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchReport = async () => {
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams({
+        type: reportType,
+        startDate: startDate ? dayjs(startDate).format('YYYY-MM-DD') : '',
+        endDate: endDate ? dayjs(endDate).format('YYYY-MM-DD') : '',
+      }).toString();
+  
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const endpoint = `${baseUrl}/${module}?${queryParams}`;
       
-      {/* Report Configuration */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-            <select 
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
-            >
-              <option value="summary">Summary Report</option>
-              <option value="detailed">Detailed Report</option>
-              <option value="client">Client-wise Report</option>
-              <option value="performance">Loan Performance Report</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Loan Status</label>
-            <select 
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              value={loanStatus}
-              onChange={(e) => setLoanStatus(e.target.value)}
-            >
-              <option value="all">All Loans</option>
-              <option value="active">Active Loans</option>
-              <option value="completed">Completed Loans</option>
-              <option value="defaulted">Defaulted Loans</option>
-              <option value="pending">Pending Approval</option>
-            </select>
-          </div>
+      console.log("Fetching from:", endpoint);
+  
+      const response = await fetch(endpoint);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setReportData(result.data);
+      } else {
+        console.error("API returned error:", result.message);
+        alert(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Failed to fetch report:", error);
+      alert(`Failed to fetch report: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(reportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `${module}-${reportType}`);
+    
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    saveAs(data, `${module}-${reportType}-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Report Generator</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div>
+          <select
+            value={module}
+            onChange={(e) => setModule(e.target.value)}
+            className="block w-full rounded-md border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm"
+          >
+            <option value="report-members">Members</option>
+            <option value="report-share-capital">Share Capital</option>
+            <option value="report-regular-savings">Regular Savings</option>
+            <option value="report-time-deposit">Time Deposit</option>
+            <option value="report-loans">Loans</option>
+            <option value="report-kalinga">Kalinga Fund</option>
+          </select>
         </div>
         
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="relative">
-                <input 
-                  type="date" 
-                  className="w-full p-2 pl-8 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  value={dateRange.start}
-                  onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                />
-                <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-              </div>
-              <div className="relative">
-                <input 
-                  type="date" 
-                  className="w-full p-2 pl-8 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  value={dateRange.end}
-                  onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                />
-                <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="pt-6">
-            <button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md shadow-sm flex items-center justify-center gap-2"
-              onClick={handleGenerateReport}
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <FileText className="h-5 w-5" />
-                  <span>Generate Report</span>
-                </>
-              )}
-            </button>
-          </div>
+        <div>
+          <select
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value)}
+            className="block w-full rounded-md border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm"
+          >
+            <option value="summary">Summary Report</option>
+            <option value="detailed">Detailed Report</option>
+          </select>
+        </div>
+        
+        <div>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+            placeholder="Start Date"
+          />
+        </div>
+        
+        <div>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+            placeholder="End Date"
+          />
         </div>
       </div>
       
-      {/* Advanced Filters (collapsible) */}
-      <div className="mb-8">
+      <div className="flex gap-3">
         <button 
-          className="flex items-center text-blue-600 hover:text-blue-800 font-medium"
-          onClick={() => {}}
+          onClick={fetchReport}
+          disabled={loading}
+          className="inline-flex justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Filter className="h-4 w-4 mr-1" />
-          Advanced Filters
+          {loading ? 'Loading...' : 'Generate Report'}
+        </button>
+        
+        <button 
+          onClick={exportToExcel}
+          disabled={!reportData.length}
+          className="inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Export to Excel
         </button>
       </div>
       
-      {/* Report Preview */}
-      {reportGenerated && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800">
-              {reportType === 'summary' ? 'Loan Summary Report' : 
-               reportType === 'detailed' ? 'Detailed Loan Report' :
-               reportType === 'client' ? 'Client-wise Loan Report' : 'Loan Performance Report'}
-            </h2>
-            <div className="flex space-x-2">
-              <button className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-md">
-                <Printer className="h-5 w-5" />
-              </button>
-              <button className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-md">
-                <Download className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          
-          {reportType === 'summary' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(mockReportData.summary).map(([key, value]) => (
-                  <div key={key} className="bg-white p-4 rounded-md shadow-sm">
-                    <p className="text-sm text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                    <p className="text-xl font-bold text-gray-800">{value}</p>
-                  </div>
-                ))}
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-medium text-gray-800 mb-3">Loans by Status</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead>
-                      <tr>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {mockReportData.loansByStatus.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{item.status}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{item.count}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{item.amount}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-medium text-gray-800 mb-3">Recent Loans</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead>
-                      <tr>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan ID</th>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-4 py-3 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {mockReportData.recentLoans.map((loan, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{loan.id}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{loan.client}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{loan.amount}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{loan.date}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                              ${loan.status === 'Active' ? 'bg-green-100 text-green-800' : 
-                                loan.status === 'Completed' ? 'bg-blue-100 text-blue-800' : 
-                                'bg-red-100 text-red-800'}`}
-                            >
-                              {loan.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {reportData.length > 0 && <ReportTable data={reportData} />}
     </div>
   );
-}
+};
+
+export default Report;
