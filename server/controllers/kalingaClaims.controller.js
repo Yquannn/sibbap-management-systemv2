@@ -75,7 +75,7 @@ exports.updateClaimStatus = async (req, res) => {
     }
     
     // Optional: Add status validation
-    const validStatuses = ['Pending', 'Approved', 'Rejected'];
+    const validStatuses = ['Disbursed', 'Approved', 'Rejected'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status value' });
     }

@@ -284,6 +284,9 @@ exports.getMemberById = async (req, res) => {
 };
 
 
+
+
+
 exports.memberApplication = async (req, res) => {
   const {
     registration_type,

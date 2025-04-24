@@ -327,10 +327,10 @@ const Dashboard = () => {
                       <div className="w-3 h-3 bg-emerald-600 rounded-full mr-2"></div>
                       <span className="text-sm text-gray-600">Collections</span>
                     </div>
-                    <div className="flex items-center ml-4">
+                    {/* <div className="flex items-center ml-4">
                       <div className="w-3 h-3 bg-red-600 rounded-full mr-2"></div>
                       <span className="text-sm text-gray-600">Delinquent</span>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
                 <div className="h-80">

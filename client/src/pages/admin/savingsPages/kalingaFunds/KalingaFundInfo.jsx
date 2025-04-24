@@ -144,33 +144,49 @@ const KalingaFundInfo = () => {
     }
   };
 
-  // Update claim status
   const handleUpdateClaimStatus = async (e) => {
     e.preventDefault();
+    
+    if (!selectedClaimId) {
+      alert("No claim selected. Please select a claim first.");
+      return;
+    }
+    
     try {
-      // Use the userId from sessionStorage
+      // Make sure approved_by is a number, not a string
       const updatedStatus = {
         status: claimStatus.status,
-        approved_by: parseInt(userId) // Make sure it's parsed as a number
+        approved_by: parseInt(userId)  // Use parseInt instead of Number for clarity
       };
       
-      await axios.put(`http://localhost:3001/api/kalinga/claims/${selectedClaimId}/status`, updatedStatus);
+      // Send the request to update the claim status
+      const response = await axios.put(
+        `http://localhost:3001/api/kalinga/claims/${selectedClaimId}/status`, 
+        updatedStatus
+      );
       
-      // Update the claim in the list
+      // Update the claims array with the new status
       const updatedClaims = claims.map(claim => 
-        claim.claim_id === selectedClaimId ? {...claim, status: claimStatus.status} : claim
+        claim.claim_id === parseInt(selectedClaimId) ? {...claim, status: claimStatus.status} : claim
       );
       
       setClaims(updatedClaims);
       setShowUpdateStatusModal(false);
       setSelectedClaimId(null);
+      setClaimStatus({ status: "Approved" }); // Reset to default after submission
       
       alert("Claim status updated successfully!");
     } catch (error) {
       console.error("Error updating claim status:", error);
-      alert(`Failed to update claim status: ${error.response?.data?.message || error.message}`);
+      
+      // Provide more specific error message based on the response
+      const errorMsg = error.response?.data?.message || error.message || "An unknown error occurred";
+      alert(`Failed to update claim status: ${errorMsg}`);
     }
   };
+
+
+
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -762,7 +778,7 @@ const KalingaFundInfo = () => {
                    <option value="Approved">Approved</option>
                    <option value="Rejected">Rejected</option>
                    <option value="Disbursed">Disbursed</option>
-                   <option value="Pending">Pending</option>
+                   {/* <option value="Pending">Pending</option> */}
                  </select>
                </div>
                
