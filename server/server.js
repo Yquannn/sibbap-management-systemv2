@@ -26,6 +26,16 @@ const loanHistoryRoutes = require('./routes/loanHistoryRoutes'); // FIXED THIS L
 const loanFactorRoutes = require('./routes/loanFactorRoutes'); // FIXED THIS LINE
 const loanTypeRoutes = require('./routes/loanTypeRoutes'); // FIXED THIS LINE 
 
+
+const settingsRoutes = require('./routes/kalingaFundSettings.routes');
+const contributionsRoutes = require('./routes/kalingaContribution.routes');
+const claimsRoutes = require('./routes/kalingaClaims.routes');
+
+
+// Add to your main app.js or index.js
+const pushNotificationRoutes = require('./routes/pushNotificationRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+
 const app = express();
 const PORT = process.env.PORT || 3001; // FIXED THIS LINE
 
@@ -59,7 +69,16 @@ app.use('/api', shareCapitalRoutes); // FIXED THIS LINE
 app.use('/api', dashboardRoutes); // FIXED THIS LINE
 app.use('/api', loanHistoryRoutes);
 app.use('/api', loanFactorRoutes); // FIXED THIS LINE
+app.use('/api', settingsRoutes);
+app.use('/api', contributionsRoutes);
+app.use('/api', claimsRoutes);
+
 app.use('/api', loanTypeRoutes); // FIXED THIS LINE
+
+
+
+app.use('/api', pushNotificationRoutes);
+app.use('/api', subscriptionRoutes);
 
 
 app.use((err, req, res, next) => {

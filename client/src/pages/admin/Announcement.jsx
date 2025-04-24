@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+// Import push notification utilities (you'll need to create this file)
+// import { 
+//   isPushNotificationSupported, 
+//   requestNotificationPermission, 
+//   subscribeToPushNotifications,
+//   checkPushNotificationSubscription 
+// } from '../utils/pushNotificationUtils';
+
 const AddNotification = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -16,6 +24,8 @@ const AddNotification = () => {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [activeTab, setActiveTab] = useState("create");
+  // New state for push notification
+  const [enablePushNotification, setEnablePushNotification] = useState(false);
 
   // Available audience options
   const audienceOptions = [
@@ -27,6 +37,27 @@ const AddNotification = () => {
     "Clerk",
     "Member"
   ];
+
+  // Check if push notifications are supported
+  const isPushNotificationSupported = () => {
+    return 'serviceWorker' in navigator && 'PushManager' in window;
+  };
+
+  // Request push notification permission
+  const requestNotificationPermission = async () => {
+    if (!isPushNotificationSupported()) {
+      console.log("Push notifications are not supported in this browser");
+      return false;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      return permission === "granted";
+    } catch (error) {
+      console.error("Error requesting notification permission:", error);
+      return false;
+    }
+  };
 
   // Handle audience selection change
   const handleAudienceChange = (audience) => {
@@ -76,6 +107,66 @@ const AddNotification = () => {
     setStartDate("");
     setEndDate("");
     setSelectedNotificationId(undefined);
+    setEnablePushNotification(false);
+  };
+
+  // Test push notification
+  async function testPushNotification() {
+    try {
+      const response = await fetch('http://localhost:3001/api/test-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: "Test Notification",
+          body: "This is a test push notification",
+          icon: "/icon.png"
+        })
+      });
+      
+      const result = await response.json();
+      console.log('Test notification result:', result);
+      return result;
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      throw error;
+    }
+  }
+
+  // Send push notification when announcement is created
+  const sendPushNotification = async (notificationData) => {
+    try {
+      // Get targeted users based on audience
+      const targetUsers = targetAudience.includes("All") 
+        ? "all" 
+        : targetAudience.join(",");
+      
+      const pushData = {
+        title: notificationData.title,
+        body: notificationData.content,
+        targetUsers: targetUsers,
+        data: {
+          notificationId: notificationData.id,
+          priority: notificationData.priority,
+          category: notificationData.category,
+          url: "/notifications" // URL to navigate when notification is clicked
+        }
+      };
+
+      const response = await fetch('http://localhost:3001/api/send-push-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pushData)
+      });
+      
+      const result = await response.json();
+      console.log("Push notification result:", result);
+    } catch (error) {
+      console.error("Error sending push notification:", error);
+    }
   };
 
   const authorizedBy = sessionStorage.getItem("username") || null; // Get the authorized user ID from session storage
@@ -127,6 +218,14 @@ const AddNotification = () => {
           }
         );
         setSuccessMessage("Notification added successfully!");
+        
+        // Send push notification if enabled
+        if (enablePushNotification) {
+          await sendPushNotification({
+            ...notificationData,
+            id: response.data.notification_id || response.data.id
+          });
+        }
       }
 
       // Clear fields and reset state after successful operation
@@ -147,6 +246,25 @@ const AddNotification = () => {
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
+    }
+  };
+
+  // Handle requesting notification permission
+  const handleRequestPermission = async () => {
+    try {
+      const permissionGranted = await requestNotificationPermission();
+      
+      if (permissionGranted) {
+        // User granted permission
+        setEnablePushNotification(true);
+        setSuccessMessage("Push notification permission granted!");
+      } else {
+        console.log("Notification permission denied");
+        setError("Notification permission denied. Push notifications cannot be sent.");
+      }
+    } catch (error) {
+      console.error("Error setting up push notifications:", error);
+      setError("Failed to set up push notifications. Please try again.");
     }
   };
 
@@ -210,7 +328,64 @@ const AddNotification = () => {
   // Fetch notifications when the component mounts
   useEffect(() => {
     fetchNotifications();
+    
+    // Check if push notifications are supported
+    if (isPushNotificationSupported()) {
+      // Check if permission is already granted
+      if (Notification.permission === "granted") {
+        setEnablePushNotification(true);
+      }
+    }
   }, []);
+
+  // Render push notification toggle UI
+  const renderPushNotificationToggle = () => {
+    if (!isPushNotificationSupported()) {
+      return (
+        <div className="mt-4 text-sm text-gray-500">
+          Push notifications are not supported in this browser.
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-6 border-t pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-medium text-gray-900">Send Push Notification</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Notify users immediately via push notification when this announcement is published
+            </p>
+          </div>
+          <div className="flex items-center">
+            {Notification.permission !== "granted" && (
+              <button
+                type="button"
+                onClick={handleRequestPermission}
+                className="mr-4 text-sm text-blue-600 hover:text-blue-800"
+              >
+                Request Permission
+              </button>
+            )}
+            <label className="inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enablePushNotification}
+                onChange={() => setEnablePushNotification(!enablePushNotification)}
+                disabled={Notification.permission !== "granted"}
+                className="sr-only peer"
+              />
+              <div className={`relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 
+                ${enablePushNotification ? 'peer-checked:after:translate-x-full peer-checked:bg-blue-600' : ''}
+                after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border 
+                after:rounded-full after:h-5 after:w-5 after:transition-all`}>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Get status color based on notification status
   const getStatusColor = (status) => {
@@ -477,6 +652,9 @@ const AddNotification = () => {
               </div>
             </div>
 
+            {/* Add push notification toggle for new notifications */}
+            {!selectedNotificationId && renderPushNotificationToggle()}
+
             <div className="mt-8 flex space-x-4">
               <button
                 onClick={handleSubmit}
@@ -557,86 +735,85 @@ const AddNotification = () => {
                     onClick={() => handleEdit(notification)}
                   >
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{notification.title}</h3>
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(notification.status)}`}>
-                            {notification.status}
-                          </span>
-                          {notification.priority && (
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(notification.priority)}`}>
-                              {notification.priority}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <p className="text-sm text-gray-600 mt-2">{notification.content}</p>
-                        
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
-                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            {formatTargetAudience(notification.targetAudience)}
-                          </span>
-                          
-                          {notification.category && (
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
-                              <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                              </svg>
-                              {notification.category}
-                            </span>
-                          )}
-                          
-                          {(notification.startDate || notification.endDate) && (
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
-                              <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              {notification.startDate && formatDate(notification.startDate)}
-                              {notification.startDate && notification.endDate && " - "}
-                              {notification.endDate && formatDate(notification.endDate)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(notification);
-                          }}
-                          className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition flex items-center"
-                        >
-                          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Edit
-                        </button>
-                        
-                        <button
-                        
-onClick={(e) => handleDelete(notification.notificationId, e)}
-                          className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition flex items-center"
-                        >
-                          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+                     <div className="flex-1">
+                       <div className="flex items-center space-x-3">
+                         <h3 className="text-lg font-semibold text-gray-900">{notification.title}</h3>
+                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(notification.status)}`}>
+                           {notification.status}
+                         </span>
+                         {notification.priority && (
+                           <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(notification.priority)}`}>
+                             {notification.priority}
+                           </span>
+                         )}
+                       </div>
+                       
+                       <p className="text-sm text-gray-600 mt-2">{notification.content}</p>
+                       
+                       <div className="mt-4 flex flex-wrap gap-2">
+                         <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
+                           <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                           </svg>
+                           {formatTargetAudience(notification.targetAudience)}
+                         </span>
+                         
+                         {notification.category && (
+                           <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
+                             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                             </svg>
+                             {notification.category}
+                           </span>
+                         )}
+                         
+                         {(notification.startDate || notification.endDate) && (
+                           <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md inline-flex items-center">
+                             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                             </svg>
+                             {notification.startDate && formatDate(notification.startDate)}
+                             {notification.startDate && notification.endDate && " - "}
+                             {notification.endDate && formatDate(notification.endDate)}
+                           </span>
+                         )}
+                       </div>
+                     </div>
+                     
+                     <div className="flex items-center space-x-3">
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleEdit(notification);
+                         }}
+                         className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition flex items-center"
+                       >
+                         <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                         </svg>
+                         Edit
+                       </button>
+                       
+                       <button
+                         onClick={(e) => handleDelete(notification.notificationId, e)}
+                         className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition flex items-center"
+                       >
+                         <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                         </svg>
+                         Delete
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           )}
+         </div>
+       )}
+     </div>
+   </div>
+ );
 };
 
 export default AddNotification;

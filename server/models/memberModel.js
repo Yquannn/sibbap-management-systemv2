@@ -219,7 +219,23 @@ exports.updateMemberFinancials = async (memberId, financialData) => {
            amount = amount + VALUES(amount)`,
         [memberId, accountNumber, initial_savings]
       );
-    
+
+
+
+      if (kalinga_fund_fee !== null && kalinga_fund_fee > 0) {
+        const accountNumber = await generateUniqueAccountNumber();
+        const ref = await generateTransactionNumber();
+
+        // Insert into kalinga_contribution table
+        await connection.execute(
+          `INSERT INTO kalinga_contributions
+             (memberId, account_number, amount, payment_method, receipt_number, remarks)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             amount = amount + VALUES(amount)`,
+          [memberId, accountNumber, kalinga_fund_fee, 'Initial Payment', ref, 'Initial Kalinga Fund Contribution']
+        );
+      }
       // 3) Figure out the savingsId of the row we just touched
       let savingsId;
       if (upsertResult.insertId && upsertResult.insertId > 0) {

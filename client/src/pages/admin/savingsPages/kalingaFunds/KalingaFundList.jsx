@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  FaEye,
-  FaSearch,
-  FaSyncAlt,
-  FaChevronDown,
-} from "react-icons/fa";
+import { FaEye, FaSearch, FaSyncAlt, FaChevronDown } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const KalingaFunds = ({ openModal, handleDelete }) => {
-  const [kalingaMembers, setKalingaMembers] = useState([]);
+  // State for different data types
+  const [contributions, setContributions] = useState([]);
+  const [claims, setClaims] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterQuery, setFilterQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -21,15 +20,32 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
 
   const navigate = useNavigate();
 
-  // Stable fetch function
-  const fetchKalingaFunds = useCallback(async () => {
+  // Fetch data from our endpoints
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setRefreshing(true);
     try {
-      const { data } = await axios.get(
-        "http://localhost:3001/api/members/kalinga"
-      );
-      setKalingaMembers(Array.isArray(data.data) ? data.data : []);
+      // Fetch all data in parallel
+      const [membersRes, contributionsRes, claimsRes, settingsRes] = await Promise.all([
+        axios.get("http://localhost:3001/api/members"),
+        axios.get("http://localhost:3001/api/kalinga/contributions"),
+        axios.get("http://localhost:3001/api/kalinga/claims"),
+        axios.get("http://localhost:3001/api/kalinga/settings/active")
+      ]);
+
+      // Process the data
+      const membersData = Array.isArray(membersRes.data) ? membersRes.data : [];
+      const contributionsData = Array.isArray(contributionsRes.data) ? contributionsRes.data : [];
+      const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
+
+      // Update state
+      setContributions(contributionsData);
+      setClaims(claimsData);
+      setSettings(settingsRes.data);
+
+      // Process member data for display
+      const processedMembers = processMembers(membersData, contributionsData, claimsData);
+      setKalingaMembers(processedMembers);
     } catch (err) {
       console.error("Error fetching Kalinga funds data:", err);
     } finally {
@@ -38,9 +54,46 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
     }
   }, []);
 
+  // Process members with their Kalinga fund information
+  const processMembers = (members, contributions, claims) => {
+    return members.map(member => {
+      // Get this member's contributions
+      const memberContributions = contributions.filter(c => c.memberId === member.memberId);
+      const earliestContribution = memberContributions.length > 0 
+        ? memberContributions.sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date))[0].payment_date
+        : null;
+      
+      // Get this member's claims
+      const memberClaims = claims.filter(c => c.memberId === member.memberId);
+      const hasClaimed = memberClaims.some(claim => 
+        claim.status === "Approved" || claim.status === "Disbursed");
+      
+      // Determine member status
+      let status = "Active";
+      if (hasClaimed) status = "Claimed";
+      if (memberContributions.length === 0) status = "Inactive";
+      
+      // Get beneficiary if any
+      const beneficiary = memberClaims.length > 0 ? memberClaims[0].beneficiary_name : "";
+
+      return {
+        memberId: member.memberId,
+        memberCode: member.memberCode,
+        fullName: member.full_name || `${member.first_name} ${member.last_name}`,
+        kalingaContribution: member.kalinga_fund_fee,
+        kalinga_join_date: earliestContribution,
+        kalingaStatus: status,
+        beneficiaryName: beneficiary
+      };
+    });
+  };
+
+  // Combined data for display
+  const [kalingaMembers, setKalingaMembers] = useState([]);
+
   useEffect(() => {
-    fetchKalingaFunds();
-  }, [fetchKalingaFunds]);
+    fetchData();
+  }, [fetchData]);
 
   // Filter + sort
   const filtered = kalingaMembers.filter((m) => {
@@ -55,9 +108,12 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
     );
   });
 
-  const sorted = [...filtered].sort(
-    (a, b) => b.memberId - a.memberId
-  );
+  const sorted = [...filtered].sort((a, b) => {
+    // Sort by memberId numerically (if possible)
+    const idA = parseInt(a.memberId) || 0;
+    const idB = parseInt(b.memberId) || 0;
+    return idB - idA;
+  });
 
   // Pagination slice
   const start = (currentPage - 1) * itemsPerPage;
@@ -69,14 +125,27 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
   const totalPages = Math.ceil(sorted.length / itemsPerPage);
 
   // Handlers
-  const goToPage = (p) =>
-    p >= 1 && p <= totalPages && setCurrentPage(p);
+  const goToPage = (p) => p >= 1 && p <= totalPages && setCurrentPage(p);
   const handleItemsChange = (e) => {
     setItemsPerPage(+e.target.value);
     setCurrentPage(1);
   };
   const handleKeyPress = (e) => {
     if (e.key === "Enter") setCurrentPage(1);
+  };
+
+  // Handler to view member details
+  const handleViewMember = (memberId) => {
+    console.log(members.memberId)
+    // Find the member contributions and claims
+    const memberContributions = contributions.filter(c => c.memberId === members.memberId);
+    const memberClaims = claims.filter(c => c.memberId === members.memberId);
+    
+    // Store in session storage for detail view
+    sessionStorage.setItem('kalingaMemberContributions', JSON.stringify(memberContributions));
+    sessionStorage.setItem('kalingaMemberClaims', JSON.stringify(memberClaims));
+    
+    navigate(`/kalinga-fund-info/${memberId}`);
   };
 
   if (loading) {
@@ -91,29 +160,20 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
     <div className="">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
-          Kalinga Fund
-        </h1>
-        <p className="text-gray-600">
-          Manage and view member Kalinga fund accounts
-        </p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Kalinga Fund</h1>
+        <p className="text-gray-600">Manage and view member Kalinga fund accounts</p>
       </div>
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
         {/* Total Members */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
+        {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-500 mb-1">
-                Total Members
-              </p>
-              <p className="text-3xl font-bold text-gray-800">
-                {kalingaMembers.length}
-              </p>
+              <p className="text-sm text-gray-500 mb-1">Total Members</p>
+              <p className="text-3xl font-bold text-gray-800">{members.length}</p>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
-              {/* example icon */}
               <svg
                 className="h-6 w-6 text-blue-500"
                 fill="none"
@@ -129,20 +189,17 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
               </svg>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Active */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-500 mb-1">
-                Active Accounts
-              </p>
+              <p className="text-sm text-gray-500 mb-1">Active Accounts</p>
               <p className="text-3xl font-bold text-gray-800">
                 {
                   kalingaMembers.filter(
-                    (m) =>
-                      (m.kalingaStatus || "Active") === "Active"
+                    (m) => m.kalingaStatus === "Active"
                   ).length
                 }
               </p>
@@ -169,11 +226,9 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-500 mb-1">
-                Total Contributions
-              </p>
+              <p className="text-sm text-gray-500 mb-1">Total Contributions</p>
               <p className="text-3xl font-bold text-gray-800">
-                ₱{kalingaMembers.reduce((sum, m) => sum + (m.kalingaContribution || 0), 0).toLocaleString()}
+                ₱{contributions.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
@@ -198,17 +253,15 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-500 mb-1">
-                New This Month
-              </p>
+              <p className="text-sm text-gray-500 mb-1">New This Month</p>
               <p className="text-3xl font-bold text-gray-800">
                 {
-                  kalingaMembers.filter((m) => {
-                    const jd = new Date(m.kalinga_join_date || null);
+                  contributions.filter((c) => {
+                    const contributionDate = new Date(c.payment_date || null);
                     const now = new Date();
                     return (
-                      jd.getMonth() === now.getMonth() &&
-                      jd.getFullYear() === now.getFullYear()
+                      contributionDate.getMonth() === now.getMonth() &&
+                      contributionDate.getFullYear() === now.getFullYear()
                     );
                   }).length
                 }
@@ -264,7 +317,7 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
             </div>
 
             <button
-              onClick={fetchKalingaFunds}
+              onClick={fetchData}
               disabled={refreshing}
               className={`flex items-center gap-2 py-2.5 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition ${
                 refreshing ? "opacity-70 cursor-not-allowed" : ""
@@ -289,7 +342,6 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
               <tr>
                 {[
                   "Code Number",
-                  "Kalinga ID",
                   "Full Name",
                   "Contribution",
                   "Beneficiary",
@@ -315,9 +367,6 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
                   >
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {m.memberCode}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {m.kalingaId || "N/A"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
@@ -355,9 +404,7 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
-                        onClick={() =>
-                          navigate(`/kalinga-fund-info/${m.memberId}`)
-                        }
+                        onClick={() => handleViewMember(m.memberId)}
                         className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-md hover:bg-blue-100 transition-colors"
                       >
                         <FaEye className="mr-1.5 h-3.5 w-3.5" /> View

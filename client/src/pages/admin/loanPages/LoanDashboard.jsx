@@ -224,7 +224,7 @@ const LoanDisbursementCard = ({ totalLoanDisbursed, monthlyStats }) => {
           )}
         </div>
 
-        <a
+        {/* <a
           href="#"
           className="uppercase text-sm font-semibold inline-flex items-center rounded-lg text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-2 transition-colors duration-200"
         >
@@ -244,7 +244,7 @@ const LoanDisbursementCard = ({ totalLoanDisbursed, monthlyStats }) => {
               d="m1 9 4-4-4-4"
             />
           </svg>
-        </a>
+        </a> */}
       </div>
     </div>
   );

@@ -96,3 +96,45 @@ const unregister = () => {
     });
   }
 };
+
+
+self.addEventListener('push', function(event) {
+  if (event.data) {
+    const data = event.data.json();
+    const options = data.notification;
+    
+    event.waitUntil(
+      self.registration.showNotification(options.title, {
+        body: options.body,
+        icon: options.icon || '/icon.png',
+        badge: options.badge || '/badge.png',
+        vibrate: options.vibrate || [100, 50, 100],
+        data: options.data || {}
+      })
+    );
+  }
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window'
+    }).then(function(clientList) {
+      const notificationData = event.notification.data;
+      const url = notificationData.url || '/notifications';
+      
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
+});

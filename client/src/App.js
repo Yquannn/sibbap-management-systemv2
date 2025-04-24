@@ -65,6 +65,9 @@ import TimedepositEarlyWithdrawal from "./pages/admin/savingsPages/timedeposit/T
 import LoanHistory from "./pages/admin/loanPages/LoanHistory";
 import LoanApplicationView from "./pages/admin/loanPages/LoanApplicationView";
 import KalingaFundList from "./pages/admin/savingsPages/kalingaFunds/KalingaFundList";
+import KalingaFundInfo from "./pages/admin/savingsPages/kalingaFunds/KalingaFundInfo";
+
+import PushNotification from "./pages/admin/PushNotification";
 
 function App() {
   return (
@@ -126,7 +129,9 @@ function App() {
     <Route path="loan-history" element={<LoanHistory />} />
     <Route path="loan-application-view/:loanId" element={<LoanApplicationView />} />
     <Route path="kalinga-fund-members" element={<KalingaFundList />} />
+    <Route path="kalinga-fund-info/:memberId" element={<KalingaFundInfo />} />
 
+    <Route path="test-push-notif" element={<PushNotification />} />
 
 
 
