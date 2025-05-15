@@ -938,13 +938,13 @@ const stats = [
     icon: <FaMoneyCheckAlt size={20} className="text-white" />,
     color: 'bg-indigo-500'
   },
-  {
-    title: 'Total Members',
-    value: dashboardData.totalMembersCount || 0,
-    trend: calculateTrendLabel(dashboardData.membersTrend),
-    icon: <FaUsers size={20} className="text-white" />,
-    color: 'bg-green-500'
-  },
+  // {
+  //   title: 'Total Members',
+  //   value: dashboardData.totalMembersCount || 0,
+  //   trend: calculateTrendLabel(dashboardData.membersTrend),
+  //   icon: <FaUsers size={20} className="text-white" />,
+  //   color: 'bg-green-500'
+  // },
   {
     title: 'Share Capital',
     value: dashboardData.totalShareCapital || 0,
@@ -970,7 +970,7 @@ const stats = [
 
       <main className="w-full">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
           {stats.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}

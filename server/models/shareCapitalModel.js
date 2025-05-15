@@ -10,17 +10,59 @@ exports.createShareCapitalTransaction = async (transactionData) => {
       transaction_type,
       amount,
       transferToMemberCode,
-      description
+      description,
+      authorized_by,
+      transaction_number
     } = transactionData;
-    
+
+    // Input validation
+    if (!memberCode || !transaction_type || !amount) {
+      throw new Error('Missing required fields: memberCode, transaction_type, and amount are required');
+    }
+
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    if (transaction_type === 'transfer' && !transferToMemberCode) {
+      throw new Error('transferToMemberCode is required for transfer transactions');
+    }
+
+    // Get memberId from memberCode
+    const [member] = await connection.execute(
+      'SELECT memberId FROM members WHERE memberCode = ?',
+      [memberCode]
+    );
+
+    if (!member.length) {
+      throw new Error('Member not found');
+    }
+
+    const memberId = member[0].memberId;
+
+    // For transfers, validate target member
+    if (transaction_type === 'transfer') {
+      const [targetMember] = await connection.execute(
+        'SELECT memberId FROM members WHERE memberCode = ?',
+        [transferToMemberCode]
+      );
+
+      if (!targetMember.length) {
+        throw new Error('Target member not found');
+      }
+    }
+
+    // Insert transaction record
     const sql = `
       INSERT INTO share_capital_transactions (
         memberCode,
         transaction_type,
         amount,
         transferToMemberCode,
-        description
-      ) VALUES (?, ?, ?, ?, ?)
+        description,
+        authorized_by,
+        transaction_number
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     
     const [result] = await connection.execute(sql, [
@@ -28,44 +70,92 @@ exports.createShareCapitalTransaction = async (transactionData) => {
       transaction_type,
       amount,
       transferToMemberCode || null,
-      description || null
+      description || null,
+      authorized_by || null,
+      transaction_number || null
     ]);
-    
-    // Update the source member's share capital
-    let updateMemberSql = '';
-    
+
+    // Handle share capital updates based on transaction type
     if (transaction_type === 'deposit') {
-      updateMemberSql = `
-        UPDATE members 
-        SET share_capital = share_capital + ? 
-        WHERE memberCode = ?
-      `;
-      await connection.execute(updateMemberSql, [amount, memberCode]);
+      // Check if member exists in share_capital table
+      const [memberExists] = await connection.execute(
+        `SELECT COUNT(*) as count FROM share_capital WHERE memberId = ?`,
+        [memberId]
+      );
+
+      if (memberExists[0].count === 0) {
+        // Insert new record if member doesn't exist
+        await connection.execute(
+          `INSERT INTO share_capital (memberId, total_amount) VALUES (?, ?)`,
+          [memberId, amount]
+        );
+      } else {
+        // Update existing record
+        await connection.execute(
+          `UPDATE share_capital SET total_amount = total_amount + ? WHERE memberId = ?`,
+          [amount, memberId]
+        );
+      }
     } 
     else if (transaction_type === 'withdraw') {
-      updateMemberSql = `
-        UPDATE members 
-        SET share_capital = share_capital - ? 
-        WHERE memberCode = ?
-      `;
-      await connection.execute(updateMemberSql, [amount, memberCode]);
+      // Check if member has sufficient balance
+      const [balanceCheck] = await connection.execute(
+        `SELECT total_amount FROM share_capital WHERE memberId = ?`,
+        [memberId]
+      );
+      
+      if (!balanceCheck.length || parseFloat(balanceCheck[0].total_amount) < parseFloat(amount)) {
+        throw new Error('Insufficient share capital balance');
+      }
+      
+      await connection.execute(
+        `UPDATE share_capital SET total_amount = total_amount - ? WHERE memberId = ?`,
+        [amount, memberId]
+      );
     }
     else if (transaction_type === 'transfer') {
-      // Decrease source member's share capital
-      updateMemberSql = `
-        UPDATE members 
-        SET share_capital = share_capital - ? 
-        WHERE memberCode = ?
-      `;
-      await connection.execute(updateMemberSql, [amount, memberCode]);
+      // Get target memberId
+      const [targetMember] = await connection.execute(
+        'SELECT memberId FROM members WHERE memberCode = ?',
+        [transferToMemberCode]
+      );
+      const targetMemberId = targetMember[0].memberId;
+
+      // Check if source member has sufficient balance
+      const [balanceCheck] = await connection.execute(
+        `SELECT total_amount FROM share_capital WHERE memberId = ?`,
+        [memberId]
+      );
       
-      // Increase target member's share capital
-      const updateTargetSql = `
-        UPDATE members 
-        SET share_capital = share_capital + ? 
-        WHERE memberCode = ?
-      `;
-      await connection.execute(updateTargetSql, [amount, transferToMemberCode]);
+      if (!balanceCheck.length || parseFloat(balanceCheck[0].total_amount) < parseFloat(amount)) {
+        throw new Error('Insufficient share capital balance for transfer');
+      }
+
+      // Decrease source member's share capital
+      await connection.execute(
+        `UPDATE share_capital SET total_amount = total_amount - ? WHERE memberId = ?`,
+        [amount, memberId]
+      );
+
+      // Check if target member has share_capital record
+      const [targetShareCheck] = await connection.execute(
+        `SELECT COUNT(*) as count FROM share_capital WHERE memberId = ?`,
+        [targetMemberId]
+      );
+
+      if (targetShareCheck[0].count === 0) {
+        // Create share_capital record for target member
+        await connection.execute(
+          `INSERT INTO share_capital (memberId, total_amount) VALUES (?, ?)`,
+          [targetMemberId, amount]
+        );
+      } else {
+        // Update target member's share capital
+        await connection.execute(
+          `UPDATE share_capital SET total_amount = total_amount + ? WHERE memberId = ?`,
+          [amount, targetMemberId]
+        );
+      }
     }
     
     await connection.commit();
@@ -73,6 +163,7 @@ exports.createShareCapitalTransaction = async (transactionData) => {
     return {
       success: true,
       transaction_id: result.insertId,
+      transaction_number: transaction_number,
       message: "Share capital transaction created successfully"
     };
   } catch (err) {
@@ -194,147 +285,3 @@ exports.generateTransactionReference = async () => {
 
   
 };
-
-exports.createShareCapitalTransaction = async (transactionData) => {
-    const connection = await db.getConnection();
-    try {
-      await connection.beginTransaction();
-      
-      const {
-        memberCode,
-        transaction_type,
-        amount,
-        transferToMemberCode,
-        authorized_by,
-        description,
-        transaction_number
-      } = transactionData;
-      
-      const sql = `
-        INSERT INTO share_capital_transactions (
-          memberCode,
-          transaction_type,
-          amount,
-          transferToMemberCode,
-          authorized_by,
-          description,
-          transaction_number
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
-      
-      const [result] = await connection.execute(sql, [
-        memberCode,
-        transaction_type,
-        amount,
-        transferToMemberCode || null,
-        authorized_by || null,
-        description || null,
-        transaction_number || null
-      ]);
-      
-      // Update the source member's share capital
-      let updateMemberSql = '';
-      
-      if (transaction_type === 'deposit') {
-        updateMemberSql = `
-          UPDATE share_capital 
-          SET total_amount = total_amount + ? 
-          WHERE memberCode = ?
-        `;
-        await connection.execute(updateMemberSql, [amount, memberCode]);
-      } 
-      else if (transaction_type === 'withdraw') {
-        // Check if member has sufficient balance before withdrawal
-        const [balanceCheck] = await connection.execute(
-          `SELECT total_amount FROM share_capital WHERE memberCode = ?`,
-          [memberCode]
-        );
-        
-        if (!balanceCheck.length || parseFloat(balanceCheck[0].total_amount) < parseFloat(amount)) {
-          throw new Error("Insufficient share capital balance for withdrawal");
-        }
-        
-        updateMemberSql = `
-          UPDATE share_capital 
-          SET total_amount = total_amount - ? 
-          WHERE memberCode = ?
-        `;
-        await connection.execute(updateMemberSql, [amount, memberCode]);
-      }
-      else if (transaction_type === 'transfer') {
-        // Check if source member has sufficient balance before transfer
-        const [balanceCheck] = await connection.execute(
-          `SELECT total_amount FROM share_capital WHERE memberCode = ?`,
-          [memberCode]
-        );
-        
-        if (!balanceCheck.length || parseFloat(balanceCheck[0].total_amount) < parseFloat(amount)) {
-          throw new Error("Insufficient share capital balance for transfer");
-        }
-        
-        // Check if target member exists
-        const [targetCheck] = await connection.execute(
-          `SELECT COUNT(*) as count FROM members WHERE memberCode = ?`,
-          [transferToMemberCode]
-        );
-        
-        if (targetCheck[0].count === 0) {
-          throw new Error("Target member does not exist");
-        }
-        
-        // Decrease source member's share capital
-        updateMemberSql = `
-          UPDATE share_capital 
-          SET total_amount = total_amount - ? 
-          WHERE memberCode = ?
-        `;
-        await connection.execute(updateMemberSql, [amount, memberCode]);
-        
-        // Increase target member's share capital
-        const updateTargetSql = `
-          UPDATE share_capital 
-          SET total_amount = total_amount + ? 
-          WHERE memberCode = ?
-        `;
-        await connection.execute(updateTargetSql, [amount, transferToMemberCode]);
-        
-        // Check if this was a full transfer (all share capital transferred)
-        // If full transfer, update member status to inactive
-        if (Math.abs(parseFloat(balanceCheck[0].total_amount) - parseFloat(amount)) < 0.01) {
-          const updateMemberStatusSql = `
-            UPDATE members 
-            SET status = 'inactive' 
-            WHERE memberCode = ?
-          `;
-          await connection.execute(updateMemberStatusSql, [memberCode]);
-        }
-      }
-      else if (transaction_type === 'dividend') {
-        updateMemberSql = `
-          UPDATE share_capital 
-          SET total_amount = total_amount + ? 
-          WHERE memberCode = ?
-        `;
-        await connection.execute(updateMemberSql, [amount, memberCode]);
-      }
-      else {
-        // For any other transaction types, log but don't modify balances
-        console.log(`Transaction type '${transaction_type}' does not affect share capital balance.`);
-      }
-      
-      await connection.commit();
-      
-      return {
-        success: true,
-        transaction_id: result.insertId,
-        transaction_number: transaction_number,
-        message: "Share capital transaction created successfully"
-      };
-    } catch (err) {
-      await connection.rollback();
-      console.error("Share capital transaction error:", err.message);
-      throw err;
-    } finally {
-      connection.release();
-    }
-  };

@@ -786,7 +786,7 @@ const TimeDepositDetails = () => {
             <RolloverHistory rollovers={rollovers} />
             
             {/* Info Panel - Simplified */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            {/* <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Time Deposit Information
               </h3>
@@ -804,7 +804,7 @@ const TimeDepositDetails = () => {
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

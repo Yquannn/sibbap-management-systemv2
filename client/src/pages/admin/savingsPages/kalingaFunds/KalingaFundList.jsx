@@ -341,6 +341,7 @@ const KalingaFunds = ({ openModal, handleDelete }) => {
             <thead className="bg-gray-50">
               <tr>
                 {[
+                  
                   "Code Number",
                   "Full Name",
                   "Contribution",

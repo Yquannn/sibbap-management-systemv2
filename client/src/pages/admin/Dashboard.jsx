@@ -700,7 +700,7 @@ const Dashboard = () => {
           </div>
           
           {/* Additional Analytics Section */}
-          <div className="grid grid-cols-1 gap-6">
+          {/* <div className="grid grid-cols-1 gap-6"> */}
             {/* Recent Transaction Activity */}
             {/* <div className="rounded-xl bg-white p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
               <div className="flex justify-between items-center mb-6">
@@ -769,8 +769,7 @@ const Dashboard = () => {
             </div> */}
             
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Module Performance Summary Cards */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 shadow-md hover:shadow-lg transition-all duration-300 text-white">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold">Loan Module</h3>
@@ -847,7 +846,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
           
           {/* Bottom Section with Action Cards */}
           {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

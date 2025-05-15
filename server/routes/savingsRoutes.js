@@ -3,10 +3,10 @@ const router = express.Router();
 const savingsController = require('../controllers/savingsController');
 
 // Update balance for withdrawal
-router.put('/withdraw', savingsController.withdraw);
+router.patch('/withdraw', savingsController.withdraw);
 
 // Update balance for deposit
-router.put('/deposit', savingsController.deposit);
+router.patch('/deposit', savingsController.deposit);
 router.get('/member/earnings/:memberId', savingsController.getEarnings); 
 
 

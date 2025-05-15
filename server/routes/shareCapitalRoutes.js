@@ -16,8 +16,8 @@ router.get('/member/share-capital/:memberId', shareCapitalController.getShareCap
 router.get('/share-capital/transactions', shareCapitalController.getAllShareCapitalTransactions);
 
 // Specific transaction type endpoints
-router.post('/member/share-capital/deposit', shareCapitalController.depositShareCapital);
-router.post('/member/share-capital/withdraw', shareCapitalController.withdrawShareCapital);
-router.post('/member/share-capital/transfer', shareCapitalController.transferShareCapital);
+router.patch('/member/share-capital/deposit', shareCapitalController.depositShareCapital);
+router.patch('/member/share-capital/withdraw', shareCapitalController.withdrawShareCapital);
+router.patch('/member/share-capital/transfer', shareCapitalController.transferShareCapital);
 
 module.exports = router;

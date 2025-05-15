@@ -2,36 +2,36 @@ const shareCapitalModel = require('../models/shareCapitalModel');
 
 // Main transaction creation endpoint
 exports.createShareCapitalTransaction = async (req, res) => {
-  try {
-    // Generate transaction reference if needed
-    const referenceNumber = await shareCapitalModel.generateTransactionReference();
+  // try {
+  //   // Generate transaction reference if needed
+  //   const referenceNumber = await shareCapitalModel.generateTransactionReference();
     
-    // Create a transaction number
-    const transactionNumber = `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  //   // Create a transaction number
+  //   const transactionNumber = `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     
-    // Add the transaction number to the request body
-    req.body.transaction_number = transactionNumber;
+  //   // Add the transaction number to the request body
+  //   req.body.transaction_number = transactionNumber;
     
-    // Add description if not provided
-    if (!req.body.description) {
-      req.body.description = `Transaction Ref: ${referenceNumber}`;
-    }
+  //   // Add description if not provided
+  //   if (!req.body.description) {
+  //     req.body.description = `Transaction Ref: ${referenceNumber}`;
+  //   }
     
-    // Ensure authorizedBy is included
-    if (!req.body.authorizedBy) {
-      req.body.authorizedBy = req.session?.username || 'system';
-    }
+  //   // Ensure authorizedBy is included
+  //   if (!req.body.authorizedBy) {
+  //     req.body.authorizedBy = req.session?.username || 'system';
+  //   }
     
-    const result = await shareCapitalModel.createShareCapitalTransaction(req.body);
-    res.status(201).json(result);
-  } catch (error) {
-    console.error("Error creating share capital transaction:", error);
-    res.status(500).json({
-       success: false,
-       message: "Failed to create share capital transaction",
-       error: error.message
-     });
-  }
+  //   const result = await shareCapitalModel.createShareCapitalTransaction(req.body);
+  //   res.status(201).json(result);
+  // } catch (error) {
+  //   console.error("Error creating share capital transaction:", error);
+  //   res.status(500).json({
+  //      success: false,
+  //      message: "Failed to create share capital transaction",
+  //      error: error.message
+  //    });
+  // }
 };
 
 // Deposit endpoint
@@ -94,6 +94,7 @@ exports.createShareCapitalTransaction = async (req, res) => {
         transaction_number: transactionNumber,
         authorized_by: authorized_by || req.session?.username || 'system'
       };
+      console.log(transactionData);
       
       const result = await shareCapitalModel.createShareCapitalTransaction(transactionData);
       res.status(201).json(result);

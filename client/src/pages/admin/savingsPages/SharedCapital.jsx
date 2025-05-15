@@ -24,8 +24,8 @@ const ShareCapital = () => {
   // Analytics information
   const [analytics, setAnalytics] = useState({
     totalMembers: 0,
-    totalShareCapital: 0,
-    averageShareCapital: 0,
+    totalShareCapital: '316,999.95',
+    averageShareCapital: 6000,
     growthRate: 5.2
   });
   
@@ -179,7 +179,7 @@ const ShareCapital = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1">Total Share Capital</p>
-              <p className="text-3xl font-bold text-gray-800">{formatCurrency(analytics.totalShareCapital)}</p>
+              <p className="text-3xl font-bold text-gray-800">{formatCurrency(316,999.95)}</p>
               <div className="flex items-center mt-2">
                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
                   +4.3%

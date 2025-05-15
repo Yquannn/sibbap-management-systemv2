@@ -275,7 +275,7 @@ const TransactionForm = () => {
       // Different handling based on transaction type and whether it's share capital
       if (isShareCapital) {
         // Share capital transactions - keep using POST
-        method = "post";
+        method = "patch";
         switch (modalType) {
           case "withdrawal":
             endpoint = `${BASE_URL}/member/share-capital/withdraw`;
@@ -308,13 +308,13 @@ const TransactionForm = () => {
         }
       } else {
         // Regular savings transactions - use PUT and match backend function parameters exactly
-        method = "put";
+        method = "patch";
         endpoint = `${BASE_URL}/${modalType === "withdrawal" ? "withdraw" : "deposit"}`;
         payload = {
-          memberId: member.memberId,
+          memberCode: member.memberCode, // Changed from memberId to memberCode
+          amount: amountValue,
           authorized: authorizedBy || currentAuthorized,
           user_type: currentUserType,
-          amount: amountValue,
           transaction_type: modalType === "withdrawal" ? "Withdrawal" : "Deposit"
         };
       }

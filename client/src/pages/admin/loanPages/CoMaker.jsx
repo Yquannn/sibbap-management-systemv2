@@ -89,7 +89,7 @@ const handleSearch = async (e) => {
     }
 
     // Check co-maker share capital meets minimum requirement
-    const minShareCapital = 5000; // Adjust as needed
+    const minShareCapital = 6000; // Adjust as needed
     if (parseFloat(selectedCoMaker.share_capital) < minShareCapital) {
       alert(`Co-maker must have at least ₱${minShareCapital.toLocaleString()} share capital.`);
       return;
@@ -134,7 +134,7 @@ const handleSearch = async (e) => {
         CO-MAKER INFORMATION
       </h2>
       
-      <div className="mb-6 bg-green-50 p-4 rounded-lg border border-green-200">
+      {/* <div className="mb-6 bg-green-50 p-4 rounded-lg border border-green-200">
         <h3 className="font-medium text-green-800 mb-2">Important Notes:</h3>
         <ul className="list-disc ml-5 text-sm text-green-700">
           <li>Co-makers must be active members with good standing.</li>
@@ -142,7 +142,7 @@ const handleSearch = async (e) => {
           <li>Co-makers cannot be the loan applicant themselves.</li>
           <li>Co-makers are financially responsible if the borrower defaults.</li>
         </ul>
-      </div>
+      </div> */}
 
       {/* Co-maker search form */}
       <div className="mb-6">
@@ -248,7 +248,7 @@ const handleSearch = async (e) => {
       )}
 
       {/* Co-maker declaration */}
-      <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+      {/* <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
         <h3 className="font-medium text-gray-800 mb-2">Co-Maker Declaration:</h3>
         <p className="text-sm text-gray-700 mb-2">
           By proceeding with this application, the selected co-maker agrees to the following:
@@ -258,7 +258,7 @@ const handleSearch = async (e) => {
           <li>To acknowledge that their share capital may be used to offset any unpaid balance.</li>
           <li>To confirm they are freely consenting to be a co-maker for this loan application.</li>
         </ul>
-      </div>
+      </div> */}
 
       {/* Navigation buttons */}
       <div className="flex justify-end mt-6 space-x-4">
