@@ -311,7 +311,7 @@ const TransactionForm = () => {
         method = "patch";
         endpoint = `${BASE_URL}/${modalType === "withdrawal" ? "withdraw" : "deposit"}`;
         payload = {
-          memberCode: member.memberCode, // Changed from memberId to memberCode
+          memberId: member.memberId, // Changed from memberId to memberCode
           amount: amountValue,
           authorized: authorizedBy || currentAuthorized,
           user_type: currentUserType,
